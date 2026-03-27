@@ -74,10 +74,19 @@
         </div>
 
         <div id="ui-guest">
-            <div style="background:#fff5f5; border:2px dashed var(--main-red); padding:15px; border-radius:15px; text-align:center;">
-                <p style="margin:0; font-weight:bold; color:var(--main-red); font-size:18px;">🎁 好友專屬招待禮</p>
-                <div class="qr-box"><img id="guestQr" src=""></div>
-                <p style="font-size:14px; color:#444;">點餐前出示此碼，老娘鍋消費送小菜或一點甜消費送霜淇淋一支<br>本優惠碼限用一次</p>
+            <div style="background:#fff5f5; border:2px dashed var(--main-red); padding:20px; border-radius:15px; text-align:center;">
+                <p style="margin:0 0 10px 0; font-weight:bold; color:var(--main-red); font-size:20px;">🎁 好友專屬招待禮</p>
+                
+                <div class="qr-box" style="margin:10px 0;">
+                    <img id="guestQr" src="">
+                </div>
+                
+                <div style="font-size:16px; color:#444; line-height:1.6; text-align:center; margin-top:10px;">
+                    點餐前出示此碼<br>
+                    老娘鍋消費送<strong>小菜一份</strong><br>
+                    或一點甜消費送<strong>霜淇淋一支</strong><br>
+                    <span style="font-size:14px; color:#888; display:block; margin-top:5px;">（本優惠碼限用一次）</span>
+                </div>
             </div>
             
             <div class="form-group">
@@ -159,8 +168,15 @@
         const name = document.getElementById('regName').value.trim();
         const phone = document.getElementById('regPhone').value.trim();
         const birth = document.getElementById('regBirth').value;
-        if (!name || !phone || !birth) { alert("請填寫完整資料"); return; }
-        if (!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { alert("請閱讀並同意條款"); return; }
+        if (!name || !phone || !birth) { 
+            // 這裡也可以改用彈窗，但為了快速提示，若不介意網址可留著，或統一如下：
+            openModal('formError'); 
+            return; 
+        }
+        if (!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { 
+            openModal('checkError'); 
+            return; 
+        }
 
         document.getElementById('regBtn').disabled = true;
         document.getElementById('regBtn').innerText = "處理中...";
@@ -172,9 +188,17 @@
                 mode: "no-cors",
                 body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: rid })
             });
-            alert("註冊成功！歡迎加入！");
-            setTimeout(checkMember, 2000);
-        } catch (e) { alert("連線失敗"); document.getElementById('regBtn').disabled = false; }
+            
+            // 這裡改用自定義彈窗，取代原本的 alert("註冊成功")
+            openModal('regSuccess');
+            
+            // 彈窗顯示後，2秒後自動重新檢查身分並跳轉會員頁
+            setTimeout(checkMember, 2500);
+        } catch (e) { 
+            document.getElementById('regBtn').disabled = false;
+            document.getElementById('regBtn').innerText = "立即加入會員並領取招待";
+            openModal('connectError');
+        }
     }
 
     function handleShare() {
@@ -224,13 +248,38 @@
         }
     }
 
-    // 彈窗控制
+    // 更新後的彈窗控制中心
     function openModal(type) {
         const modal = document.getElementById('customModal');
         const title = document.getElementById('modalTitle');
         const body = document.getElementById('modalBody');
-        if (type === 'rights') { title.innerText = "會員權益與點數規則"; body.innerText = TEXT_RIGHTS; }
-        else { title.innerText = "法務免責與規章聲明"; body.innerText = TEXT_LEGAL; }
+        
+        // 清除之前的樣式
+        body.style.textAlign = "left"; 
+
+        if (type === 'rights') { 
+            title.innerText = "會員權益與點數規則"; 
+            body.innerText = TEXT_RIGHTS; 
+        } else if (type === 'legal') { 
+            title.innerText = "法務免責與規章聲明"; 
+            body.innerText = TEXT_LEGAL; 
+        } else if (type === 'copySuccess') {
+            title.innerText = "連結複製成功！";
+            body.innerHTML = "<div style='text-align:center; padding:10px;'><p style='font-size:18px;'>🎉 連結已準備好囉！</p><p>您可以直接貼給好友，<br>邀請他們領招待並幫您集點！</p></div>";
+        } else if (type === 'regSuccess') {
+            title.innerText = "註冊成功！";
+            body.innerHTML = "<div style='text-align:center; padding:10px;'><p style='font-size:20px; color:#06C755;'>恭喜加入老娘家族！</p><p>系統正在為您同步資料...<br>即將跳轉至會員中心。</p></div>";
+        } else if (type === 'formError') {
+            title.innerText = "提醒";
+            body.innerText = "請務必填寫完整的姓名、電話與生日喔！";
+        } else if (type === 'checkError') {
+            title.innerText = "提醒";
+            body.innerText = "請閱讀並勾選同意會員條款與聲明。";
+        } else if (type === 'connectError') {
+            title.innerText = "連線失敗";
+            body.innerText = "目前通訊不穩定，請稍後再試一次。";
+        }
+        
         modal.style.display = 'flex';
     }
     function closeModal() { document.getElementById('customModal').style.display = 'none'; }
