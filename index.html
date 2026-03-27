@@ -55,6 +55,7 @@
     async function submitForm() {
         const btn = document.getElementById('submitBtn');
         const data = {
+            action: "register", // 👈 加上這一行，讓 GAS 知道現在是註冊
             name: document.getElementById('name').value,
             phone: document.getElementById('phone').value,
             birthday: document.getElementById('birthday').value,
@@ -68,22 +69,18 @@
         btn.disabled = true;
         btn.innerText = "正在為您綁定...";
 
-        // 🚀 重點：只發送 fetch，不使用 .then 鏈接，直接往下跑成功提示
+        // 送出資料
         fetch(gasUrl, {
             method: "POST",
             mode: "no-cors", 
             body: JSON.stringify(data)
         });
 
-        // 延遲一段時間後強制顯示成功並關閉，不再等待 GAS 回傳
+        // 彈出提示並關閉
         setTimeout(() => {
-            alert("註冊成功！歡迎加入老娘鍋！");
-            if (liff.isInClient()) {
-                liff.closeWindow(); 
-            } else {
-                showSuccess("註冊成功", "歡迎加入老娘鍋！請回到 LINE 即可。");
-            }
-        }, 1200); 
+            alert("註冊動作已送出！請回試算表確認。");
+            liff.closeWindow();
+        }, 1200);
     }
 
     function showSuccess(title, msg) {
