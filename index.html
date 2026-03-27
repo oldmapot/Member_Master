@@ -90,47 +90,83 @@
     </div>
 
 <script>
-    // 請務必更新您的 GAS 網址
+    // --- 請務必確認以下兩個變數是正確的 ---
+    // 1. 您的 GAS 部署網址 (請複製貼上)
     const gasUrl = "https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec";
+    // 2. 您的 LIFF ID (請確認與 LINE Developers 後台設定一致)
     const liffId = "2009625010-p9sVIUWe";
+    
     let myId = "";
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('referrerId');
 
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    document.getElementById('regBirth').addEventListener('focus', function() {
-        if (!this.value) this.value = "2000-01-01";
-    });
-
+    // --- 修正 1: 完整的 LIFF 初始化與錯誤處理 ---
     async function initLIFF() {
+        // 顯示加載UI
+        document.getElementById('ui-loading').style.display = 'block';
+        document.getElementById('ui-guest').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'none';
+
         try {
             await liff.init({ liffId: liffId });
-            if (!liff.isLoggedIn()) { liff.login(); return; }
+            console.log("LIFF 初始化成功");
+            
+            if (!liff.isLoggedIn()) {
+                // 未登入，導向登入頁面
+                liff.login();
+                return;
+            }
+            
             const profile = await liff.getProfile();
             myId = profile.userId;
+            console.log("獲取使用者 ID:", myId);
+            
+            // 登入成功後，開始獲取會員資料
             fetchData();
-        } catch (e) { console.error("LIFF 初始化失敗", e); showGuestUI(); }
+            
+        } catch (e) {
+            console.error("LIFF 初始化或登入失敗", e);
+            // 如果 LIFF 初始化失敗，直接顯示訪客模式（供測試或除錯）
+            showGuestUI();
+        }
     }
+    
+    // 啟動
     initLIFF();
 
+    // --- 修正 2: 優化 fetchData，增加完整錯誤處理和逾時機制 ---
     function fetchData() {
-        // 設定 3 秒強制逾時保險
-        const timeout = setTimeout(() => {
-            if (document.getElementById('ui-loading').style.display !== 'none') {
+        // 確保加載動畫顯示
+        document.getElementById('ui-loading').style.display = 'block';
+        document.getElementById('ui-guest').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'none';
+        
+        // 設置一個總逾時，5 秒後如果還沒有結果，就顯示訪客 UI
+        const timeoutId = setTimeout(() => {
+            console.warn("獲取會員資料逾時，顯示訪客 UI");
+            showGuestUI();
+        }, 5000);
+        
+        fetch(`${gasUrl}?action=checkID&userId=${myId}`)
+        .then(res => {
+            clearTimeout(timeoutId);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json(); // 解析 JSON
+        })
+        .then(data => {
+            console.log("會員資料回應:", data);
+            if (data && data.isMember) {
+                showMemberUI(data);
+            } else {
                 showGuestUI();
             }
-        }, 3000);
-
-        fetch(`${gasUrl}?action=checkID&userId=${myId}`)
-        .then(res => res.json())
-        .then(res => {
-            clearTimeout(timeout);
-            if (res && res.isMember) showMemberUI(res);
-            else showGuestUI();
         })
         .catch(err => {
-            clearTimeout(timeout);
+            clearTimeout(timeoutId);
+            console.error("獲取會員資料失敗:", err);
+            // 發生錯誤（如網路問題或 GAS 錯誤），顯示訪客 UI 讓使用者可以嘗試註冊
             showGuestUI();
         });
     }
@@ -148,29 +184,77 @@
         document.getElementById('ui-loading').style.display = 'none';
         document.getElementById('ui-member').style.display = 'none';
         document.getElementById('ui-guest').style.display = 'block';
+        // 如果有被推薦，QR Code 顯示推薦人的 ID，否則顯示自己的 ID（尚未註冊）
         const finalId = referrerId || myId;
-        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${finalId}`;
+        if(finalId) {
+            document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${finalId}`;
+        } else {
+            // 如果連 myId 都沒有（LIFF 失敗），顯示一個預設圖片或訊息
+            document.getElementById('guestQr').src = "";
+            document.getElementById('guestQr').alt = "請確認 LIFF 環境";
+        }
     }
 
+    // --- 修正 3: 修正註冊表單提交，移除 no-cors，並等待伺服器回應 ---
     async function submitForm() {
         const name = document.getElementById('regName').value;
         const phone = document.getElementById('regPhone').value;
         const birth = document.getElementById('regBirth').value;
-        if(!name || !phone || !birth) { alert("請填寫姓名、電話與生日"); return; }
-        if(!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { alert("請勾選同意條款"); return; }
+        
+        if(!name || !phone || !birth) { 
+            alert("請填寫姓名、電話與生日"); 
+            return; 
+        }
+        if(!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { 
+            alert("請勾選同意條款"); 
+            return; 
+        }
         
         const btn = document.getElementById('regBtn');
-        btn.disabled = true; btn.innerText = "資料同步中...";
-
-        fetch(gasUrl, { 
-            method: "POST", 
-            mode: "no-cors", 
-            body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: referrerId || "" }) 
-        });
+        btn.disabled = true;
+        btn.innerText = "資料同步中...";
         
-        setTimeout(() => { alert("註冊成功！"); location.reload(); }, 2000);
+        try {
+            // 發送 POST 請求，不使用 no-cors，以便讀取回應
+            const response = await fetch(gasUrl, { 
+                method: "POST", 
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    action: "register", 
+                    name, 
+                    phone, 
+                    birthday: birth, 
+                    userId: myId, 
+                    referrerId: referrerId || "" 
+                }) 
+            });
+            
+            const resultText = await response.text(); // 取得回傳的文字 (Success 或 Duplicate)
+            console.log("註冊回應:", resultText);
+            
+            if (resultText === "Success") {
+                alert("註冊成功！");
+                // 重新載入頁面，但由於 LIFF 會記住登入狀態，重新整理後應該會顯示會員畫面
+                location.reload();
+            } else if (resultText === "Duplicate") {
+                alert("您已經註冊過了！請重新整理頁面。");
+                location.reload();
+            } else {
+                alert("註冊失敗，請稍後再試。");
+                btn.disabled = false;
+                btn.innerText = "加入會員領取招待";
+            }
+        } catch (error) {
+            console.error("註冊請求失敗:", error);
+            alert("網路錯誤，請確認網路連線後再試。");
+            btn.disabled = false;
+            btn.innerText = "加入會員領取招待";
+        }
     }
 
+    // --- 條款視窗與分享功能（無需修改，但確保分享連結正確）---
     const terms = {
         rights: { title: "會員權益與規則", text: "◆ 點數價值：$1 點 = NT$1 元。\n◆ 本人集點：實付額之 5% (效期12月)。\n◆ 朋友回饋：好友消費額之 2% (效期6月)。\n◆ 生效時間：採隔日生效制。\n◆ 購買餐券：提撥 3% 點數。\n◆ 特殊日期：春節、母親節等檔期暫停折抵。\n◆ 特殊活動：本人集點 3%，朋友回饋 1%。" },
         legal: { title: "法務免責聲明", text: "◆ 非現金化：點數不可兌換現金或轉讓。\n◆ 終止權：店家保有修改、暫停或終止活動之權利。\n◆ 營運調整：因不可抗力因素點數失效時不得要求賠償。\n◆ 誠信監測：若偵測異常集點或虛假推薦，店家有權凍結帳號。\n◆ 最終解釋權：本公司保有活動最終解釋權。" }
@@ -184,12 +268,17 @@
     function closeModal() { document.getElementById('termsModal').style.display = 'none'; }
     
     function handleShare() {
+        // 分享連結需要是您 LIFF 應用綁定的完整 URL
         const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
         const text = `✨ 送你老娘鍋專屬招待券！\n出示 QR Code 即可領取招待禮：\n${shareUrl}`;
-        const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
-        document.getElementById("toast").className = "show";
-        setTimeout(() => { document.getElementById("toast").className = ""; }, 3000);
+        const el = document.createElement('textarea'); 
+        el.value = text; 
+        document.body.appendChild(el); 
+        el.select(); 
+        document.execCommand('copy'); 
+        document.body.removeChild(el);
+        const toast = document.getElementById("toast");
+        toast.className = "show";
+        setTimeout(() => { toast.className = ""; }, 3000);
     }
 </script>
-</body>
-</html>
