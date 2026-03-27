@@ -3,281 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>老娘鍋 x 一點甜｜會員中心</title>
+    <title>老娘鍋 x 一點甜</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #fdf5e6; padding: 16px; }
-        .card { max-width: 400px; margin: 0 auto; background: white; border-radius: 24px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); border: 1px solid #8b0000; }
-        h1 { color: #8b0000; font-size: 24px; text-align: center; margin-bottom: 20px; }
-        .info-box { background: #fff5f0; padding: 16px; border-radius: 16px; margin: 16px 0; border-left: 4px solid #8b0000; }
-        .qr-code { text-align: center; margin: 16px 0; }
-        .qr-code img { width: 180px; height: 180px; background: white; padding: 8px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        input { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; margin-bottom: 12px; }
-        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-        .btn-register { background: #8b0000; color: white; }
-        .btn-share { background: #06C755; color: white; margin-top: 12px; }
-        .points-card { background: #8b0000; color: white; padding: 20px; border-radius: 16px; text-align: center; margin: 16px 0; }
-        .points-card h2 { font-size: 36px; margin: 8px 0; }
-        .rule-list { background: #f9f9f9; padding: 16px; border-radius: 16px; font-size: 14px; line-height: 1.6; color: #555; }
-        .check-group { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0; font-size: 14px; }
-        .check-group input { width: 20px; margin: 0; }
-        .debug-panel { background: #f0f0f0; margin-top: 20px; padding: 12px; border-radius: 12px; font-size: 11px; font-family: monospace; max-height: 200px; overflow-y: auto; }
-        .debug-panel pre { white-space: pre-wrap; word-break: break-all; }
-        .hidden { display: none; }
-        .loading { text-align: center; padding: 40px; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #8b0000; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        :root { --main-red: #8b0000; --line-green: #06C755; --bg-cream: #fdf5e6; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg-cream); margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .card { width: 100%; max-width: 380px; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid var(--main-red); text-align: center; box-sizing: border-box; min-height: 520px; }
+        /* 初始狀態：除了載入中，全部強制隱藏 */
+        #ui-guest, #ui-member { display: none !important; }
+        h2 { color: var(--main-red); margin: 0 0 15px 0; }
+        .qr-box img { width: 180px; height: 180px; border: 1px solid #eee; padding: 5px; }
+        input { width: 100%; padding: 14px; margin-bottom: 12px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 17px; font-weight: bold; cursor: pointer; }
+        .btn-reg { background: var(--main-red); color: white; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>老娘鍋 x 一點甜</h1>
+        <h2>老娘鍋 x 一點甜</h2>
         
-        <div id="loadingView" class="loading">
-            <div class="spinner"></div>
-            <p>同步會員資料中...</p>
+        <div id="ui-loading" style="padding-top:100px;">
+            <div style="width:40px; height:40px; border:4px solid #f3f3f3; border-top:4px solid var(--main-red); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto;"></div>
+            <p>正在確認會員身分...</p>
         </div>
-        
-        <div id="guestView" class="hidden">
-            <div class="info-box">
-                🎁 <strong>好友專屬招待禮</strong><br>結帳時出示下方 QR Code，即享美味招待一份！
+
+        <div id="ui-guest">
+            <p style="color:red; font-weight:bold;">🎁 好友專屬招待禮</p>
+            <div class="qr-box"><img id="guestQr" src=""></div>
+            <div style="text-align:left; margin-top:15px;">
+                <input type="text" id="regName" placeholder="真實姓名">
+                <input type="tel" id="regPhone" placeholder="手機號碼">
+                <input type="date" id="regBirth" value="2000-01-01">
+                <button class="btn-reg" id="regBtn" onclick="submitForm()">加入會員領取招待</button>
             </div>
-            <div class="qr-code">
-                <img id="guestQr" src="">
-            </div>
-            <input type="text" id="regName" placeholder="真實姓名">
-            <input type="tel" id="regPhone" placeholder="手機號碼">
-            <input type="date" id="regBirth" placeholder="生日">
-            <div class="check-group">
-                <input type="checkbox" id="checkRights">
-                <span>同意 <a href="#" onclick="openModal('rights'); return false;">會員權益與點數規則</a></span>
-            </div>
-            <div class="check-group">
-                <input type="checkbox" id="checkLegal">
-                <span>同意 <a href="#" onclick="openModal('legal'); return false;">法務免責與防弊聲明</a></span>
-            </div>
-            <button class="btn-register" id="regBtn" onclick="submitForm()">加入會員領取招待</button>
         </div>
-        
-        <div id="memberView" class="hidden">
-            <p id="userNameDisplay" style="font-weight: bold; text-align: center;"></p>
-            <div class="qr-code">
-                <img id="memberQr" src="">
+
+        <div id="ui-member">
+            <p id="userNameDisplay" style="font-weight:bold;"></p>
+            <div class="qr-box"><img id="memberQr" src=""></div>
+            <div style="background:var(--main-red); color:white; padding:15px; border-radius:15px; margin:15px 0;">
+                <p style="margin:0; font-size:14px;">可用點數</p>
+                <h1 id="userPoints">0 pt</h1>
             </div>
-            <div class="points-card">
-                <p>目前可用點數</p>
-                <h2 id="userPoints">0 pt</h2>
-            </div>
-            <div class="rule-list">
-                • 點數價值：$1 點 = NT$1 元<br>
-                • 本人消費：<strong>5% 點數回饋</strong><br>
-                • 推薦好友：<strong>2% 點數回饋</strong>
-            </div>
-            <button class="btn-share" onclick="handleShare()">推薦好友領招待</button>
-        </div>
-        
-        <div class="debug-panel">
-            <h4>🔍 除錯資訊</h4>
-            <pre id="debugLog">等待載入...</pre>
-            <button onclick="copyDebugLog()" style="width: auto; padding: 6px 12px; margin-top: 8px;">📋 複製除錯資訊</button>
-            <button onclick="manualCheck()" style="width: auto; padding: 6px 12px; margin-top: 8px; margin-left: 8px;">🔄 手動檢查</button>
-        </div>
-    </div>
-    
-    <div id="termsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:white; width:85%; max-height:80%; border-radius:20px; padding:24px; overflow-y:auto;">
-            <h3 id="modalTitle" style="color:#8b0000;"></h3>
-            <p id="modalBody" style="margin:16px 0; line-height:1.6;"></p>
-            <button onclick="closeModal()" style="background:#f0f0f0;">關閉</button>
+            <button style="background:var(--line-green); color:white;" onclick="handleShare()">推薦好友領招待</button>
         </div>
     </div>
 
 <script>
-// ========== 您的 GAS 網址 ==========
-const gasUrl = "https://script.google.com/macros/s/AKfycby1YCNUjtY3ZoTLJmeN86Y1UMBKXFJFcvWkdBupwnwByEWCtzVHjp09A6_3twyCepTBPg/exec";
-// =================================
+    const gasUrl = "https://script.google.com/macros/s/AKfycby1YCNUjtY3ZoTLJmeN86Y1UMBKXFJFcvWkdBupwnwByEWCtzVHjp09A6_3twyCepTBPg/exec";
+    const liffId = "2009625010-p9sVIUWe";
+    let myId = "";
 
-const liffId = "2009625010-p9sVIUWe";
-let myId = "";
-let debugMessages = [];
-const urlParams = new URLSearchParams(window.location.search);
-const referrerId = urlParams.get('referrerId');
-
-function addDebug(msg, data) {
-    const time = new Date().toLocaleTimeString();
-    let log = `[${time}] ${msg}`;
-    if (data) log += `\n📦 ${JSON.stringify(data, null, 2)}`;
-    debugMessages.push(log);
-    if (debugMessages.length > 50) debugMessages.shift();
-    const el = document.getElementById('debugLog');
-    if (el) el.innerText = debugMessages.join('\n\n');
-    console.log(msg, data);
-}
-
-function copyDebugLog() {
-    navigator.clipboard.writeText(debugMessages.join('\n\n'));
-    alert('已複製！');
-}
-
-function manualCheck() {
-    if (myId) checkMemberStatus();
-    else addDebug("尚無使用者ID");
-}
-
-async function initLIFF() {
-    addDebug("🚀 初始化 LIFF");
-    try {
-        await liff.init({ liffId });
-        addDebug("✅ LIFF 初始化成功");
-        if (!liff.isLoggedIn()) {
-            addDebug("未登入，跳轉");
-            liff.login();
-            return;
+    async function initLIFF() {
+        try {
+            await liff.init({ liffId: liffId });
+            if (!liff.isLoggedIn()) { liff.login(); return; }
+            const profile = await liff.getProfile();
+            myId = profile.userId;
+            
+            // 拿到 ID 後才去抓資料
+            fetchData();
+        } catch (e) {
+            alert("LINE 初始化失敗，請重新開啟");
         }
-        const profile = await liff.getProfile();
-        myId = profile.userId;
-        addDebug("👤 使用者ID", { id: myId, name: profile.displayName });
-        await checkMemberStatus();
-    } catch(e) {
-        addDebug("❌ LIFF 錯誤", { error: e.message });
-        showGuestView();
     }
-}
+    initLIFF();
 
-async function checkMemberStatus() {
-    addDebug("🔍 檢查會員", { userId: myId });
-    showLoading();
-    
-    const url = `${gasUrl}?action=checkID&userId=${encodeURIComponent(myId)}&t=${Date.now()}`;
-    addDebug("📡 請求", { url: url.substring(0, 100) + "..." });
-    
-    try {
-        const response = await fetch(url);
-        const text = await response.text();
-        addDebug("📥 回應", { status: response.status, text: text.substring(0, 200) });
+    function fetchData() {
+        const url = `${gasUrl}?action=checkID&userId=${myId}`;
+        fetch(url, { redirect: 'follow' })
+        .then(res => res.json())
+        .then(res => {
+            document.getElementById('ui-loading').style.display = 'none';
+            if (res && res.isMember) {
+                // 是會員：打開會員頁，確保訪客頁關閉
+                document.getElementById('ui-member').style.setProperty('display', 'block', 'important');
+                document.getElementById('ui-guest').style.setProperty('display', 'none', 'important');
+                
+                document.getElementById('userNameDisplay').innerText = `歡迎，${res.userName} 會員`;
+                document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
+                document.getElementById('userPoints').innerText = `${res.points} pt`;
+            } else {
+                // 非會員：打開訪客頁，確保會員頁關閉
+                showGuestUI();
+            }
+        })
+        .catch(() => showGuestUI());
+    }
+
+    function showGuestUI() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const referrerId = urlParams.get('referrerId');
         
-        const data = JSON.parse(text);
-        addDebug("📊 解析結果", data);
+        document.getElementById('ui-loading').style.display = 'none';
+        document.getElementById('ui-member').style.setProperty('display', 'none', 'important');
+        document.getElementById('ui-guest').style.setProperty('display', 'block', 'important');
         
-        if (data.isMember === true) {
-            addDebug("🎉 會員驗證成功", { name: data.userName, points: data.points });
-            showMemberView(data);
-        } else {
-            addDebug("👤 非會員");
-            showGuestView();
-        }
-    } catch(e) {
-        addDebug("❌ 檢查失敗", { error: e.message });
-        showGuestView();
+        const qrData = referrerId || myId;
+        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
     }
-}
 
-function showLoading() {
-    document.getElementById('loadingView').classList.remove('hidden');
-    document.getElementById('guestView').classList.add('hidden');
-    document.getElementById('memberView').classList.add('hidden');
-}
+    async function submitForm() {
+        const name = document.getElementById('regName').value;
+        const phone = document.getElementById('regPhone').value;
+        const birth = document.getElementById('regBirth').value;
+        if(!name || !phone) { alert("請填寫姓名與電話"); return; }
 
-function showGuestView() {
-    document.getElementById('loadingView').classList.add('hidden');
-    document.getElementById('memberView').classList.add('hidden');
-    document.getElementById('guestView').classList.remove('hidden');
-    
-    const qrData = referrerId || myId;
-    if (qrData) {
-        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`;
-    }
-}
+        const urlParams = new URLSearchParams(window.location.search);
+        const referrerId = urlParams.get('referrerId') || "";
 
-function showMemberView(data) {
-    document.getElementById('loadingView').classList.add('hidden');
-    document.getElementById('guestView').classList.add('hidden');
-    document.getElementById('memberView').classList.remove('hidden');
-    
-    document.getElementById('userNameDisplay').innerHTML = `歡迎，${data.userName} 會員 ✓`;
-    document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${myId}`;
-    document.getElementById('userPoints').innerText = `${data.points || 0} pt`;
-}
+        document.getElementById('regBtn').disabled = true;
+        document.getElementById('regBtn').innerText = "註冊中...";
 
-async function submitForm() {
-    const name = document.getElementById('regName').value.trim();
-    const phone = document.getElementById('regPhone').value.trim();
-    const birth = document.getElementById('regBirth').value;
-    
-    if (!name || !phone || !birth) { alert("請填寫完整資料"); return; }
-    if (!document.getElementById('checkRights').checked) { alert("請同意會員權益規則"); return; }
-    if (!document.getElementById('checkLegal').checked) { alert("請同意法務聲明"); return; }
-    
-    const btn = document.getElementById('regBtn');
-    btn.disabled = true;
-    btn.innerText = "處理中...";
-    
-    addDebug("📝 註冊", { name, phone, birth, userId: myId });
-    
-    try {
-        const response = await fetch(gasUrl, {
-            method: "POST",
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: "register",
-                name: name,
-                phone: phone,
-                birthday: birth,
-                userId: myId,
-                referrerId: referrerId || ""
-            })
+        fetch(gasUrl, { 
+            method: "POST", 
+            mode: "no-cors", 
+            body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: referrerId }) 
+        }).then(() => {
+            alert("註冊成功！");
+            // 註冊完直接把資料填入並切換畫面，不 reload
+            document.getElementById('ui-guest').style.setProperty('display', 'none', 'important');
+            document.getElementById('ui-member').style.setProperty('display', 'block', 'important');
+            document.getElementById('userNameDisplay').innerText = `歡迎，${name} 會員`;
+            document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
+            document.getElementById('userPoints').innerText = "0 pt";
         });
-        
-        const result = await response.text();
-        addDebug("📥 註冊結果", { result });
-        
-        if (result === "SUCCESS") {
-            alert("🎉 註冊成功！");
-            await checkMemberStatus();
-        } else if (result === "DUPLICATE") {
-            alert("您已經是會員了！");
-            await checkMemberStatus();
-        } else {
-            alert("註冊失敗：" + result);
-            btn.disabled = false;
-            btn.innerText = "加入會員領取招待";
-        }
-    } catch(e) {
-        addDebug("❌ 註冊錯誤", { error: e.message });
-        alert("網路錯誤：" + e.message);
-        btn.disabled = false;
-        btn.innerText = "加入會員領取招待";
     }
-}
 
-function handleShare() {
-    const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
-    navigator.clipboard.writeText(shareUrl);
-    alert("推薦連結已複製！");
-    addDebug("📤 分享連結", { url: shareUrl });
-}
-
-const terms = {
-    rights: { title: "會員權益與規則", text: "◆ 點數價值：$1 點 = NT$1 元。\n◆ 本人集點：實付額之 5% (效期12月)。\n◆ 朋友回饋：好友消費額之 2% (效期6月)。\n◆ 生效時間：採隔日生效制。" },
-    legal: { title: "法務免責聲明", text: "◆ 非現金化：點數不可兌換現金或轉讓。\n◆ 終止權：店家保有修改、暫停或終止活動之權利。\n◆ 最終解釋權：本公司保有活動最終解釋權。" }
-};
-
-function openModal(type) {
-    document.getElementById('modalTitle').innerText = terms[type].title;
-    document.getElementById('modalBody').innerText = terms[type].text;
-    document.getElementById('termsModal').style.display = 'flex';
-}
-
-function closeModal() {
-    document.getElementById('termsModal').style.display = 'none';
-}
-
-document.getElementById('regBirth').addEventListener('focus', function() {
-    if (!this.value) this.value = "2000-01-01";
-});
-
-initLIFF();
+    function handleShare() {
+        const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
+        const text = `✨ 送你老娘鍋招待券！\n點擊領取：${shareUrl}`;
+        const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+        alert("推薦連結已複製！");
+    }
 </script>
 </body>
 </html>
