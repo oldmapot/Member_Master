@@ -18,15 +18,17 @@
         <button onclick="shareLink()" style="width:100%; padding:14px; background:#06C755; color:white; border:none;">推薦好友</button>
     </div>
     <div id="guestView" style="display:none;">
-        <input type="text" id="name" placeholder="真實姓名" style="width:100%; padding:12px; margin:10px 0;">
-        <input type="tel" id="phone" placeholder="手機號碼" style="width:100%; padding:12px; margin:10px 0;">
-        <input type="date" id="birth" style="width:100%; padding:12px; margin:10px 0;">
-        <button id="regBtn" style="width:100%; padding:14px; background:#8b0000; color:white; border:none;">加入會員</button>
+        <input type="text" id="name" placeholder="真實姓名" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
+        <input type="tel" id="phone" placeholder="手機號碼" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
+        <input type="date" id="birth" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
+        <button id="regBtn" style="width:100%; padding:14px; background:#8b0000; color:white; border:none; border-radius:8px;">加入會員</button>
     </div>
-    <div id="errorView" style="display:none; background:#ffebee; padding:20px; text-align:center;">連線失敗<br><button onclick="location.reload()">重新整理</button></div>
+    <div id="errorView" style="display:none; background:#ffebee; padding:20px; border-radius:12px; text-align:center;">
+        連線失敗<br><button onclick="location.reload()" style="margin-top:10px; padding:8px 20px;">重新整理</button>
+    </div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyk1j0rQflpZIW-TIw7JWDHRuSixGGSR8YDh0z2AmBlMbLdLbLdlVh5gRH/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
 let userId = null;
 const referrerId = new URLSearchParams(location.search).get('referrerId');
@@ -35,35 +37,70 @@ async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
-        userId = (await liff.getProfile()).userId;
+        const profile = await liff.getProfile();
+        userId = profile.userId;
         await checkMember();
-    } catch(e) { showError(); }
+    } catch(e) {
+        showError();
+    }
 }
 
 async function checkMember() {
     try {
-        let res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&t=${Date.now()}`);
-        let data = await res.json();
-        if (data.isMember) showMember(data.userName, data.points);
-        else showGuest();
-    } catch(e) { showGuest(); }
+        const url = GAS_URL + "?action=checkID&userId=" + encodeURIComponent(userId) + "&t=" + Date.now();
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.isMember === true) {
+            showMember(data.userName, data.points);
+        } else {
+            showGuest();
+        }
+    } catch(e) {
+        showGuest();
+    }
 }
 
 async function register() {
-    let name = document.getElementById('name').value.trim();
-    let phone = document.getElementById('phone').value.trim();
-    let birth = document.getElementById('birth').value;
-    if (!name || !phone || !birth) return alert("請填寫完整資料");
-    let btn = document.getElementById('regBtn');
-    btn.disabled = true; btn.innerText = "處理中...";
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const birth = document.getElementById('birth').value;
+    
+    if (!name || !phone || !birth) {
+        alert("請填寫完整資料");
+        return;
+    }
+    
+    const btn = document.getElementById('regBtn');
+    btn.disabled = true;
+    btn.innerText = "處理中...";
+    
     try {
-        let url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birth}&referrerId=${referrerId || ""}`;
-        let res = await fetch(url);
-        let result = await res.text();
-        if (result === "SUCCESS") { alert("註冊成功！"); await checkMember(); }
-        else if (result === "DUPLICATE") { alert("已是會員！"); await checkMember(); }
-        else { alert("註冊失敗"); btn.disabled = false; btn.innerText = "加入會員"; }
-    } catch(e) { alert("網路錯誤"); btn.disabled = false; btn.innerText = "加入會員"; }
+        const url = GAS_URL + "?action=register" + 
+                    "&userId=" + encodeURIComponent(userId) +
+                    "&name=" + encodeURIComponent(name) +
+                    "&phone=" + encodeURIComponent(phone) +
+                    "&birthday=" + encodeURIComponent(birth) +
+                    "&referrerId=" + encodeURIComponent(referrerId || "");
+        
+        const res = await fetch(url);
+        const result = await res.text();
+        
+        if (result === "SUCCESS") {
+            alert("註冊成功！");
+            await checkMember();
+        } else if (result === "DUPLICATE") {
+            alert("您已經是會員了！");
+            await checkMember();
+        } else {
+            alert("註冊失敗: " + result);
+            btn.disabled = false;
+            btn.innerText = "加入會員";
+        }
+    } catch(e) {
+        alert("網路錯誤: " + e.message);
+        btn.disabled = false;
+        btn.innerText = "加入會員";
+    }
 }
 
 function showMember(name, points) {
@@ -71,40 +108,48 @@ function showMember(name, points) {
     document.getElementById('guestView').style.display = 'none';
     document.getElementById('memberView').style.display = 'block';
     document.getElementById('points').innerText = points;
-    document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
+    document.getElementById('memberQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + userId;
+    
     let nameEl = document.getElementById('welcomeName');
     if (!nameEl) {
         nameEl = document.createElement('p');
         nameEl.id = 'welcomeName';
         nameEl.style.textAlign = 'center';
         nameEl.style.fontWeight = 'bold';
+        nameEl.style.marginBottom = '15px';
         document.getElementById('memberView').insertBefore(nameEl, document.getElementById('memberView').firstChild);
     }
-    nameEl.innerText = `歡迎，${name} 會員`;
+    nameEl.innerText = "歡迎，" + name + " 會員";
 }
 
 function showGuest() {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('memberView').style.display = 'none';
     document.getElementById('guestView').style.display = 'block';
-    let qrData = referrerId || userId;
-    if (qrData) document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`;
+    const qrData = referrerId || userId;
+    if (qrData) {
+        document.getElementById('guestQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + qrData;
+    }
 }
 
 function showError() {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('guestView').style.display = 'none';
     document.getElementById('memberView').style.display = 'none';
+    document.getElementById('guestView').style.display = 'none';
     document.getElementById('errorView').style.display = 'block';
 }
 
 function shareLink() {
-    navigator.clipboard.writeText(`https://oldmapot.github.io/Member_Master/index.html?referrerId=${userId}`);
+    const url = "https://oldmapot.github.io/Member_Master/index.html?referrerId=" + userId;
+    navigator.clipboard.writeText(url);
     alert("推薦連結已複製！");
 }
 
-document.getElementById('regBtn').onclick = register;
-document.getElementById('birth').addEventListener('focus', function() { if (!this.value) this.value = "2000-01-01"; });
+document.getElementById('regBtn').addEventListener('click', register);
+document.getElementById('birth').addEventListener('focus', function() {
+    if (!this.value) this.value = "2000-01-01";
+});
+
 init();
 </script>
 </body>
