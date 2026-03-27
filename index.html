@@ -37,8 +37,12 @@
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 50px; opacity: 1;} }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
+        .debug-panel { background: #f0f0f0; border-top: 2px solid #ccc; margin-top: 20px; padding: 10px; font-size: 11px; text-align: left; font-family: monospace; max-height: 200px; overflow-y: auto; border-radius: 8px; }
+        .debug-panel h4 { margin: 0 0 5px 0; font-size: 12px; color: #666; }
+        .debug-panel pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
         .error-message { color: #d32f2f; background: #ffebee; padding: 12px; border-radius: 10px; margin: 15px 0; font-size: 14px; }
         .retry-btn { background: var(--main-red); color: white; padding: 8px 16px; border: none; border-radius: 8px; margin-top: 10px; font-size: 14px; cursor: pointer; }
+        .success-badge { background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; margin-left: 8px; }
     </style>
 </head>
 <body>
@@ -96,6 +100,13 @@
             </div>
             <button class="retry-btn" onclick="location.reload()">重新整理</button>
         </div>
+        
+        <!-- 除錯面板 - 顯示執行過程 -->
+        <div class="debug-panel" id="debugPanel">
+            <h4>🔍 除錯資訊 (點擊下方按鈕可複製)</h4>
+            <pre id="debugLog">等待載入...</pre>
+            <button onclick="copyDebugLog()" style="margin-top:5px; font-size:10px;">複製除錯資訊</button>
+        </div>
     </div>
 
 <script>
@@ -105,34 +116,60 @@
     
     const liffId = "2009625010-p9sVIUWe";
     let myId = "";
-    let retryCount = 0;
-    const maxRetries = 2;
+    let debugMessages = [];
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('referrerId');
-
+    
+    // 除錯函數
+    function addDebug(message, data = null) {
+        const timestamp = new Date().toLocaleTimeString();
+        let logMsg = `[${timestamp}] ${message}`;
+        if (data) {
+            logMsg += `\n資料: ${JSON.stringify(data, null, 2)}`;
+        }
+        debugMessages.push(logMsg);
+        // 只保留最近 30 條
+        if (debugMessages.length > 30) debugMessages.shift();
+        document.getElementById('debugLog').innerText = debugMessages.join('\n\n');
+        console.log(message, data || '');
+    }
+    
+    function copyDebugLog() {
+        const logText = debugMessages.join('\n\n');
+        const el = document.createElement('textarea');
+        el.value = logText;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        alert('除錯資訊已複製到剪貼簿！');
+    }
+    
     // LIFF 初始化
     async function initLIFF() {
+        addDebug("🔧 開始初始化 LIFF...");
         showLoading();
         
         try {
             await liff.init({ liffId: liffId });
-            console.log("✅ LIFF 初始化成功");
+            addDebug("✅ LIFF 初始化成功");
             
             if (!liff.isLoggedIn()) {
-                console.log("🔐 未登入，導向登入頁面");
+                addDebug("🔐 使用者未登入，導向登入頁面");
                 liff.login();
                 return;
             }
             
+            addDebug("✅ 使用者已登入，獲取個人資料...");
             const profile = await liff.getProfile();
             myId = profile.userId;
-            console.log("👤 使用者 ID:", myId);
+            addDebug("👤 獲取使用者 ID", { userId: myId, displayName: profile.displayName });
             
             // 檢查會員狀態
             await checkMemberStatus();
             
         } catch (e) {
-            console.error("❌ LIFF 初始化失敗", e);
+            addDebug("❌ LIFF 初始化失敗", { error: e.message });
             showError();
         }
     }
@@ -151,90 +188,93 @@
         document.getElementById('ui-error').style.display = 'block';
     }
     
-    // 檢查會員狀態（修正版）
+    // 檢查會員狀態
     async function checkMemberStatus() {
-        console.log("🔍 檢查會員狀態，使用者 ID:", myId);
+        addDebug("🔍 開始檢查會員狀態", { userId: myId, gasUrl: gasUrl });
         
-        // 設置逾時（10秒）
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("請求逾時")), 10000);
-        });
-        
-        // 發送請求
-        const fetchPromise = fetch(`${gasUrl}?action=checkID&userId=${myId}&t=${Date.now()}`)
-            .then(async res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                console.log("📦 伺服器回應:", data);
-                return data;
-            });
+        const url = `${gasUrl}?action=checkID&userId=${myId}&t=${Date.now()}`;
+        addDebug("📡 發送請求", { url: url });
         
         try {
-            const data = await Promise.race([fetchPromise, timeoutPromise]);
+            const response = await fetch(url);
+            addDebug("📥 收到回應", { status: response.status, statusText: response.statusText });
+            
+            const responseText = await response.text();
+            addDebug("📄 原始回應內容", { rawResponse: responseText });
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                addDebug("✅ JSON 解析成功", data);
+            } catch (e) {
+                addDebug("❌ JSON 解析失敗", { error: e.message, rawText: responseText });
+                showGuestUI();
+                return;
+            }
+            
+            addDebug("📊 會員狀態判斷", { 
+                hasData: !!data, 
+                isMember: data.isMember,
+                userName: data.userName,
+                points: data.points
+            });
             
             if (data && data.isMember === true) {
-                console.log("✅ 會員驗證成功，顯示會員畫面");
+                addDebug("🎉 會員驗證成功，顯示會員畫面", { name: data.userName, points: data.points });
                 showMemberUI(data);
             } else {
-                console.log("👤 非會員或尚未註冊，顯示註冊畫面");
+                addDebug("👤 非會員或尚未註冊，顯示註冊畫面");
                 showGuestUI();
             }
             
         } catch (error) {
-            console.error("❌ 檢查會員狀態失敗:", error);
-            
-            // 重試機制
-            if (retryCount < maxRetries) {
-                retryCount++;
-                console.log(`🔄 重試第 ${retryCount} 次...`);
-                setTimeout(() => checkMemberStatus(), 2000);
-            } else {
-                console.log("⚠️ 重試失敗，顯示註冊畫面");
-                showGuestUI();
-            }
+            addDebug("❌ 檢查會員狀態失敗", { error: error.message, stack: error.stack });
+            showGuestUI();
         }
     }
 
     function showMemberUI(res) {
-        console.log("🎉 顯示會員畫面，點數:", res.points);
+        addDebug("🎉 執行 showMemberUI", res);
         
         document.getElementById('ui-loading').style.display = 'none';
         document.getElementById('ui-guest').style.display = 'none';
         document.getElementById('ui-member').style.display = 'block';
         document.getElementById('ui-error').style.display = 'none';
         
-        document.getElementById('userNameDisplay').innerText = `歡迎，${res.userName} 會員`;
+        document.getElementById('userNameDisplay').innerHTML = `歡迎，${res.userName} 會員 <span class="success-badge">已驗證</span>`;
         document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
         document.getElementById('userPoints').innerText = `${res.points || 0} pt`;
+        
+        addDebug("✅ 會員畫面已顯示");
     }
 
     function showGuestUI() {
-        console.log("📝 顯示註冊畫面，推薦人:", referrerId || "無");
+        addDebug("📝 執行 showGuestUI", { referrerId: referrerId, myId: myId });
         
         document.getElementById('ui-loading').style.display = 'none';
         document.getElementById('ui-member').style.display = 'none';
         document.getElementById('ui-guest').style.display = 'block';
         document.getElementById('ui-error').style.display = 'none';
         
-        // 修正：QR Code 顯示推薦人的 ID（如果有），否則顯示當前使用者 ID
         const qrData = referrerId || myId;
         if(qrData) {
-            document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
-            console.log("📱 QR Code 資料:", qrData);
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
+            document.getElementById('guestQr').src = qrUrl;
+            addDebug("📱 生成 QR Code", { qrData: qrData, qrUrl: qrUrl });
         } else {
-            console.warn("⚠️ 無法生成 QR Code：沒有可用的 ID");
+            addDebug("⚠️ 無法生成 QR Code：沒有可用的 ID");
             document.getElementById('guestQr').src = "";
-            document.getElementById('guestQr').alt = "請稍後再試";
         }
     }
 
-    // 修正後的註冊函數
+    // 註冊函數
     async function submitForm() {
         const name = document.getElementById('regName').value.trim();
         const phone = document.getElementById('regPhone').value.trim();
         const birth = document.getElementById('regBirth').value;
         
-        // 驗證
+        addDebug("📝 開始註冊流程", { name, phone, birth, userId: myId, referrerId });
+        
         if(!name) { alert("請填寫真實姓名"); return; }
         if(!phone) { alert("請填寫手機號碼"); return; }
         if(!birth) { alert("請填寫生日"); return; }
@@ -247,45 +287,44 @@
         btn.innerText = "資料處理中...";
         
         try {
-            console.log("📤 開始註冊，資料:", { name, phone, birth, userId: myId, referrerId });
+            const requestBody = { 
+                action: "register", 
+                name: name, 
+                phone: phone, 
+                birthday: birth, 
+                userId: myId, 
+                referrerId: referrerId || "" 
+            };
+            addDebug("📤 發送註冊請求", requestBody);
             
             const response = await fetch(gasUrl, { 
                 method: "POST", 
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    action: "register", 
-                    name: name, 
-                    phone: phone, 
-                    birthday: birth, 
-                    userId: myId, 
-                    referrerId: referrerId || "" 
-                }) 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody) 
             });
             
             const result = await response.text();
-            console.log("📥 註冊回應:", result);
+            addDebug("📥 註冊回應", { result: result, status: response.status });
             
             if (result === "SUCCESS") {
+                addDebug("✅ 註冊成功，重新檢查會員狀態");
                 alert("🎉 註冊成功！\n\n歡迎加入會員，現在即可領取招待！");
-                // 重新檢查會員狀態（而不是直接 reload）
                 showLoading();
-                retryCount = 0;
                 await checkMemberStatus();
             } else if (result === "DUPLICATE") {
+                addDebug("ℹ️ 已是會員，重新載入會員資料");
                 alert("ℹ️ 您已經是會員了！\n將為您載入會員資料。");
                 showLoading();
-                retryCount = 0;
                 await checkMemberStatus();
             } else {
-                alert("❌ 註冊失敗，請稍後再試。\n如問題持續，請聯繫店家客服。");
+                addDebug("❌ 註冊失敗", { result: result });
+                alert("❌ 註冊失敗，請稍後再試。\n\n回應內容：" + result);
                 btn.disabled = false;
                 btn.innerText = originalText;
             }
             
         } catch (error) {
-            console.error("❌ 註冊請求錯誤:", error);
+            addDebug("❌ 註冊請求錯誤", { error: error.message });
             alert("網路連線異常，請檢查網路後重試。\n\n錯誤訊息：" + error.message);
             btn.disabled = false;
             btn.innerText = originalText;
@@ -309,7 +348,6 @@
         const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
         const text = `✨ 送你老娘鍋專屬招待券！\n出示 QR Code 即可領取招待禮：\n${shareUrl}`;
         
-        // 複製到剪貼簿
         const el = document.createElement('textarea'); 
         el.value = text; 
         document.body.appendChild(el); 
@@ -321,15 +359,11 @@
         toast.className = "show";
         setTimeout(() => { toast.className = ""; }, 3000);
         
-        // 如果在 LINE 中，也嘗試開啟分享選單
         if (typeof liff !== 'undefined' && liff.isInClient()) {
-            liff.shareTargetPicker([
-                {
-                    type: "text",
-                    text: text
-                }
-            ]).catch(err => console.log("分享選單錯誤:", err));
+            liff.shareTargetPicker([{ type: "text", text: text }])
+                .catch(err => addDebug("分享選單錯誤", err));
         }
+        addDebug("📤 分享連結已複製", { shareUrl });
     }
     
     // 設定生日預設值
@@ -337,6 +371,7 @@
         if (!this.value) this.value = "2000-01-01";
     });
     
+    addDebug("🚀 頁面載入完成，開始執行");
     // 啟動
     initLIFF();
 </script>
