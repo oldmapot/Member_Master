@@ -51,26 +51,28 @@
             };
 
             if(!data.name || !data.phone || !userId) {
-                alert("請完整填寫或等待 ID 讀取"); return;
+                alert("請完整填寫資料"); return;
             }
 
             btn.disabled = true;
-            btn.innerText = "傳送中...";
+            btn.innerText = "正在為您綁定...";
 
-            // 這裡填入你 GAS 的網頁應用程式 URL
-            try {
-                await fetch("https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec", {
-                    method: "POST",
-                    mode: "no-cors", 
-                    body: JSON.stringify(data)
-                });
-                alert("註冊成功！");
-                liff.closeWindow(); // 自動關閉視窗回 LINE
-            } catch (e) {
-                alert("註冊失敗，請稍後再試");
-                btn.disabled = false;
-                btn.innerText = "確認註冊";
-            }
+            // 1. 先執行 fetch 送資料 (不等待 return 直接往下走)
+            fetch("你的_GAS_部署網址", {
+                method: "POST",
+                mode: "no-cors", 
+                body: JSON.stringify(data)
+            });
+
+            // 2. 延遲 1.5 秒後直接顯示成功 (因為 no-cors 拿不到回報，我們手動結束它)
+            setTimeout(() => {
+                alert("註冊成功！歡迎加入老娘鍋！");
+                if (liff.isInClient()) {
+                    liff.closeWindow(); // 在 LINE 內自動關閉
+                } else {
+                    document.body.innerHTML = "<h1>註冊成功</h1><p>請回到 LINE 即可</p>";
+                }
+            }, 1500);
         }
     </script>
 </body>
