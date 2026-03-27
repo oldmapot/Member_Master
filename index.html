@@ -47,8 +47,7 @@ async function init() {
 
 async function checkMember() {
     try {
-        const url = GAS_URL + "?action=checkID&userId=" + encodeURIComponent(userId) + "&t=" + Date.now();
-        const res = await fetch(url);
+        const res = await fetch(GAS_URL + "?action=checkID&userId=" + encodeURIComponent(userId) + "&t=" + Date.now());
         const data = await res.json();
         if (data.isMember === true) {
             showMember(data.userName, data.points);
@@ -64,24 +63,14 @@ async function register() {
     const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const birth = document.getElementById('birth').value;
-    
-    if (!name || !phone || !birth) {
-        alert("請填寫完整資料");
-        return;
-    }
+    if (!name || !phone || !birth) { alert("請填寫完整資料"); return; }
     
     const btn = document.getElementById('regBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
     
     try {
-        const url = GAS_URL + "?action=register" + 
-                    "&userId=" + encodeURIComponent(userId) +
-                    "&name=" + encodeURIComponent(name) +
-                    "&phone=" + encodeURIComponent(phone) +
-                    "&birthday=" + encodeURIComponent(birth) +
-                    "&referrerId=" + encodeURIComponent(referrerId || "");
-        
+        const url = GAS_URL + "?action=register&userId=" + encodeURIComponent(userId) + "&name=" + encodeURIComponent(name) + "&phone=" + encodeURIComponent(phone) + "&birthday=" + encodeURIComponent(birth) + "&referrerId=" + encodeURIComponent(referrerId || "");
         const res = await fetch(url);
         const result = await res.text();
         
@@ -109,7 +98,6 @@ function showMember(name, points) {
     document.getElementById('memberView').style.display = 'block';
     document.getElementById('points').innerText = points;
     document.getElementById('memberQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + userId;
-    
     let nameEl = document.getElementById('welcomeName');
     if (!nameEl) {
         nameEl = document.createElement('p');
