@@ -65,7 +65,6 @@
                 • 專屬回饋：本人消費享 <strong>5% 回饋點數</strong><br>
                 • 推薦回饋：享好友消費 <strong>2% 回饋點數</strong>
             </div>
-
             <div class="point-badge">
                 <p style="margin:0; font-size:15px; opacity:0.8;">目前可用點數</p>
                 <h1 id="userPoints">0 pt</h1>
@@ -74,13 +73,9 @@
         </div>
 
         <div id="ui-guest">
-            <div style="background:#fff5f5; border:2px dashed var(--main-red); padding:20px; border-radius:15px; text-align:center;">
-                <p style="margin:0 0 10px 0; font-weight:bold; color:var(--main-red); font-size:20px;">🎁 好友專屬招待禮</p>
-                
-                <div class="qr-box" style="margin:10px 0;">
-                    <img id="guestQr" src="">
-                </div>
-                
+            <div style="background:#fff5f5; border:2px dashed var(--main-red); padding:15px; border-radius:15px; text-align:center;">
+                <p style="margin:0; font-weight:bold; color:var(--main-red); font-size:18px;">🎁 好友專屬招待禮</p>
+                <div class="qr-box"><img id="guestQr" src=""></div>
                 <div style="font-size:16px; color:#444; line-height:1.6; text-align:center; margin-top:10px;">
                     點餐前出示此碼<br>
                     老娘鍋消費送<strong>小菜一份</strong><br>
@@ -94,7 +89,7 @@
                 <input type="text" id="regName" placeholder="請輸入姓名">
                 <label>手機號碼</label>
                 <input type="tel" id="regPhone" placeholder="09xxxxxxxx">
-                <label>生日 (領取壽星優惠/註冊後不可修改)</label>
+                <label>生日 (領取壽星優惠)</label>
                 <input type="date" id="regBirth" value="2000-01-01">
 
                 <label class="check-group">
@@ -203,7 +198,7 @@
 
     function handleShare() {
         const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
-        const copyText = `const copyText = `✨ 發現高雄隱藏版美味 ✨\n🍲 老娘鍋 x 一點甜 🍦\n\n這是我專屬的招待回饋碼\n立即加入會員領取招待禮\n消費再享點數回饋！\n\n👉 點我領取：${shareUrl}`;;
+        const copyText = `🍲 老娘鍋 x 一點甜 專屬招待 🍲\n送你招待券，加入會員再領回饋點數！\n點我領取：${shareUrl}`;
 
         // 1. 執行複製
         const el = document.createElement('textarea');
@@ -231,14 +226,15 @@
                     ]}
                 }
             }]).then(function (res) {
-                // 不管發送成功還是取消，都彈出我們自己的乾淨視窗告知「連結已複製」
-                // 這樣使用者就知道就算沒傳成功，也可以手動貼上
-                openModal('copySuccess');
+                if (!res) {
+                    // 使用者取消分享，彈出「自定義」複製成功視窗
+                    openModal('copySuccess');
+                }
             }).catch(function (err) {
                 openModal('copySuccess');
             });
         } else {
-            // 一般瀏覽器直接彈出
+            // 一般瀏覽器直接彈出「自定義」複製成功視窗
             openModal('copySuccess');
         }
     }
@@ -277,9 +273,6 @@
         
         modal.style.display = 'flex';
     }
-    function closeModal() { document.getElementById('customModal').style.display = 'none'; }
-
-    init();
 </script>
 </body>
 </html>
