@@ -36,6 +36,9 @@
         #toast.show { visibility: visible; animation: fadein 0.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 50px; opacity: 1;} }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .error-message { color: #d32f2f; background: #ffebee; padding: 12px; border-radius: 10px; margin: 15px 0; font-size: 14px; }
+        .retry-btn { background: var(--main-red); color: white; padding: 8px 16px; border: none; border-radius: 8px; margin-top: 10px; font-size: 14px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -66,7 +69,7 @@
             <div class="form-group">
                 <label>真實姓名</label><input type="text" id="regName" placeholder="請填寫姓名">
                 <label>手機號碼</label><input type="tel" id="regPhone" placeholder="09xxxxxxxx">
-                <label>生日</label><input type="date" id="regBirth">
+                <label>生日 (預設 2000 年)</label><input type="date" id="regBirth">
                 <label class="check-group"><input type="checkbox" id="checkRights"><span>同意 <a class="check-link" onclick="openModal('rights')">會員權益與點數規則</a></span></label>
                 <label class="check-group"><input type="checkbox" id="checkLegal"><span>同意 <a class="check-link" onclick="openModal('legal')">法務免責與防弊聲明</a></span></label>
                 <button class="btn-reg" id="regBtn" onclick="submitForm()">加入會員領取招待</button>
@@ -85,91 +88,147 @@
             </div>
             <button style="background:var(--line-green); color:white;" onclick="handleShare()">推薦好友領招待</button>
         </div>
+        
+        <div id="ui-error" style="display:none; padding-top:100px;">
+            <div class="error-message">
+                ⚠️ 無法連線到會員系統<br>
+                請檢查網路連線後點擊下方按鈕重試
+            </div>
+            <button class="retry-btn" onclick="location.reload()">重新整理</button>
+        </div>
     </div>
 
 <script>
     // ========== 請務必更新這個 URL ==========
-    // 將此 URL 替換為您重新部署後的 GAS 網頁應用程式網址
     const gasUrl = "https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec";
     // =====================================
     
     const liffId = "2009625010-p9sVIUWe";
     let myId = "";
+    let retryCount = 0;
+    const maxRetries = 2;
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('referrerId');
 
     // LIFF 初始化
     async function initLIFF() {
-        document.getElementById('ui-loading').style.display = 'block';
-        document.getElementById('ui-guest').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'none';
-
+        showLoading();
+        
         try {
             await liff.init({ liffId: liffId });
-            console.log("LIFF 初始化成功");
+            console.log("✅ LIFF 初始化成功");
             
             if (!liff.isLoggedIn()) {
+                console.log("🔐 未登入，導向登入頁面");
                 liff.login();
                 return;
             }
             
             const profile = await liff.getProfile();
             myId = profile.userId;
-            console.log("使用者 ID:", myId);
+            console.log("👤 使用者 ID:", myId);
             
             // 檢查會員狀態
             await checkMemberStatus();
             
         } catch (e) {
-            console.error("LIFF 初始化失敗", e);
-            showGuestUI();
+            console.error("❌ LIFF 初始化失敗", e);
+            showError();
         }
     }
     
-    // 檢查會員狀態
+    function showLoading() {
+        document.getElementById('ui-loading').style.display = 'block';
+        document.getElementById('ui-guest').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'none';
+        document.getElementById('ui-error').style.display = 'none';
+    }
+    
+    function showError() {
+        document.getElementById('ui-loading').style.display = 'none';
+        document.getElementById('ui-guest').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'none';
+        document.getElementById('ui-error').style.display = 'block';
+    }
+    
+    // 檢查會員狀態（修正版）
     async function checkMemberStatus() {
-        const timeoutId = setTimeout(() => {
-            console.warn("檢查會員狀態逾時");
-            showGuestUI();
-        }, 8000);
+        console.log("🔍 檢查會員狀態，使用者 ID:", myId);
+        
+        // 設置逾時（10秒）
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("請求逾時")), 10000);
+        });
+        
+        // 發送請求
+        const fetchPromise = fetch(`${gasUrl}?action=checkID&userId=${myId}&t=${Date.now()}`)
+            .then(async res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                console.log("📦 伺服器回應:", data);
+                return data;
+            });
         
         try {
-            const response = await fetch(`${gasUrl}?action=checkID&userId=${myId}`);
-            const data = await response.json();
-            clearTimeout(timeoutId);
+            const data = await Promise.race([fetchPromise, timeoutPromise]);
             
-            if (data && data.isMember) {
+            if (data && data.isMember === true) {
+                console.log("✅ 會員驗證成功，顯示會員畫面");
                 showMemberUI(data);
             } else {
+                console.log("👤 非會員或尚未註冊，顯示註冊畫面");
                 showGuestUI();
             }
+            
         } catch (error) {
-            clearTimeout(timeoutId);
-            console.error("檢查會員狀態失敗:", error);
-            showGuestUI();
+            console.error("❌ 檢查會員狀態失敗:", error);
+            
+            // 重試機制
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`🔄 重試第 ${retryCount} 次...`);
+                setTimeout(() => checkMemberStatus(), 2000);
+            } else {
+                console.log("⚠️ 重試失敗，顯示註冊畫面");
+                showGuestUI();
+            }
         }
     }
 
     function showMemberUI(res) {
+        console.log("🎉 顯示會員畫面，點數:", res.points);
+        
         document.getElementById('ui-loading').style.display = 'none';
         document.getElementById('ui-guest').style.display = 'none';
         document.getElementById('ui-member').style.display = 'block';
+        document.getElementById('ui-error').style.display = 'none';
+        
         document.getElementById('userNameDisplay').innerText = `歡迎，${res.userName} 會員`;
         document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
-        document.getElementById('userPoints').innerText = `${res.points} pt`;
+        document.getElementById('userPoints').innerText = `${res.points || 0} pt`;
     }
 
     function showGuestUI() {
+        console.log("📝 顯示註冊畫面，推薦人:", referrerId || "無");
+        
         document.getElementById('ui-loading').style.display = 'none';
         document.getElementById('ui-member').style.display = 'none';
         document.getElementById('ui-guest').style.display = 'block';
-        const finalId = referrerId || myId;
-        if(finalId) {
-            document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${finalId}`;
+        document.getElementById('ui-error').style.display = 'none';
+        
+        // 修正：QR Code 顯示推薦人的 ID（如果有），否則顯示當前使用者 ID
+        const qrData = referrerId || myId;
+        if(qrData) {
+            document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
+            console.log("📱 QR Code 資料:", qrData);
+        } else {
+            console.warn("⚠️ 無法生成 QR Code：沒有可用的 ID");
+            document.getElementById('guestQr').src = "";
+            document.getElementById('guestQr').alt = "請稍後再試";
         }
     }
 
-    // 修正後的註冊函數（關鍵修正）
+    // 修正後的註冊函數
     async function submitForm() {
         const name = document.getElementById('regName').value.trim();
         const phone = document.getElementById('regPhone').value.trim();
@@ -188,9 +247,8 @@
         btn.innerText = "資料處理中...";
         
         try {
-            console.log("開始註冊，資料:", { name, phone, birth, userId: myId, referrerId });
+            console.log("📤 開始註冊，資料:", { name, phone, birth, userId: myId, referrerId });
             
-            // 發送註冊請求（不使用 no-cors）
             const response = await fetch(gasUrl, { 
                 method: "POST", 
                 headers: {
@@ -207,23 +265,27 @@
             });
             
             const result = await response.text();
-            console.log("註冊回應:", result);
+            console.log("📥 註冊回應:", result);
             
             if (result === "SUCCESS") {
                 alert("🎉 註冊成功！\n\n歡迎加入會員，現在即可領取招待！");
-                // 重新載入頁面，顯示會員畫面
-                location.reload();
+                // 重新檢查會員狀態（而不是直接 reload）
+                showLoading();
+                retryCount = 0;
+                await checkMemberStatus();
             } else if (result === "DUPLICATE") {
-                alert("您已經是會員了！\n將為您重新整理頁面。");
-                location.reload();
+                alert("ℹ️ 您已經是會員了！\n將為您載入會員資料。");
+                showLoading();
+                retryCount = 0;
+                await checkMemberStatus();
             } else {
-                alert("註冊失敗，請稍後再試。\n如問題持續，請聯繫店家客服。");
+                alert("❌ 註冊失敗，請稍後再試。\n如問題持續，請聯繫店家客服。");
                 btn.disabled = false;
                 btn.innerText = originalText;
             }
             
         } catch (error) {
-            console.error("註冊請求錯誤:", error);
+            console.error("❌ 註冊請求錯誤:", error);
             alert("網路連線異常，請檢查網路後重試。\n\n錯誤訊息：" + error.message);
             btn.disabled = false;
             btn.innerText = originalText;
