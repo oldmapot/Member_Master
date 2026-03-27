@@ -1,155 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老娘鍋會員</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>老娘鍋 x 一點甜｜會員中心</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        :root { --main-red: #8b0000; --line-green: #06C755; --bg-cream: #fdf5e6; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg-cream); margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .card { width: 100%; max-width: 380px; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid var(--main-red); text-align: center; box-sizing: border-box; min-height: 520px; }
+        h2 { color: var(--main-red); margin: 0 0 15px 0; }
+        .loading-box { padding-top: 100px; color: #666; }
+        .qr-box img { width: 180px; height: 180px; border: 1px solid #eee; padding: 5px; background: #fff; }
+        .point-badge { background: var(--main-red); color: white; padding: 15px; border-radius: 15px; margin: 15px 0; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-reg { background: var(--main-red); color: white; }
+        .btn-share { background: var(--line-green); color: white; }
+        #ui-member, #ui-guest { display: none; }
+    </style>
 </head>
-<body style="font-family: sans-serif; padding: 20px; max-width: 400px; margin: 0 auto;">
-    <h1 style="color:#8b0000;">老娘鍋 x 一點甜</h1>
-    <div id="loading" style="text-align:center; padding:40px;">載入中...</div>
-    <div id="memberPanel" style="display:none;">
-        <div style="background:#8b0000; color:white; padding:20px; border-radius:12px; text-align:center;">
-            <p>目前可用點數</p>
-            <h2 id="points">0</h2>
+<body>
+    <div class="card">
+        <h2>老娘鍋 x 一點甜</h2>
+        
+        <div id="ui-loading" class="loading-box">
+            <p>🔄 系統資料同步中...</p>
         </div>
-        <img id="memberQr" style="width:180px; margin:20px auto; display:block;">
-        <button onclick="shareLink()" style="width:100%; padding:14px; background:#06C755; color:white; border:none;">推薦好友</button>
-    </div>
-    <div id="guestPanel" style="display:none;">
-        <input type="text" id="name" placeholder="真實姓名" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-        <input type="tel" id="phone" placeholder="手機號碼" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-        <input type="date" id="birth" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-        <button id="regBtn" style="width:100%; padding:14px; background:#8b0000; color:white; border:none;">加入會員</button>
-    </div>
-    <div id="errorPanel" style="display:none; background:#ffebee; padding:20px; text-align:center;">
-        連線失敗<br><button onclick="location.reload()">重新整理</button>
+
+        <div id="ui-member">
+            <p id="userNameDisplay" style="font-weight:bold;"></p>
+            <div class="qr-box"><img id="memberQr" src=""></div>
+            <div class="point-badge">
+                <p style="margin:0; font-size:14px; opacity:0.9;">目前可用點數</p>
+                <h1 id="userPoints" style="margin:5px 0;">0 pt</h1>
+            </div>
+            <button class="btn-share" onclick="handleShare()">推薦好友領招待</button>
+        </div>
+
+        <div id="ui-guest">
+            <p style="color:var(--main-red); font-weight:bold;">🎁 新好友專屬招待</p>
+            <div class="qr-box"><img id="guestQr" src=""></div>
+            <div style="margin-top:20px; text-align:left;">
+                <input type="text" id="regName" placeholder="真實姓名">
+                <input type="tel" id="regPhone" placeholder="手機號碼">
+                <input type="date" id="regBirth" value="2000-01-01">
+                <button class="btn-reg" id="regBtn" onclick="register()">立即加入會員</button>
+            </div>
+        </div>
     </div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyk1j0rQflpZIW-TIw7JWDHRuSixGGSR8YDh0z2AmBlMbLdLbLdlVh5gRH/exec";
-const LIFF_ID = "2009625010-p9sVIUWe";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
+    const LIFF_ID = "2009625010-p9sVIUWe";
+    let myId = "";
 
-let userId = null;
-const urlParams = new URLSearchParams(location.search);
-const referrerId = urlParams.get('referrerId');
-
-async function init() {
-    try {
-        await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
-        }
-        const profile = await liff.getProfile();
-        userId = profile.userId;
-        await checkMember();
-    } catch(e) {
-        showError();
+    async function init() {
+        try {
+            await liff.init({ liffId: LIFF_ID });
+            if (!liff.isLoggedIn()) { liff.login(); return; }
+            const profile = await liff.getProfile();
+            myId = profile.userId;
+            checkMember();
+        } catch (e) { console.error(e); }
     }
-}
 
-async function checkMember() {
-    try {
-        const url = GAS_URL + "?action=checkID&userId=" + userId + "&t=" + Date.now();
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.isMember) {
-            showMember(data.userName, data.points);
-        } else {
-            showGuest();
-        }
-    } catch(e) {
-        showGuest();
+    async function checkMember() {
+        try {
+            // 強制加上 redirect: 'follow' 解決轉圈圈
+            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}`, { redirect: 'follow' });
+            const data = await res.json();
+            
+            document.getElementById('ui-loading').style.display = 'none';
+            if (data.isMember) {
+                document.getElementById('ui-member').style.display = 'block';
+                document.getElementById('ui-guest').style.display = 'none';
+                document.getElementById('userNameDisplay').innerText = `歡迎，${data.userName} 會員`;
+                document.getElementById('userPoints').innerText = `${data.points} pt`;
+                document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${myId}`;
+            } else {
+                showGuestUI();
+            }
+        } catch (e) { showGuestUI(); }
     }
-}
 
-async function register() {
-    const name = document.getElementById('name').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const birth = document.getElementById('birth').value;
-    
-    if (!name || !phone || !birth) {
-        alert("請填寫完整資料");
-        return;
+    function showGuestUI() {
+        document.getElementById('ui-loading').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'none';
+        document.getElementById('ui-guest').style.display = 'block';
+        const urlParams = new URLSearchParams(window.location.search);
+        const rid = urlParams.get('referrerId') || myId;
+        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${rid}`;
     }
-    
-    const btn = document.getElementById('regBtn');
-    btn.disabled = true;
-    btn.innerText = "處理中...";
-    
-    try {
-        const url = GAS_URL + "?action=register&userId=" + userId + "&name=" + encodeURIComponent(name) + "&phone=" + phone + "&birthday=" + birth + "&referrerId=" + (referrerId || "");
-        const res = await fetch(url);
-        const result = await res.text();
-        
-        if (result === "SUCCESS") {
+
+    async function register() {
+        const name = document.getElementById('regName').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+        const birth = document.getElementById('regBirth').value;
+        if (!name || !phone) { alert("請填寫姓名與電話"); return; }
+
+        document.getElementById('regBtn').disabled = true;
+        document.getElementById('regBtn').innerText = "處理中...";
+
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            await fetch(GAS_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify({
+                    action: "register",
+                    name: name,
+                    phone: phone,
+                    birthday: birth,
+                    userId: myId,
+                    referrerId: urlParams.get('referrerId') || ""
+                })
+            });
             alert("註冊成功！");
-            await checkMember();
-        } else if (result === "DUPLICATE") {
-            alert("您已經是會員了！");
-            await checkMember();
-        } else {
-            alert("註冊失敗：" + result);
-            btn.disabled = false;
-            btn.innerText = "加入會員";
-        }
-    } catch(e) {
-        alert("網路錯誤：" + e.message);
-        btn.disabled = false;
-        btn.innerText = "加入會員";
+            setTimeout(checkMember, 2000); // 留兩秒寫入資料後刷新
+        } catch (e) { alert("連線失敗，請稍後再試"); }
     }
-}
 
-function showMember(name, points) {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('guestPanel').style.display = 'none';
-    document.getElementById('memberPanel').style.display = 'block';
-    document.getElementById('points').innerText = points;
-    document.getElementById('memberQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + userId;
-    
-    let nameEl = document.getElementById('welcomeName');
-    if (!nameEl) {
-        nameEl = document.createElement('p');
-        nameEl.id = 'welcomeName';
-        nameEl.style.textAlign = 'center';
-        nameEl.style.fontWeight = 'bold';
-        nameEl.style.marginBottom = '15px';
-        document.getElementById('memberPanel').insertBefore(nameEl, document.getElementById('memberPanel').firstChild);
+    function handleShare() {
+        const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
+        const el = document.createElement('textarea');
+        el.value = `🍲 老娘鍋 x 一點甜 🍲\n送你專屬招待券，加入會員再領回饋點數！\n點我領取：${shareUrl}`;
+        document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+        alert("推薦連結已複製！");
     }
-    nameEl.innerText = "歡迎，" + name + " 會員";
-}
 
-function showGuest() {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('memberPanel').style.display = 'none';
-    document.getElementById('guestPanel').style.display = 'block';
-    const qrData = referrerId || userId;
-    if (qrData) {
-        document.getElementById('guestQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + qrData;
-    }
-}
-
-function showError() {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('memberPanel').style.display = 'none';
-    document.getElementById('guestPanel').style.display = 'none';
-    document.getElementById('errorPanel').style.display = 'block';
-}
-
-function shareLink() {
-    const url = "https://oldmapot.github.io/Member_Master/index.html?referrerId=" + userId;
-    navigator.clipboard.writeText(url);
-    alert("推薦連結已複製！");
-}
-
-document.getElementById('regBtn').onclick = register;
-document.getElementById('birth').addEventListener('focus', function() {
-    if (!this.value) this.value = "2000-01-01";
-});
-
-init();
+    init();
 </script>
 </body>
 </html>
