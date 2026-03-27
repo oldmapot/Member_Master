@@ -36,7 +36,7 @@
         <input type="text" id="name" placeholder="真實姓名" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
         <input type="tel" id="phone" placeholder="手機號碼" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
         <input type="date" id="birth" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-        <button onclick="register()" style="width:100%; padding:14px; background:#8b0000; color:white; border:none; border-radius:12px; font-size:16px;">加入會員</button>
+        <button id="regBtn" onclick="register()" style="width:100%; padding:14px; background:#8b0000; color:white; border:none; border-radius:12px; font-size:16px;">加入會員</button>
     </div>
     
     <div id="errorPanel" style="display:none; background:#ffebee; padding:20px; border-radius:12px; text-align:center;">
@@ -45,8 +45,10 @@
     </div>
 
 <script>
-// ========== 您的 GAS 網址 ==========
-const GAS_URL = "https://script.google.com/macros/s/AKfycby1YCNUjtY3ZoTLJmeN86Y1UMBKXFJFcvWkdBupwnwByEWCtzVHjp09A6_3twyCepTBPg/exec";
+// ========== 請貼上您新部署的 GAS 網址 ==========
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwuMlqWFj3RH0_34JsmOmz4CTyJyJ8hE5UQIgKoEnO4B12aEZoeItu-RHlRByKp115n6A/exec";
+// =============================================
+
 const LIFF_ID = "2009625010-p9sVIUWe";
 
 let userId = null;
@@ -60,27 +62,25 @@ function setDebugMsg(msg) {
 }
 
 async function init() {
-    setDebugMsg("1. 開始初始化 LIFF...");
+    setDebugMsg("初始化中...");
     try {
         await liff.init({ liffId: LIFF_ID });
-        setDebugMsg("2. LIFF 初始化成功");
+        setDebugMsg("LIFF 初始化成功");
         
         if (!liff.isLoggedIn()) {
-            setDebugMsg("3. 未登入，跳轉中...");
+            setDebugMsg("未登入，跳轉中");
             liff.login();
             return;
         }
-        setDebugMsg("3. 已登入，獲取個人資料...");
         
         const profile = await liff.getProfile();
         userId = profile.userId;
-        setDebugMsg("4. 使用者 ID: " + userId.substring(0, 10) + "...");
+        setDebugMsg("使用者: " + profile.displayName);
         
-        setDebugMsg("5. 開始檢查會員...");
         await checkMember();
         
     } catch(e) {
-        setDebugMsg("❌ 錯誤: " + e.message);
+        setDebugMsg("錯誤: " + e.message);
         showError(e.message);
     }
 }
@@ -90,26 +90,18 @@ async function checkMember() {
     
     try {
         const url = `${GAS_URL}?action=checkID&userId=${userId}&t=${Date.now()}`;
-        setDebugMsg("6. 請求網址: " + url.substring(0, 80) + "...");
+        setDebugMsg("檢查會員...");
         
         const res = await fetch(url);
-        setDebugMsg("7. 收到回應, status: " + res.status);
-        
-        const text = await res.text();
-        setDebugMsg("8. 回應內容: " + text);
-        
-        const data = JSON.parse(text);
-        setDebugMsg("9. 解析成功, isMember: " + data.isMember);
+        const data = await res.json();
         
         if (data.isMember === true) {
-            setDebugMsg("10. 會員驗證成功!");
             showMember(data.userName, data.points);
         } else {
-            setDebugMsg("10. 非會員，顯示註冊畫面");
             showGuest();
         }
     } catch(e) {
-        setDebugMsg("❌ 檢查失敗: " + e.message);
+        setDebugMsg("檢查失敗: " + e.message);
         showError(e.message);
     }
 }
@@ -124,12 +116,24 @@ async function register() {
         return;
     }
     
-    setDebugMsg("開始註冊...");
+    const btn = document.getElementById('regBtn');
+    btn.disabled = true;
+    btn.innerText = "處理中...";
+    setDebugMsg("註冊中...");
     
     try {
-        const res = await fetch(GAS_URL, {
+        // 使用 GET 方式測試 POST 是否正常（臨時測試用）
+        const testUrl = `${GAS_URL}?action=checkID&userId=test`;
+        const testRes = await fetch(testUrl);
+        setDebugMsg("GET 測試成功");
+        
+        // 正式 POST 註冊
+        const response = await fetch(GAS_URL, {
             method: "POST",
-            headers: { 'Content-Type': 'application/json' },
+            mode: "cors",
+            headers: { 
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
                 action: "register",
                 name: name,
@@ -140,21 +144,26 @@ async function register() {
             })
         });
         
-        const result = await res.text();
-        setDebugMsg("註冊結果: " + result);
+        const result = await response.text();
+        setDebugMsg("回應: " + result);
         
         if (result === "SUCCESS") {
-            alert("註冊成功！");
+            alert("🎉 註冊成功！");
             await checkMember();
         } else if (result === "DUPLICATE") {
             alert("您已經是會員了！");
             await checkMember();
         } else {
             alert("註冊失敗：" + result);
+            btn.disabled = false;
+            btn.innerText = "加入會員";
         }
+        
     } catch(e) {
-        setDebugMsg("註冊錯誤: " + e.message);
-        alert("網路錯誤：" + e.message);
+        setDebugMsg("錯誤: " + e.message);
+        alert("網路錯誤：" + e.message + "\n請稍後再試");
+        btn.disabled = false;
+        btn.innerText = "加入會員";
     }
 }
 
@@ -180,15 +189,16 @@ function showMember(name, points) {
     document.getElementById('points').innerText = points;
     document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
     
-    const nameEl = document.createElement('p');
-    nameEl.style.textAlign = 'center';
-    nameEl.style.fontWeight = 'bold';
-    nameEl.style.margin = '10px 0';
-    nameEl.innerText = `歡迎，${name} 會員`;
-    const panel = document.getElementById('memberPanel');
-    if (panel.firstChild) {
-        panel.insertBefore(nameEl, panel.firstChild);
+    let nameEl = document.querySelector('#memberPanel .welcome-name');
+    if (!nameEl) {
+        nameEl = document.createElement('p');
+        nameEl.className = 'welcome-name';
+        nameEl.style.textAlign = 'center';
+        nameEl.style.fontWeight = 'bold';
+        nameEl.style.margin = '10px 0';
+        document.getElementById('memberPanel').insertBefore(nameEl, document.getElementById('memberPanel').firstChild);
     }
+    nameEl.innerText = `歡迎，${name} 會員`;
 }
 
 function showGuest() {
@@ -208,7 +218,7 @@ function showError(msg) {
     document.getElementById('memberPanel').style.display = 'none';
     document.getElementById('guestPanel').style.display = 'none';
     document.getElementById('errorPanel').style.display = 'block';
-    document.getElementById('errorMsg').innerText = msg || '連線失敗';
+    document.getElementById('errorMsg').innerHTML = msg || '連線失敗<br><br>請確認網路連線後重新整理';
 }
 
 // 設定生日預設值
