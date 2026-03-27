@@ -107,7 +107,7 @@
     </div>
 
 <script>
-    const gasUrl = "https://script.google.com/macros/s/AKfycby1YCNUjtY3ZoTLJmeN86Y1UMBKXFJFcvWkdBupwnwByEWCtzVHjp09A6_3twyCepTBPg/exec";
+    const gasUrl = "https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec";
     let myId = "";
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('referrerId');
@@ -119,11 +119,10 @@
             const profile = await liff.getProfile();
             myId = profile.userId;
             
-            if (referrerId) showGuestUI();
-            fetchData();
+            // 這裡不要直接判斷 referrerId，一律去 fetchData 問身分
+            fetchData(); 
         } catch (e) { console.error(e); }
     }
-    initLIFF();
 
     function fetchData() {
         const controller = new AbortController();
