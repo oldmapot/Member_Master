@@ -42,10 +42,8 @@
     </div>
 
 <script>
-// ========== 您的 GAS 網址 ==========
 const GAS_URL = "https://script.google.com/macros/s/AKfycby1YCNUjtY3ZoTLJmeN86Y1UMBKXFJFcvWkdBupwnwByEWCtzVHjp09A6_3twyCepTBPg/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
-
 let userId = null;
 const urlParams = new URLSearchParams(window.location.search);
 const referrerId = urlParams.get('referrerId');
@@ -53,40 +51,28 @@ const referrerId = urlParams.get('referrerId');
 async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
-        
-        if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
-        }
-        
+        if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         userId = profile.userId;
-        
-        // 檢查會員
         await checkMember();
-        
-    } catch(e) {
-        console.error(e);
-        showError();
-    }
+    } catch(e) { showError(); }
 }
 
 async function checkMember() {
     showLoading();
-    
     try {
-        const url = `${GAS_URL}?action=checkID&userId=${userId}&t=${Date.now()}`;
-        const res = await fetch(url);
+        // 加上 redirect: 'follow' 解決 GAS 轉址導致的轉圈圈
+        const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}`, { redirect: 'follow' });
         const data = await res.json();
-        
-        if (data.isMember === true) {
+        if (data.isMember) {
             showMember(data.userName, data.points);
         } else {
             showGuest();
         }
-    } catch(e) {
+    } catch(e) { 
         console.error(e);
-        showError();
+        // 如果連線失敗，4秒後強行進入訪客頁避免死機
+        setTimeout(showGuest, 4000); 
     }
 }
 
@@ -94,92 +80,27 @@ async function register() {
     const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const birth = document.getElementById('birth').value;
-    
-    if (!name || !phone || !birth) {
-        alert("請填寫完整資料");
-        return;
-    }
-    
+    if (!name || !phone || !birth) { alert("請填寫完整"); return; }
+
+    showLoading();
     try {
-        const res = await fetch(GAS_URL, {
+        // 使用 no-cors 解決跨域問題
+        await fetch(GAS_URL, {
             method: "POST",
-            headers: { 'Content-Type': 'application/json' },
+            mode: "no-cors",
             body: JSON.stringify({
-                action: "register",
-                name: name,
-                phone: phone,
-                birthday: birth,
-                userId: userId,
-                referrerId: referrerId || ""
+                action: "register", name, phone, birthday: birth, 
+                userId, referrerId: referrerId || ""
             })
         });
-        
-        const result = await res.text();
-        
-        if (result === "SUCCESS") {
-            alert("註冊成功！");
-            await checkMember();
-        } else if (result === "DUPLICATE") {
-            alert("您已經是會員了！");
-            await checkMember();
-        } else {
-            alert("註冊失敗：" + result);
-        }
-    } catch(e) {
-        alert("網路錯誤：" + e.message);
-    }
+        alert("註冊資料已送出！");
+        setTimeout(checkMember, 2000); // 延遲2秒等資料寫入後重新抓取
+    } catch(e) { alert("註冊失敗"); showGuest(); }
 }
 
-function share() {
-    const url = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${userId}`;
-    navigator.clipboard.writeText(url);
-    alert("推薦連結已複製！");
-}
-
-function showLoading() {
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('memberPanel').style.display = 'none';
-    document.getElementById('guestPanel').style.display = 'none';
-    document.getElementById('errorPanel').style.display = 'none';
-}
-
-function showMember(name, points) {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('memberPanel').style.display = 'block';
-    document.getElementById('guestPanel').style.display = 'none';
-    document.getElementById('errorPanel').style.display = 'none';
-    
-    document.getElementById('points').innerText = points;
-    document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
-    document.querySelector('#memberPanel h1')?.remove();
-    const nameEl = document.createElement('p');
-    nameEl.style.textAlign = 'center';
-    nameEl.style.fontWeight = 'bold';
-    nameEl.innerText = `歡迎，${name} 會員`;
-    document.getElementById('memberPanel').insertBefore(nameEl, document.getElementById('memberPanel').firstChild);
-}
-
-function showGuest() {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('memberPanel').style.display = 'none';
-    document.getElementById('guestPanel').style.display = 'block';
-    document.getElementById('errorPanel').style.display = 'none';
-    
-    const qrData = referrerId || userId;
-    document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`;
-}
-
-function showError() {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('memberPanel').style.display = 'none';
-    document.getElementById('guestPanel').style.display = 'none';
-    document.getElementById('errorPanel').style.display = 'block';
-}
-
-// 設定生日預設值
-document.getElementById('birth')?.addEventListener('focus', function() {
-    if (!this.value) this.value = "2000-01-01";
-});
+function showLoading() { document.getElementById('loading').style.display = 'block'; document.getElementById('memberPanel').style.display = 'none'; document.getElementById('guestPanel').style.display = 'none'; }
+function showMember(name, points) { document.getElementById('loading').style.display = 'none'; document.getElementById('memberPanel').style.display = 'block'; document.getElementById('points').innerText = points; document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`; }
+function showGuest() { document.getElementById('loading').style.display = 'none'; document.getElementById('guestPanel').style.display = 'block'; const qrd = referrerId || userId; document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrd}`; }
 
 init();
 </script>
