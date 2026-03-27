@@ -3,224 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>老娘鍋 x 一點甜｜數位會員</title>
+    <title>老娘鍋 x 一點甜</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         :root { --main-red: #8b0000; --line-green: #06C755; --bg-cream: #fdf5e6; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background-color: var(--bg-cream); margin: 0; padding: 15px; display: flex; justify-content: center; }
-        .card { width: 100%; max-width: 380px; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid var(--main-red); text-align: center; box-sizing: border-box; min-height: 520px; }
+        .card { width: 100%; max-width: 380px; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid var(--main-red); text-align: center; box-sizing: border-box; }
         
-        /* 快速載入動畫 */
-        .skeleton { color: #999; padding-top: 60px; }
-        .spinner { width: 30px; height: 30px; border: 3px solid #eee; border-top: 3px solid var(--main-red); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
+        /* 標題與基礎文字 */
         h2 { color: var(--main-red); margin: 0 0 5px 0; }
-        .coupon-box { background: #fff5f5; border: 2px dashed var(--main-red); border-radius: 15px; padding: 15px; margin-bottom: 20px; }
-        .qr-box img { width: 180px; height: 180px; background: #fff; border: 1px solid #eee; }
-        
-        .point-badge { background: var(--main-red); color: white; padding: 15px; border-radius: 15px; margin: 15px 0; }
-        
-        /* 權益列表樣式 */
-        .info-list { text-align: left; font-size: 13px; color: #444; line-height: 1.6; background: #f9f9f9; padding: 15px; border-radius: 12px; margin: 15px 0; border: 1px solid #eee; }
-        .info-list strong { color: var(--main-red); }
+        .info-list { text-align: left; font-size: 15px; color: #444; line-height: 1.7; background: #f9f9f9; padding: 15px; border-radius: 12px; margin: 15px 0; border: 1px solid #eee; }
 
-        /* 表單設計 */
+        /* 表單優化 */
         .form-group { text-align: left; margin-top: 15px; }
-        label.input-label { font-size: 13px; font-weight: bold; color: #444; margin-bottom: 5px; display: block; }
-        input[type="text"], input[type="tel"], input[type="date"] { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        label.input-label { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
+        input { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        input:focus { border-color: var(--main-red); outline: none; }
         
-        /* 勾選區塊分開 */
-        .check-group { font-size: 12px; color: #555; margin: 12px 0; display: flex; align-items: flex-start; line-height: 1.5; text-align: left; }
-        .check-group input { width: 18px; height: 18px; margin-right: 10px; flex-shrink: 0; cursor: pointer; }
-        .check-link { color: var(--main-red); font-weight: bold; text-decoration: underline; }
+        /* 勾選區 */
+        .check-group { font-size: 14px; color: #555; margin: 15px 0; display: flex; align-items: flex-start; text-align: left; }
+        .check-group input { width: 20px; height: 20px; margin-right: 12px; flex-shrink: 0; }
+        .check-link { color: var(--main-red); font-weight: bold; text-decoration: underline; cursor: pointer; }
 
-        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        /* 按鈕 */
+        button { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 17px; font-weight: bold; cursor: pointer; }
         .btn-reg { background: var(--main-red); color: white; margin-top: 10px; }
         .btn-reg:disabled { background: #ccc; }
-        .btn-share { background: var(--line-green); color: white; margin-top: 10px; }
-        
-        #toast { visibility: hidden; min-width: 250px; background: rgba(0,0,0,0.8); color: #fff; text-align: center; border-radius: 10px; padding: 16px; position: fixed; z-index: 1000; bottom: 30px; left: 50%; transform: translateX(-50%); }
-        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        /* 自定義彈窗 (解決網址標題問題) */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 85%; max-height: 70%; border-radius: 20px; padding: 25px; overflow-y: auto; position: relative; text-align: left; }
+        .modal-header { font-size: 18px; font-weight: bold; color: var(--main-red); margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .modal-body { font-size: 15px; color: #444; line-height: 1.8; white-space: pre-wrap; }
+        .modal-close { display: block; width: 100%; background: #eee; color: #333; padding: 12px; border-radius: 10px; text-align: center; margin-top: 20px; font-weight: bold; text-decoration: none; }
+
+        /* Toast */
+        #toast { visibility: hidden; min-width: 250px; background: rgba(0,0,0,0.85); color: #fff; text-align: center; border-radius: 50px; padding: 16px; position: fixed; z-index: 3000; bottom: 50px; left: 50%; transform: translateX(-50%); }
+        #toast.show { visibility: visible; animation: fadein 0.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 50px; opacity: 1;} }
     </style>
 </head>
 <body>
-    <div id="toast">✅ 專屬的推薦碼已複製，去貼給朋友吧！</div>
+
+    <div id="termsModal" class="modal">
+        <div class="modal-content">
+            <div id="modalTitle" class="modal-header"></div>
+            <div id="modalBody" class="modal-body"></div>
+            <a href="javascript:void(0)" class="modal-close" onclick="closeModal()">我已閱讀並了解</a>
+        </div>
+    </div>
+
+    <div id="toast">✅ 專屬推薦碼已複製！</div>
 
     <div class="card">
         <h2>老娘鍋 x 一點甜</h2>
         
-        <div id="ui-loading" class="skeleton"><div class="spinner"></div><p>同步系統資料中...</p></div>
-
-        <div id="ui-member" style="display:none;">
-            <p id="userNameDisplay" style="color:#666; font-size:14px; margin-bottom:10px;"></p>
-            <div class="qr-box">
-                <img id="memberQr" src="">
-                <p style="font-size:12px; color:var(--main-red); font-weight:bold; margin-top:8px;">結帳請出示此碼集點</p>
-            </div>
-            <div class="point-badge">
-                <p style="margin:0; font-size:13px; opacity:0.8;">目前可用點數</p>
-                <h1 id="userPoints">0 <span style="font-size:14px;">pt</span></h1>
-            </div>
-            <div class="info-list">
-                • 點數價值：$1 點 = NT$1 元<br>
-                • 專屬回饋：本人消費享 <strong>5% 回饋點數</strong> (永久)<br>
-                • 推薦回饋：享好友消費 <strong>2% 回饋點數</strong> (12個月)
-            </div>
-            <button class="btn-share" onclick="handleShare()">推薦好友領招待</button>
-        </div>
+        <div id="ui-loading" style="padding:40px;"><p>同步中...</p></div>
 
         <div id="ui-guest" style="display:none;">
-            <div class="coupon-box">
-                <p style="margin:0; font-weight:bold; color:var(--main-red);">🎁 好友專屬招待禮</p>
-                <div class="qr-box"><img id="guestQr" src=""></div>
-                <p style="font-size:12px; color:#444;">出示此碼，享小菜或甜點一份</p>
+            <div class="info-list" style="background:#fff5f5;">
+                🎁 <strong>好友專屬招待禮</strong><br>
+                加入會員並出示 QR Code，即老娘鍋消費享小菜或一點甜消費享霜淇淋一支。<br>
+                本優惠碼限兌換一次。
             </div>
             
             <div class="form-group">
                 <label class="input-label">真實姓名</label>
-                <input type="text" id="regName" placeholder="請填寫真實姓名">
+                <input type="text" id="regName" placeholder="範例：王小明">
                 
                 <label class="input-label">手機號碼</label>
-                <input type="tel" id="regPhone" placeholder="09xxxxxxxx">
+                <input type="tel" id="regPhone" placeholder="0912345678">
                 
                 <label class="input-label">生日 (領取壽星優惠)</label>
                 <input type="date" id="regBirth">
 
                 <label class="check-group">
                     <input type="checkbox" id="checkRights">
-                    <span>我已閱讀並同意 <a href="javascript:void(0)" onclick="showRights()" class="check-link">【會員權益與點數規則】</a></span>
+                    <span>同意 <a class="check-link" onclick="openModal('rights')">會員權益與點數規則</a></span>
                 </label>
 
                 <label class="check-group">
                     <input type="checkbox" id="checkLegal">
-                    <span>我已了解並同意 <a href="javascript:void(0)" onclick="showLegal()" class="check-link">【法務免責聲明與防弊控管】</a></span>
+                    <span>同意 <a class="check-link" onclick="openModal('legal')">法務免責與防弊聲明</a></span>
                 </label>
 
-                <button class="btn-reg" id="regBtn" onclick="submitForm()">立即加入會員並領取招待</button>
+                <button class="btn-reg" id="regBtn" onclick="submitForm()">立即加入會員</button>
             </div>
         </div>
 
-        <button style="background:none; color:#bbb; font-size:12px; border:none; margin-top:20px;" onclick="liff.closeWindow()">關閉系統</button>
+        <div id="ui-member" style="display:none;">
+            <p id="userNameDisplay"></p>
+            <div id="memberQrArea">
+                <img id="memberQr" style="width:180px; height:180px;">
+            </div>
+            <div class="point-badge">
+                <p style="margin:0; font-size:14px; opacity:0.8;">目前可用點數</p>
+                <h1 id="userPoints" style="margin:5px 0;">0 pt</h1>
+            </div>
+            <div class="info-list">
+                • 點數價值：$1 點 = NT$1 元<br>
+                • 本人消費：<strong>5% 點數回饋</strong><br>
+                • 推薦好友：<strong>2% 點數回饋</strong>
+            </div>
+            <button style="background:var(--line-green); color:white;" onclick="handleShare()">推薦好友領招待</button>
+        </div>
     </div>
 
 <script>
+    // 生議預設 2000 年邏輯
+    const birthInput = document.getElementById('regBirth');
+    birthInput.addEventListener('focus', function() {
+        if (!this.value) {
+            this.value = "2000-01-01";
+        }
+    });
+
+    // 條款內容資料
+    const content = {
+        rights: {
+            title: "會員權益與點數規則",
+            text: "◆ 點數價值：$1 點 = NT$1 元。\n◆ 本人集點：實付金額之 5% (效期12個月)。\n◆ 朋友回饋：好友消費實付之 2% (效期6個月)。\n◆ 生效時間：採隔日生效制。\n◆ 購買餐券：提撥 3% 點數。\n◆ 使用餐券：扣除面額後之實付額提撥 5%。\n◆ 特殊日期：春節、母親節等檔期暫停折抵。\n◆ 特殊活動：本人集點 3%，朋友回饋 1%。"
+        },
+        legal: {
+            title: "法務免責與防弊聲明",
+            text: "◆ 非現金化：點數不可兌換現金或轉讓。\n◆ 終止權：店家保有修改或終止活動之權利。\n◆ 營運調整：因不可抗力因素點數失效時不得要求賠償。\n◆ 誠信監測：偵測異常集點或虛假推薦將凍結帳號。\n◆ 最終解釋權：本公司保有活動最終解釋權。"
+        }
+    };
+
+    function openModal(type) {
+        document.getElementById('modalTitle').innerText = content[type].title;
+        document.getElementById('modalBody').innerText = content[type].text;
+        document.getElementById('termsModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('termsModal').style.display = 'none';
+    }
+
+    // --- 以下為原有的 LIFF 與 API 邏輯 ---
     const gasUrl = "https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec";
     let myId = "";
-    const urlParams = new URLSearchParams(window.location.search);
-    const referrerId = urlParams.get('referrerId');
-
+    
     async function initLIFF() {
-        try {
-            await liff.init({ liffId: "2009625010-p9sVIUWe" });
-            if (!liff.isLoggedIn()) { liff.login(); return; }
-            const profile = await liff.getProfile();
-            myId = profile.userId;
-            
-            if (referrerId) showGuestUI();
-            fetchData();
-        } catch (e) { console.error(e); }
+        await liff.init({ liffId: "2009625010-p9sVIUWe" });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        const profile = await liff.getProfile();
+        myId = profile.userId;
+        fetchData();
     }
     initLIFF();
 
     function fetchData() {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => { controller.abort(); showGuestUI(); }, 4000);
-
-        fetch(`${gasUrl}?action=checkID&userId=${myId}`, { signal: controller.signal })
+        fetch(`${gasUrl}?action=checkID&userId=${myId}`)
         .then(res => res.json())
         .then(res => {
-            clearTimeout(timeoutId);
+            document.getElementById('ui-loading').style.display = 'none';
             if (res.isMember) showMemberUI(res);
-            else showGuestUI();
-        })
-        .catch(() => showGuestUI());
+            else document.getElementById('ui-guest').style.display = 'block';
+        });
     }
 
     function showMemberUI(res) {
-        document.getElementById('ui-loading').style.display = 'none';
-        document.getElementById('ui-guest').style.display = 'none';
         document.getElementById('ui-member').style.display = 'block';
-        document.getElementById('userNameDisplay').innerText = `您好，${res.userName} 會員`;
+        document.getElementById('userNameDisplay').innerText = `您好，${res.userName}`;
         document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
-        document.getElementById('userPoints').innerHTML = `${res.points} <span style="font-size:14px;">pt</span>`;
-    }
-
-    function showGuestUI() {
-        document.getElementById('ui-loading').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'none';
-        document.getElementById('ui-guest').style.display = 'block';
-        const displayId = referrerId || myId;
-        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${displayId}`;
+        document.getElementById('userPoints').innerText = `${res.points} pt`;
     }
 
     async function submitForm() {
         const name = document.getElementById('regName').value;
         const phone = document.getElementById('regPhone').value;
         const birth = document.getElementById('regBirth').value;
-        const rights = document.getElementById('checkRights').checked;
-        const legal = document.getElementById('checkLegal').checked;
-
-        if(!name || !phone || !birth) { alert("請填寫姓名、電話與生日"); return; }
-        if(!rights || !legal) { alert("請勾選並同意以上兩項權益與聲明條款"); return; }
-        
-        const btn = document.getElementById('regBtn');
-        btn.disabled = true; btn.innerText = "資料同步中...";
-
-        fetch(gasUrl, { 
-            method: "POST", 
-            mode: "no-cors", 
-            body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: referrerId || "" }) 
-        });
-        
-        setTimeout(() => {
-            alert("註冊成功！歡迎來到老娘鍋家族！");
-            location.reload();
-        }, 1500);
-    }
-
-    function handleShare() {
-        const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
-        const text = `✨ 送你老娘鍋 x 一點甜專屬招待券！ ✨\n\n點開連結出示 QR Code，即享美味招待！\n加入會員再享消費回饋，點我領取：\n${shareUrl}`;
-        
-        const el = document.createElement('textarea');
-        el.value = text;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        
-        document.getElementById("toast").className = "show";
-        setTimeout(() => { document.getElementById("toast").className = ""; }, 3000);
-
-        if (liff.isApiAvailable('shareTargetPicker')) {
-            liff.shareTargetPicker([{
-                "type": "flex",
-                "altText": "🎁 你的好友送你老娘鍋招待禮！",
-                "contents": {
-                    "type": "bubble",
-                    "hero": { "type": "image", "url": "https://images.unsplash.com/photo-1590671886400-8f8088b97cb0?q=80&w=1000&auto=format&fit=crop", "size": "full", "aspectRatio": "20:13", "aspectMode": "cover" },
-                    "body": { "type": "box", "layout": "vertical", "contents": [
-                        {"type": "text", "text": "老娘鍋 x 一點甜", "weight": "bold", "color": "#8b0000", "size": "sm"},
-                        {"type": "text", "text": "好友專屬招待禮 🍲", "weight": "bold", "size": "xl", "margin": "md"},
-                        {"type": "text", "text": "出示此碼即享招待禮，本人集點 5%，推薦好友集點 2%！", "wrap": true, "size": "xs", "margin": "md", "color": "#666666"}
-                    ]},
-                    "footer": { "type": "box", "layout": "vertical", "contents": [
-                        { "type": "button", "action": { "type": "uri", "label": "立即領取回饋", "uri": shareUrl }, "style": "primary", "color": "#8b0000" }
-                    ]}
-                }
-            }]);
+        if(!name || !phone || !birth) { alert("請填寫完整資料"); return; }
+        if(!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) {
+            alert("請勾選同意條款"); return;
         }
-    }
-
-    function showRights() {
-        alert("【會員權益與點數規則】\n◆ 點數價值：$1點=NT$1元。\n◆ 本人集點：實付額之 5% (效期12個月)。\n◆ 推薦回饋：好友消費額之 2% (效期6個月)。\n◆ 生效時間：採隔日生效制。\n◆ 購買餐券：提撥 3% 點數。\n◆ 使用餐券消費：扣除面額後實付額提撥 5%。\n◆ 特殊日期：春節、母親節等檔期暫停折抵。\n◆ 特殊活動：本人集點 3%，朋友回饋 1%。");
-    }
-
-    function showLegal() {
-        alert("【法務免責與防弊聲明】\n◆ 非現金化：不可兌換現金或轉讓。\n◆ 終止權：店家保有終止活動之權利。\n◆ 營運調整：若因歇業或不可抗力，點數自動失效，不得賠償。\n◆ 誠信監測：若偵測異常推薦或虛假集點，店家有權凍結帳號並清空點數。\n◆ 權益終止：違反誠信原則，店家保有最終解釋權。");
+        
+        document.getElementById('regBtn').disabled = true;
+        fetch(gasUrl, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId }) });
+        setTimeout(() => { alert("註冊成功！"); location.reload(); }, 1500);
     }
 </script>
 </body>
