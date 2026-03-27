@@ -159,8 +159,15 @@
         const name = document.getElementById('regName').value.trim();
         const phone = document.getElementById('regPhone').value.trim();
         const birth = document.getElementById('regBirth').value;
-        if (!name || !phone || !birth) { alert("請填寫完整資料"); return; }
-        if (!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { alert("請閱讀並同意條款"); return; }
+        
+        if (!name || !phone || !birth) { 
+            openModal('formError'); 
+            return; 
+        }
+        if (!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { 
+            openModal('checkError'); 
+            return; 
+        }
 
         document.getElementById('regBtn').disabled = true;
         document.getElementById('regBtn').innerText = "處理中...";
@@ -172,9 +179,17 @@
                 mode: "no-cors",
                 body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: rid })
             });
-            alert("註冊成功！歡迎加入！");
-            setTimeout(checkMember, 2000);
-        } catch (e) { alert("連線失敗"); document.getElementById('regBtn').disabled = false; }
+            
+            // --- 這裡改用自定義彈窗 ---
+            openModal('regSuccess');
+            
+            // 彈窗顯示後，給使用者一點時間看，3秒後自動進入會員中心
+            setTimeout(checkMember, 3000);
+        } catch (e) { 
+            document.getElementById('regBtn').disabled = false;
+            document.getElementById('regBtn').innerText = "立即加入會員並領取招待";
+            openModal('connectError');
+        }
     }
 
    function handleShare() {
@@ -234,16 +249,47 @@
         document.body.removeChild(el);
         alert("推薦連結已複製成功！\n趕快貼給好友領招待禮吧！");
     }
-    // 彈窗控制
     function openModal(type) {
         const modal = document.getElementById('customModal');
         const title = document.getElementById('modalTitle');
         const body = document.getElementById('modalBody');
-        if (type === 'rights') { title.innerText = "會員權益與點數規則"; body.innerText = TEXT_RIGHTS; }
-        else { title.innerText = "法務免責與規章聲明"; body.innerText = TEXT_LEGAL; }
+        
+        // 每次打開先重置樣式，確保文字靠左
+        body.style.textAlign = "left"; 
+
+        if (type === 'rights') { 
+            title.innerText = "會員權益與點數規則"; 
+            body.innerText = TEXT_RIGHTS; 
+        } else if (type === 'legal') { 
+            title.innerText = "法務免責與規章聲明"; 
+            body.innerText = TEXT_LEGAL; 
+        } else if (type === 'copySuccess') {
+            title.innerText = "連結複製成功！";
+            body.innerHTML = `
+                <div style="text-align:center; padding:15px;">
+                    <p style="font-size:20px; margin:0;">🎉 推薦連結已準備好</p>
+                    <p style="color:#666; margin-top:10px;">您可以直接貼給好友，邀請他們領招待禮並幫您累積點數！</p>
+                </div>`;
+        } else if (type === 'regSuccess') {
+            title.innerText = "註冊成功！";
+            body.innerHTML = `
+                <div style="text-align:center; padding:15px;">
+                    <p style="font-size:20px; color:#06C755; margin:0;">恭喜加入老娘家族！</p>
+                    <p style="color:#666; margin-top:10px;">系統正在同步您的資料...<br>即將跳轉至個人中心。</p>
+                </div>`;
+        } else if (type === 'formError') {
+            title.innerText = "提醒";
+            body.innerText = "請填寫完整的姓名、電話與生日資訊喔！";
+        } else if (type === 'checkError') {
+            title.innerText = "提醒";
+            body.innerText = "請勾選並同意會員條款與聲明。";
+        } else if (type === 'connectError') {
+            title.innerText = "連線失敗";
+            body.innerText = "目前通訊不穩定，請稍後再試一次。";
+        }
+        
         modal.style.display = 'flex';
     }
-    function closeModal() { document.getElementById('customModal').style.display = 'none'; }
 
     init();
 </script>
