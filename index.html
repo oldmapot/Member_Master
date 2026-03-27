@@ -98,6 +98,71 @@
                 <button onclick="liff.closeWindow()" style="padding:15px 30px; background:#8b0000; color:white; border:none; border-radius:8px; font-size:16px; width:200px; margin:20px auto;">返回 LINE</button>
             </div>`;
     }
+    // 分享功能：優先使用 LINE 原生分享卡片
+function shareToFriend(userId, userName) {
+    const shareUrl = `https://你的帳號.github.io/Member_Master/index.html?referrerId=${userId}`;
+    
+    // 如果在 LINE App 內，使用 ShareTargetPicker (最推薦，效果像廣告卡片)
+    if (liff.isApiAvailable('shareTargetPicker')) {
+        liff.shareTargetPicker([
+            {
+                "type": "flex",
+                "altText": "🎁 你的好友送你老娘鍋專屬招待禮！",
+                "contents": {
+                    "type": "bubble",
+                    "hero": {
+                        "type": "image",
+                        "url": "https://images.unsplash.com/photo-1590671886400-8f8088b97cb0?q=80&w=1000&auto=format&fit=crop", // 建議換成你店面的美照
+                        "size": "full",
+                        "aspectRatio": "20:13",
+                        "aspectMode": "cover"
+                    },
+                    "body": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [
+                            {"type": "text", "text": "老娘鍋 x 一點甜", "weight": "bold", "color": "#8b0000", "size": "sm"},
+                            {"type": "text", "text": "好友專屬招待禮 🍲", "weight": "bold", "size": "xl", "margin": "md"},
+                            {"type": "text", "text": "透過此連結註冊，結帳出示 QR Code 即享小菜/點心招待，還可累積消費回饋！", "wrap": true, "size": "xs", "margin": "md", "color": "#666666"}
+                        ]
+                    },
+                    "footer": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [
+                            {
+                                "type": "button",
+                                "action": { "type": "uri", "label": "立即領取招待", "uri": shareUrl },
+                                "style": "primary",
+                                "color": "#8b0000"
+                            }
+                        ]
+                    }
+                }
+            }
+        ]).then(res => {
+            if (res) alert("已成功分享給好友！");
+        }).catch(err => console.log("分享取消"));
+    } else {
+        // 備案：如果是瀏覽器環境，改用長按複製
+        copyToClipboard(shareUrl);
+    }
+}
+
+// 備案：長按複製功能
+function copyToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = `✨ 發現高雄隱藏版美味！老娘鍋 x 一點甜 ✨\n\n點擊連結註冊，結帳出示我的 QR Code 享招待：\n${text}`;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("推薦文案已複製！快去貼給朋友吧～");
+    } catch (err) {
+        alert("請長按網址複製分享給朋友");
+    }
+    document.body.removeChild(textArea);
+}
 </script>
 </body>
 </html>
