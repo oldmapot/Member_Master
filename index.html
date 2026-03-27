@@ -9,7 +9,10 @@
 <body style="font-family: sans-serif; padding: 20px; max-width: 400px; margin: 0 auto;">
     <h1 style="color:#8b0000;">老娘鍋 x 一點甜</h1>
     
-    <div id="loading" style="text-align:center; padding:40px;">載入中...</div>
+    <div id="loading" style="text-align:center; padding:40px;">
+        <div>載入中...</div>
+        <div id="debugMsg" style="font-size:12px; color:#666; margin-top:20px;"></div>
+    </div>
     
     <div id="memberPanel" style="display:none;">
         <div style="background:#8b0000; color:white; padding:20px; border-radius:12px; text-align:center;">
@@ -37,42 +40,77 @@
     </div>
     
     <div id="errorPanel" style="display:none; background:#ffebee; padding:20px; border-radius:12px; text-align:center;">
-        <p>連線失敗</p>
+        <p id="errorMsg">連線失敗</p>
         <button onclick="location.reload()" style="margin-top:10px; padding:10px 20px;">重新整理</button>
     </div>
 
 <script>
+// ========== 您的 GAS 網址 ==========
 const GAS_URL = "https://script.google.com/macros/s/AKfycby1YCNUjtY3ZoTLJmeN86Y1UMBKXFJFcvWkdBupwnwByEWCtzVHjp09A6_3twyCepTBPg/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
+
 let userId = null;
 const urlParams = new URLSearchParams(window.location.search);
 const referrerId = urlParams.get('referrerId');
 
+function setDebugMsg(msg) {
+    const el = document.getElementById('debugMsg');
+    if (el) el.innerText = msg;
+    console.log(msg);
+}
+
 async function init() {
+    setDebugMsg("1. 開始初始化 LIFF...");
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
+        setDebugMsg("2. LIFF 初始化成功");
+        
+        if (!liff.isLoggedIn()) {
+            setDebugMsg("3. 未登入，跳轉中...");
+            liff.login();
+            return;
+        }
+        setDebugMsg("3. 已登入，獲取個人資料...");
+        
         const profile = await liff.getProfile();
         userId = profile.userId;
+        setDebugMsg("4. 使用者 ID: " + userId.substring(0, 10) + "...");
+        
+        setDebugMsg("5. 開始檢查會員...");
         await checkMember();
-    } catch(e) { showError(); }
+        
+    } catch(e) {
+        setDebugMsg("❌ 錯誤: " + e.message);
+        showError(e.message);
+    }
 }
 
 async function checkMember() {
     showLoading();
+    
     try {
-        // 加上 redirect: 'follow' 解決 GAS 轉址導致的轉圈圈
-        const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}`, { redirect: 'follow' });
-        const data = await res.json();
-        if (data.isMember) {
+        const url = `${GAS_URL}?action=checkID&userId=${userId}&t=${Date.now()}`;
+        setDebugMsg("6. 請求網址: " + url.substring(0, 80) + "...");
+        
+        const res = await fetch(url);
+        setDebugMsg("7. 收到回應, status: " + res.status);
+        
+        const text = await res.text();
+        setDebugMsg("8. 回應內容: " + text);
+        
+        const data = JSON.parse(text);
+        setDebugMsg("9. 解析成功, isMember: " + data.isMember);
+        
+        if (data.isMember === true) {
+            setDebugMsg("10. 會員驗證成功!");
             showMember(data.userName, data.points);
         } else {
+            setDebugMsg("10. 非會員，顯示註冊畫面");
             showGuest();
         }
-    } catch(e) { 
-        console.error(e);
-        // 如果連線失敗，4秒後強行進入訪客頁避免死機
-        setTimeout(showGuest, 4000); 
+    } catch(e) {
+        setDebugMsg("❌ 檢查失敗: " + e.message);
+        showError(e.message);
     }
 }
 
@@ -80,27 +118,106 @@ async function register() {
     const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const birth = document.getElementById('birth').value;
-    if (!name || !phone || !birth) { alert("請填寫完整"); return; }
-
-    showLoading();
+    
+    if (!name || !phone || !birth) {
+        alert("請填寫完整資料");
+        return;
+    }
+    
+    setDebugMsg("開始註冊...");
+    
     try {
-        // 使用 no-cors 解決跨域問題
-        await fetch(GAS_URL, {
+        const res = await fetch(GAS_URL, {
             method: "POST",
-            mode: "no-cors",
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                action: "register", name, phone, birthday: birth, 
-                userId, referrerId: referrerId || ""
+                action: "register",
+                name: name,
+                phone: phone,
+                birthday: birth,
+                userId: userId,
+                referrerId: referrerId || ""
             })
         });
-        alert("註冊資料已送出！");
-        setTimeout(checkMember, 2000); // 延遲2秒等資料寫入後重新抓取
-    } catch(e) { alert("註冊失敗"); showGuest(); }
+        
+        const result = await res.text();
+        setDebugMsg("註冊結果: " + result);
+        
+        if (result === "SUCCESS") {
+            alert("註冊成功！");
+            await checkMember();
+        } else if (result === "DUPLICATE") {
+            alert("您已經是會員了！");
+            await checkMember();
+        } else {
+            alert("註冊失敗：" + result);
+        }
+    } catch(e) {
+        setDebugMsg("註冊錯誤: " + e.message);
+        alert("網路錯誤：" + e.message);
+    }
 }
 
-function showLoading() { document.getElementById('loading').style.display = 'block'; document.getElementById('memberPanel').style.display = 'none'; document.getElementById('guestPanel').style.display = 'none'; }
-function showMember(name, points) { document.getElementById('loading').style.display = 'none'; document.getElementById('memberPanel').style.display = 'block'; document.getElementById('points').innerText = points; document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`; }
-function showGuest() { document.getElementById('loading').style.display = 'none'; document.getElementById('guestPanel').style.display = 'block'; const qrd = referrerId || userId; document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrd}`; }
+function share() {
+    const url = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${userId}`;
+    navigator.clipboard.writeText(url);
+    alert("推薦連結已複製！");
+}
+
+function showLoading() {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('memberPanel').style.display = 'none';
+    document.getElementById('guestPanel').style.display = 'none';
+    document.getElementById('errorPanel').style.display = 'none';
+}
+
+function showMember(name, points) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('memberPanel').style.display = 'block';
+    document.getElementById('guestPanel').style.display = 'none';
+    document.getElementById('errorPanel').style.display = 'none';
+    
+    document.getElementById('points').innerText = points;
+    document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
+    
+    const nameEl = document.createElement('p');
+    nameEl.style.textAlign = 'center';
+    nameEl.style.fontWeight = 'bold';
+    nameEl.style.margin = '10px 0';
+    nameEl.innerText = `歡迎，${name} 會員`;
+    const panel = document.getElementById('memberPanel');
+    if (panel.firstChild) {
+        panel.insertBefore(nameEl, panel.firstChild);
+    }
+}
+
+function showGuest() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('memberPanel').style.display = 'none';
+    document.getElementById('guestPanel').style.display = 'block';
+    document.getElementById('errorPanel').style.display = 'none';
+    
+    const qrData = referrerId || userId;
+    if (qrData) {
+        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`;
+    }
+}
+
+function showError(msg) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('memberPanel').style.display = 'none';
+    document.getElementById('guestPanel').style.display = 'none';
+    document.getElementById('errorPanel').style.display = 'block';
+    document.getElementById('errorMsg').innerText = msg || '連線失敗';
+}
+
+// 設定生日預設值
+const birthInput = document.getElementById('birth');
+if (birthInput) {
+    birthInput.addEventListener('focus', function() {
+        if (!this.value) this.value = "2000-01-01";
+    });
+}
 
 init();
 </script>
