@@ -43,7 +43,6 @@
         .error-message { color: #d32f2f; background: #ffebee; padding: 12px; border-radius: 10px; margin: 15px 0; font-size: 14px; }
         .retry-btn { background: var(--main-red); color: white; padding: 8px 16px; border: none; border-radius: 8px; margin-top: 10px; font-size: 14px; cursor: pointer; }
         .success-badge { background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; margin-left: 8px; }
-        .force-member-btn { background: #ff9800; color: white; padding: 10px; border: none; border-radius: 8px; margin-top: 10px; font-size: 12px; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
@@ -92,7 +91,6 @@
                 • 點數價值：$1 點 = NT$1 元<br>• 本人消費：<strong>5% 點數回饋</strong><br>• 推薦好友：<strong>2% 點數回饋</strong>
             </div>
             <button style="background:var(--line-green); color:white;" onclick="handleShare()">推薦好友領招待</button>
-            <button class="force-member-btn" onclick="forceShowMember()">🔧 強制顯示會員畫面 (除錯用)</button>
         </div>
         
         <div id="ui-error" style="display:none; padding-top:100px;">
@@ -113,9 +111,9 @@
     </div>
 
 <script>
-    // ========== 請務必更新這個 URL ==========
-    const gasUrl = "https://script.google.com/macros/s/AKfycby1YCNUjtY3ZoTLJmeN86Y1UMBKXFJFcvWkdBupwnwByEWCtzVHjp09A6_3twyCepTBPg/exec";
-    // =====================================
+    // ========== 請更新為您新的 GAS 網址 ==========
+    const gasUrl = "https://script.google.com/macros/s/你的新ID/exec";
+    // ============================================
     
     const liffId = "2009625010-p9sVIUWe";
     let myId = "";
@@ -163,22 +161,6 @@
         }
     }
     
-    function forceShowMember() {
-        addDebug("🔧 強制顯示會員畫面（除錯用）");
-        if (memberData) {
-            showMemberUI(memberData);
-        } else {
-            // 模擬會員資料
-            const mockData = {
-                isMember: true,
-                userName: "測試會員",
-                points: 100
-            };
-            addDebug("📝 使用模擬資料顯示會員畫面", mockData);
-            showMemberUI(mockData);
-        }
-    }
-    
     // LIFF 初始化
     async function initLIFF() {
         addDebug("🚀 開始初始化 LIFF...");
@@ -203,12 +185,11 @@
                 statusMessage: profile.statusMessage || "無"
             });
             
-            // 立即檢查會員狀態
             addDebug("🔍 準備檢查會員狀態...");
             await checkMemberStatus();
             
         } catch (e) {
-            addDebug("❌ LIFF 初始化失敗", { error: e.message, stack: e.stack });
+            addDebug("❌ LIFF 初始化失敗", { error: e.message });
             showError();
         }
     }
@@ -235,7 +216,7 @@
         if(error) error.style.display = 'block';
     }
     
-    // 檢查會員狀態 - 修正版
+    // 檢查會員狀態
     async function checkMemberStatus() {
         if (!myId) {
             addDebug("❌ 無法檢查會員：沒有使用者 ID");
@@ -249,7 +230,6 @@
         addDebug("📡 發送請求到 GAS", { url: url.substring(0, 100) + "..." });
         
         try {
-            // 設置 15 秒超時
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 15000);
             
@@ -263,7 +243,7 @@
             });
             
             const responseText = await response.text();
-            addDebug("📄 原始回應內容 (前500字)", { 
+            addDebug("📄 原始回應內容", { 
                 responseText: responseText.substring(0, 500),
                 length: responseText.length 
             });
@@ -273,14 +253,13 @@
                 data = JSON.parse(responseText);
                 addDebug("✅ JSON 解析成功", data);
             } catch (e) {
-                addDebug("❌ JSON 解析失敗", { error: e.message, rawText: responseText.substring(0, 200) });
+                addDebug("❌ JSON 解析失敗", { error: e.message });
                 showGuestUI();
                 return;
             }
             
             addDebug("📊 會員狀態判斷結果", { 
                 isMember: data.isMember,
-                hasData: !!data,
                 userName: data.userName,
                 points: data.points
             });
@@ -296,7 +275,7 @@
             
         } catch (error) {
             if (error.name === 'AbortError') {
-                addDebug("⏰ 請求超時 (15秒)", { userId: myId });
+                addDebug("⏰ 請求超時 (15秒)");
             } else {
                 addDebug("❌ 檢查會員狀態失敗", { error: error.message, type: error.name });
             }
@@ -465,7 +444,6 @@
     }
     
     addDebug("🚀 頁面載入完成，開始執行 initLIFF()");
-    // 啟動
     initLIFF();
 </script>
 </body>
