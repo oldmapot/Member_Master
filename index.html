@@ -239,15 +239,17 @@
         }
     }
 
-    // 獨立出來的複製函數，確保彈出提示
-    function copyToClipboard(text) {
-        const el = document.createElement('textarea');
-        el.value = `🍲 老娘鍋 x 一點甜 🍲\n送你專屬招待券，加入會員再領回饋點數！\n點我領取：${text}`;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        alert("推薦連結已複製成功！\n趕快貼給好友領招待禮吧！");
+    // 獨立出來的複製函數，改用自定義彈窗避免網址標題
+function copyToClipboard(text) {
+    const el = document.createElement('textarea');
+    el.value = text; // 這裡建議直接傳入已經組合好的 copyText
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    
+    // 改用這個，就不會出現網址標題了！
+    openModal('copySuccess'); 
     }
     function openModal(type) {
         const modal = document.getElementById('customModal');
