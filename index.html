@@ -14,12 +14,10 @@
         .info-list { text-align: left; font-size: 15px; color: #444; line-height: 1.7; background: #f9f9f9; padding: 15px; border-radius: 12px; margin: 15px 0; border: 1px solid #eee; }
         .qr-box img { width: 180px; height: 180px; border: 1px solid #eee; padding: 5px; background: #fff; }
 
-        /* 表單 */
         .form-group { text-align: left; margin-top: 10px; }
         label { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
         input { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
         
-        /* 勾選區 */
         .check-group { font-size: 14px; color: #555; margin: 12px 0; display: flex; align-items: flex-start; text-align: left; line-height: 1.5; }
         .check-group input { width: 22px; height: 22px; margin-right: 12px; flex-shrink: 0; }
         .check-link { color: var(--main-red); font-weight: bold; text-decoration: underline; cursor: pointer; }
@@ -28,7 +26,6 @@
         .btn-reg { background: var(--main-red); color: white; }
         .btn-reg:disabled { background: #ccc; }
 
-        /* 全螢幕條款 (隱藏網址標題) */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; max-height: 75%; border-radius: 20px; padding: 25px; overflow-y: auto; text-align: left; }
         .modal-header { font-size: 18px; font-weight: bold; color: var(--main-red); margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
@@ -38,6 +35,7 @@
         #toast { visibility: hidden; min-width: 250px; background: rgba(0,0,0,0.85); color: #fff; text-align: center; border-radius: 50px; padding: 16px; position: fixed; z-index: 3000; bottom: 50px; left: 50%; transform: translateX(-50%); }
         #toast.show { visibility: visible; animation: fadein 0.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 50px; opacity: 1;} }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -68,7 +66,7 @@
             <div class="form-group">
                 <label>真實姓名</label><input type="text" id="regName" placeholder="請填寫姓名">
                 <label>手機號碼</label><input type="tel" id="regPhone" placeholder="09xxxxxxxx">
-                <label>生日 (預設 2000 年)</label><input type="date" id="regBirth">
+                <label>生日</label><input type="date" id="regBirth">
                 <label class="check-group"><input type="checkbox" id="checkRights"><span>同意 <a class="check-link" onclick="openModal('rights')">會員權益與點數規則</a></span></label>
                 <label class="check-group"><input type="checkbox" id="checkLegal"><span>同意 <a class="check-link" onclick="openModal('legal')">法務免責與防弊聲明</a></span></label>
                 <button class="btn-reg" id="regBtn" onclick="submitForm()">加入會員領取招待</button>
@@ -90,19 +88,18 @@
     </div>
 
 <script>
-    // --- 請務必確認以下兩個變數是正確的 ---
-    // 1. 您的 GAS 部署網址 (請複製貼上)
+    // ========== 請務必更新這個 URL ==========
+    // 將此 URL 替換為您重新部署後的 GAS 網頁應用程式網址
     const gasUrl = "https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec";
-    // 2. 您的 LIFF ID (請確認與 LINE Developers 後台設定一致)
-    const liffId = "2009625010-p9sVIUWe";
+    // =====================================
     
+    const liffId = "2009625010-p9sVIUWe";
     let myId = "";
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('referrerId');
 
-    // --- 修正 1: 完整的 LIFF 初始化與錯誤處理 ---
+    // LIFF 初始化
     async function initLIFF() {
-        // 顯示加載UI
         document.getElementById('ui-loading').style.display = 'block';
         document.getElementById('ui-guest').style.display = 'none';
         document.getElementById('ui-member').style.display = 'none';
@@ -112,63 +109,45 @@
             console.log("LIFF 初始化成功");
             
             if (!liff.isLoggedIn()) {
-                // 未登入，導向登入頁面
                 liff.login();
                 return;
             }
             
             const profile = await liff.getProfile();
             myId = profile.userId;
-            console.log("獲取使用者 ID:", myId);
+            console.log("使用者 ID:", myId);
             
-            // 登入成功後，開始獲取會員資料
-            fetchData();
+            // 檢查會員狀態
+            await checkMemberStatus();
             
         } catch (e) {
-            console.error("LIFF 初始化或登入失敗", e);
-            // 如果 LIFF 初始化失敗，直接顯示訪客模式（供測試或除錯）
+            console.error("LIFF 初始化失敗", e);
             showGuestUI();
         }
     }
     
-    // 啟動
-    initLIFF();
-
-    // --- 修正 2: 優化 fetchData，增加完整錯誤處理和逾時機制 ---
-    function fetchData() {
-        // 確保加載動畫顯示
-        document.getElementById('ui-loading').style.display = 'block';
-        document.getElementById('ui-guest').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'none';
-        
-        // 設置一個總逾時，5 秒後如果還沒有結果，就顯示訪客 UI
+    // 檢查會員狀態
+    async function checkMemberStatus() {
         const timeoutId = setTimeout(() => {
-            console.warn("獲取會員資料逾時，顯示訪客 UI");
+            console.warn("檢查會員狀態逾時");
             showGuestUI();
-        }, 5000);
+        }, 8000);
         
-        fetch(`${gasUrl}?action=checkID&userId=${myId}`)
-        .then(res => {
+        try {
+            const response = await fetch(`${gasUrl}?action=checkID&userId=${myId}`);
+            const data = await response.json();
             clearTimeout(timeoutId);
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json(); // 解析 JSON
-        })
-        .then(data => {
-            console.log("會員資料回應:", data);
+            
             if (data && data.isMember) {
                 showMemberUI(data);
             } else {
                 showGuestUI();
             }
-        })
-        .catch(err => {
+        } catch (error) {
             clearTimeout(timeoutId);
-            console.error("獲取會員資料失敗:", err);
-            // 發生錯誤（如網路問題或 GAS 錯誤），顯示訪客 UI 讓使用者可以嘗試註冊
+            console.error("檢查會員狀態失敗:", error);
             showGuestUI();
-        });
+        }
     }
 
     function showMemberUI(res) {
@@ -184,38 +163,34 @@
         document.getElementById('ui-loading').style.display = 'none';
         document.getElementById('ui-member').style.display = 'none';
         document.getElementById('ui-guest').style.display = 'block';
-        // 如果有被推薦，QR Code 顯示推薦人的 ID，否則顯示自己的 ID（尚未註冊）
         const finalId = referrerId || myId;
         if(finalId) {
             document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${finalId}`;
-        } else {
-            // 如果連 myId 都沒有（LIFF 失敗），顯示一個預設圖片或訊息
-            document.getElementById('guestQr').src = "";
-            document.getElementById('guestQr').alt = "請確認 LIFF 環境";
         }
     }
 
-    // --- 修正 3: 修正註冊表單提交，移除 no-cors，並等待伺服器回應 ---
+    // 修正後的註冊函數（關鍵修正）
     async function submitForm() {
-        const name = document.getElementById('regName').value;
-        const phone = document.getElementById('regPhone').value;
+        const name = document.getElementById('regName').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
         const birth = document.getElementById('regBirth').value;
         
-        if(!name || !phone || !birth) { 
-            alert("請填寫姓名、電話與生日"); 
-            return; 
-        }
-        if(!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { 
-            alert("請勾選同意條款"); 
-            return; 
-        }
+        // 驗證
+        if(!name) { alert("請填寫真實姓名"); return; }
+        if(!phone) { alert("請填寫手機號碼"); return; }
+        if(!birth) { alert("請填寫生日"); return; }
+        if(!document.getElementById('checkRights').checked) { alert("請同意會員權益與點數規則"); return; }
+        if(!document.getElementById('checkLegal').checked) { alert("請同意法務免責與防弊聲明"); return; }
         
         const btn = document.getElementById('regBtn');
+        const originalText = btn.innerText;
         btn.disabled = true;
-        btn.innerText = "資料同步中...";
+        btn.innerText = "資料處理中...";
         
         try {
-            // 發送 POST 請求，不使用 no-cors，以便讀取回應
+            console.log("開始註冊，資料:", { name, phone, birth, userId: myId, referrerId });
+            
+            // 發送註冊請求（不使用 no-cors）
             const response = await fetch(gasUrl, { 
                 method: "POST", 
                 headers: {
@@ -223,38 +198,39 @@
                 },
                 body: JSON.stringify({ 
                     action: "register", 
-                    name, 
-                    phone, 
+                    name: name, 
+                    phone: phone, 
                     birthday: birth, 
                     userId: myId, 
                     referrerId: referrerId || "" 
                 }) 
             });
             
-            const resultText = await response.text(); // 取得回傳的文字 (Success 或 Duplicate)
-            console.log("註冊回應:", resultText);
+            const result = await response.text();
+            console.log("註冊回應:", result);
             
-            if (resultText === "Success") {
-                alert("註冊成功！");
-                // 重新載入頁面，但由於 LIFF 會記住登入狀態，重新整理後應該會顯示會員畫面
+            if (result === "SUCCESS") {
+                alert("🎉 註冊成功！\n\n歡迎加入會員，現在即可領取招待！");
+                // 重新載入頁面，顯示會員畫面
                 location.reload();
-            } else if (resultText === "Duplicate") {
-                alert("您已經註冊過了！請重新整理頁面。");
+            } else if (result === "DUPLICATE") {
+                alert("您已經是會員了！\n將為您重新整理頁面。");
                 location.reload();
             } else {
-                alert("註冊失敗，請稍後再試。");
+                alert("註冊失敗，請稍後再試。\n如問題持續，請聯繫店家客服。");
                 btn.disabled = false;
-                btn.innerText = "加入會員領取招待";
+                btn.innerText = originalText;
             }
+            
         } catch (error) {
-            console.error("註冊請求失敗:", error);
-            alert("網路錯誤，請確認網路連線後再試。");
+            console.error("註冊請求錯誤:", error);
+            alert("網路連線異常，請檢查網路後重試。\n\n錯誤訊息：" + error.message);
             btn.disabled = false;
-            btn.innerText = "加入會員領取招待";
+            btn.innerText = originalText;
         }
     }
 
-    // --- 條款視窗與分享功能（無需修改，但確保分享連結正確）---
+    // 條款內容
     const terms = {
         rights: { title: "會員權益與規則", text: "◆ 點數價值：$1 點 = NT$1 元。\n◆ 本人集點：實付額之 5% (效期12月)。\n◆ 朋友回饋：好友消費額之 2% (效期6月)。\n◆ 生效時間：採隔日生效制。\n◆ 購買餐券：提撥 3% 點數。\n◆ 特殊日期：春節、母親節等檔期暫停折抵。\n◆ 特殊活動：本人集點 3%，朋友回饋 1%。" },
         legal: { title: "法務免責聲明", text: "◆ 非現金化：點數不可兌換現金或轉讓。\n◆ 終止權：店家保有修改、暫停或終止活動之權利。\n◆ 營運調整：因不可抗力因素點數失效時不得要求賠償。\n◆ 誠信監測：若偵測異常集點或虛假推薦，店家有權凍結帳號。\n◆ 最終解釋權：本公司保有活動最終解釋權。" }
@@ -268,17 +244,39 @@
     function closeModal() { document.getElementById('termsModal').style.display = 'none'; }
     
     function handleShare() {
-        // 分享連結需要是您 LIFF 應用綁定的完整 URL
         const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
         const text = `✨ 送你老娘鍋專屬招待券！\n出示 QR Code 即可領取招待禮：\n${shareUrl}`;
+        
+        // 複製到剪貼簿
         const el = document.createElement('textarea'); 
         el.value = text; 
         document.body.appendChild(el); 
         el.select(); 
         document.execCommand('copy'); 
         document.body.removeChild(el);
+        
         const toast = document.getElementById("toast");
         toast.className = "show";
         setTimeout(() => { toast.className = ""; }, 3000);
+        
+        // 如果在 LINE 中，也嘗試開啟分享選單
+        if (typeof liff !== 'undefined' && liff.isInClient()) {
+            liff.shareTargetPicker([
+                {
+                    type: "text",
+                    text: text
+                }
+            ]).catch(err => console.log("分享選單錯誤:", err));
+        }
     }
+    
+    // 設定生日預設值
+    document.getElementById('regBirth').addEventListener('focus', function() {
+        if (!this.value) this.value = "2000-01-01";
+    });
+    
+    // 啟動
+    initLIFF();
 </script>
+</body>
+</html>
