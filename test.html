@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老娘鍋註冊測試</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body style="font-family: sans-serif; padding: 20px; max-width: 400px; margin: 0 auto;">
+    <h1 style="color:#8b0000;">老娘鍋 x 一點甜</h1>
+    
+    <div id="status" style="padding: 15px; background: #f0f0f0; border-radius: 10px; margin-bottom: 20px;">
+        載入中...
+    </div>
+    
+    <div id="memberView" style="display:none;">
+        <div style="background:#8b0000; color:white; padding:20px; border-radius:12px; text-align:center;">
+            <p>目前可用點數</p>
+            <h2 id="points" style="font-size:40px;">0</h2>
+        </div>
+        <div style="text-align:center; margin:20px 0;">
+            <img id="memberQr" style="width:180px;">
+        </div>
+        <button onclick="share()" style="width:100%; padding:14px; background:#06C755; color:white; border:none; border-radius:12px;">推薦好友</button>
+    </div>
+    
+    <div id="guestView" style="display:none;">
+        <div style="background:#fff5f0; padding:15px; border-radius:12px; margin-bottom:20px;">
+            🎁 好友專屬招待禮
+        </div>
+        <div style="text-align:center; margin:20px 0;">
+            <img id="guestQr" style="width:180px;">
+        </div>
+        <input type="text" id="name" placeholder="真實姓名" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
+        <input type="tel" id="phone" placeholder="手機號碼" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
+        <input type="date" id="birth" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
+        <button id="regBtn" style="width:100%; padding:14px; background:#8b0000; color:white; border:none; border-radius:12px;">加入會員</button>
+    </div>
+    
+    <div id="errorView" style="display:none; background:#ffebee; padding:20px; border-radius:12px; text-align:center;">
+        <p>連線失敗，請重新整理</p>
+        <button onclick="location.reload()" style="margin-top:10px; padding:10px 20px;">重新整理</button>
+    </div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwuMlqWFj3RH0_34JsmOmz4CTyJyJ8hE5UQIgKoEnO4B12aEZoeItu-RHlRByKp115n6A/exec";
+const LIFF_ID = "2009625010-p9sVIUWe";
+
+let userId = null;
+const urlParams = new URLSearchParams(window.location.search);
+const referrerId = urlParams.get('referrerId');
+
+async function init() {
+    try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+        }
+        const profile = await liff.getProfile();
+        userId = profile.userId;
+        document.getElementById('status').innerHTML = "✅ 已登入<br>ID: " + userId.substring(0, 15) + "...";
+        await checkMember();
+    } catch(e) {
+        document.getElementById('status').innerHTML = "❌ 錯誤: " + e.message;
+        showError();
+    }
+}
+
+async function checkMember() {
+    try {
+        const res = await fetch(GAS_URL + "?action=checkID&userId=" + userId + "&t=" + Date.now());
+        const data = await res.json();
+        
+        if (data.isMember) {
+            showMember(data.userName, data.points);
+        } else {
+            showGuest();
+        }
+    } catch(e) {
+        showGuest();
+    }
+}
+
+async function register() {
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const birth = document.getElementById('birth').value;
+    
+    if (!name || !phone || !birth) {
+        alert("請填寫完整資料");
+        return;
+    }
+    
+    const btn = document.getElementById('regBtn');
+    btn.disabled = true;
+    btn.innerText = "處理中...";
+    document.getElementById('status').innerHTML = "註冊中...";
+    
+    try {
+        const res = await fetch(GAS_URL, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: "register",
+                name: name,
+                phone: phone,
+                birthday: birth,
+                userId: userId,
+                referrerId: referrerId || ""
+            })
+        });
+        
+        const result = await res.text();
+        document.getElementById('status').innerHTML = "結果: " + result;
+        
+        if (result === "SUCCESS") {
+            alert("註冊成功！");
+            await checkMember();
+        } else if (result === "DUPLICATE") {
+            alert("您已經是會員了！");
+            await checkMember();
+        } else {
+            alert("註冊失敗: " + result);
+            btn.disabled = false;
+            btn.innerText = "加入會員";
+        }
+    } catch(e) {
+        document.getElementById('status').innerHTML = "錯誤: " + e.message;
+        alert("網路錯誤: " + e.message);
+        btn.disabled = false;
+        btn.innerText = "加入會員";
+    }
+}
+
+function showMember(name, points) {
+    document.getElementById('guestView').style.display = 'none';
+    document.getElementById('memberView').style.display = 'block';
+    document.getElementById('errorView').style.display = 'none';
+    document.getElementById('points').innerText = points;
+    document.getElementById('memberQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + userId;
+    let nameEl = document.getElementById('welcomeName');
+    if (!nameEl) {
+        nameEl = document.createElement('p');
+        nameEl.id = 'welcomeName';
+        nameEl.style.textAlign = 'center';
+        nameEl.style.fontWeight = 'bold';
+        nameEl.style.marginBottom = '15px';
+        document.getElementById('memberView').insertBefore(nameEl, document.getElementById('memberView').firstChild);
+    }
+    nameEl.innerText = "歡迎，" + name + " 會員";
+}
+
+function showGuest() {
+    document.getElementById('memberView').style.display = 'none';
+    document.getElementById('guestView').style.display = 'block';
+    document.getElementById('errorView').style.display = 'none';
+    const qrData = referrerId || userId;
+    if (qrData) {
+        document.getElementById('guestQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + qrData;
+    }
+}
+
+function showError() {
+    document.getElementById('memberView').style.display = 'none';
+    document.getElementById('guestView').style.display = 'none';
+    document.getElementById('errorView').style.display = 'block';
+}
+
+function share() {
+    const url = "https://oldmapot.github.io/Member_Master/index.html?referrerId=" + userId;
+    navigator.clipboard.writeText(url);
+    alert("推薦連結已複製！");
+}
+
+document.getElementById('regBtn').addEventListener('click', register);
+document.getElementById('birth').addEventListener('focus', function() {
+    if (!this.value) this.value = "2000-01-01";
+});
+
+init();
+</script>
+</body>
+</html>
