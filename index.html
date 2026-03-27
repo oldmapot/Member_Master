@@ -90,15 +90,94 @@
         }, 1200);
     }
 
-    function showSuccess(title, msg) {
-        document.body.innerHTML = `
-            <div style="text-align:center; padding:50px; background-color:#fdf5e6; height:100vh; display:flex; flex-direction:column; justify-content:center;">
-                <h2 style="color:#8b0000;">${title}</h2>
-                <p>${msg}</p>
-                <button onclick="liff.closeWindow()" style="padding:15px 30px; background:#8b0000; color:white; border:none; border-radius:8px; font-size:16px; width:200px; margin:20px auto;">返回 LINE</button>
-            </div>`;
+    function showSuccess(title, msg, userId, userName) {
+    // 1. 產生專屬 QR Code (指向自己的 UserID)
+    const qrCodeUrl = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${userId}`;
+    
+    // 2. 準備推薦連結
+    const shareUrl = `https://你的GitHub帳號.github.io/Member_Master/index.html?referrerId=${userId}`;
+
+    // 3. 渲染全新介面
+    document.body.innerHTML = `
+        <div style="text-align:center; padding:20px; background-color:#fdf5e6; min-height:100vh; display:flex; flex-direction:column; align-items:center; font-family:sans-serif;">
+            <div style="background:white; padding:25px; border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.1); width:90%; max-width:350px; border:2px solid #8b0000;">
+                <h2 style="color:#8b0000; margin:0;">老娘鍋 x 一點甜</h2>
+                <p style="color:#666; font-size:14px; margin-top:5px;">${userName} 的行動會員卡</p>
+                
+                <div style="margin: 20px 0; background:#fff; padding:10px; display:inline-block; border-radius:10px; border:1px solid #eee;">
+                    <img src="${qrCodeUrl}" alt="集點碼" style="width:200px; display:block;">
+                    <p style="font-size:12px; color:#8b0000; margin-top:8px; font-weight:bold;">結帳請出示此碼集點</p>
+                </div>
+
+                <div style="background:#8b0000; color:white; padding:15px; border-radius:15px; margin-bottom:20px;">
+                    <p style="margin:0; font-size:14px; opacity:0.8;">目前可用點數</p>
+                    <h1 style="margin:5px 0; font-size:36px;">${msg.replace(/[^0-9]/g, '')} <span style="font-size:16px;">pt</span></h1>
+                </div>
+
+                <button onclick="shareToFriend('${userId}', '${userName}')" style="width:100%; padding:15px; background:#06C755; color:white; border:none; border-radius:10px; font-size:16px; font-weight:bold; cursor:pointer; margin-bottom:12px;">
+                    LINE 分享好友拿招待
+                </button>
+                
+                <button onclick="liff.closeWindow()" style="width:100%; padding:12px; background:#eee; color:#333; border:none; border-radius:10px; font-size:14px; cursor:pointer;">
+                    返回聊天室
+                </button>
+            </div>
+            <p style="font-size:12px; color:#8b0000; margin-top:15px; line-height:1.5;">
+                ※ 點數於消費隔日凌晨生效<br>
+                ※ 推薦好友成功消費再享 2% 回饋
+            </p>
+        </div>`;
+}
+
+// 🚀 潤飾後的一鍵分享功能
+function shareToFriend(userId, userName) {
+    const shareUrl = `https://你的GitHub帳號.github.io/Member_Master/index.html?referrerId=${userId}`;
+    const messageText = `✨ 發現高雄隱藏版美味！老娘鍋 x 一點甜 ✨\n\n這是我最近發現的寶藏店！吃火鍋必去「老娘鍋」，吃冰品甜點就要去「一點甜」！\n\n🎁 用我的專屬連結註冊，結帳出示 QR Code 當天就有【小菜或點心招待】喔！\n\n點我領取優惠：\n${shareUrl}`;
+
+    if (liff.isApiAvailable('shareTargetPicker')) {
+        liff.shareTargetPicker([
+            {
+                "type": "flex",
+                "altText": "🎁 你的好友送你老娘鍋專屬招待禮！",
+                "contents": {
+                    "type": "bubble",
+                    "body": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [
+                            {"type": "text", "text": "🍲 老娘鍋 x 一點甜 🍦", "weight": "bold", "color": "#8b0000", "size": "md"},
+                            {"type": "text", "text": "好友專屬招待禮", "weight": "bold", "size": "xl", "margin": "md"},
+                            {"type": "text", "text": "點擊連結註冊，當天消費即享小菜或點心招待，吃越多省越多！", "wrap": true, "size": "xs", "margin": "md", "color": "#666666"}
+                        ]
+                    },
+                    "footer": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [
+                            {
+                                "type": "button",
+                                "action": { "type": "uri", "label": "立即領取回饋", "uri": shareUrl },
+                                "style": "primary",
+                                "color": "#8b0000"
+                            }
+                        ]
+                    }
+                }
+            }
+        ]).then(res => {
+            if (res) console.log("分享成功");
+        }).catch(err => console.log("分享取消"));
+    } else {
+        // 備案：長按複製
+        const el = document.createElement('textarea');
+        el.value = messageText;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        alert("推薦文案已複製！快貼給朋友吧～");
     }
-    // 分享功能：優先使用 LINE 原生分享卡片
+}
 function shareToFriend(userId, userName) {
     const shareUrl = `https://你的帳號.github.io/Member_Master/index.html?referrerId=${userId}`;
     
