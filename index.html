@@ -9,43 +9,33 @@
 <body style="font-family: sans-serif; padding: 20px; max-width: 400px; margin: 0 auto;">
     <h1 style="color:#8b0000;">老娘鍋 x 一點甜</h1>
     
-    <div id="loading" style="text-align:center; padding:40px;">
-        <div>載入中...</div>
-        <div id="debugMsg" style="font-size:12px; color:#666; margin-top:20px;"></div>
-    </div>
+    <div id="loading" style="text-align:center; padding:40px;">載入中...</div>
     
     <div id="memberPanel" style="display:none;">
         <div style="background:#8b0000; color:white; padding:20px; border-radius:12px; text-align:center;">
             <p>目前可用點數</p>
-            <h2 id="points" style="font-size:40px; margin:10px 0;">0</h2>
-            <p>pt</p>
+            <h2 id="points" style="font-size:40px;">0</h2>
         </div>
         <div style="text-align:center; margin:20px 0;">
-            <img id="memberQr" style="width:180px; background:white; padding:10px; border-radius:12px;">
+            <img id="memberQr" style="width:180px;">
         </div>
-        <button onclick="share()" style="width:100%; padding:14px; background:#06C755; color:white; border:none; border-radius:12px; font-size:16px;">推薦好友</button>
+        <button onclick="share()" style="width:100%; padding:14px; background:#06C755; color:white; border:none;">推薦好友</button>
     </div>
     
     <div id="guestPanel" style="display:none;">
-        <div style="background:#fff5f0; padding:15px; border-radius:12px; margin-bottom:20px;">
-            🎁 好友專屬招待禮
-        </div>
-        <div style="text-align:center; margin:20px 0;">
-            <img id="guestQr" style="width:180px; background:white; padding:10px; border-radius:12px;">
-        </div>
-        <input type="text" id="name" placeholder="真實姓名" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:12px;">
-        <input type="tel" id="phone" placeholder="手機號碼" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:12px;">
-        <input type="date" id="birth" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:12px;">
-        <button id="regBtn" style="width:100%; padding:14px; background:#8b0000; color:white; border:none; border-radius:12px; font-size:16px;">加入會員</button>
+        <input type="text" id="name" placeholder="真實姓名" style="width:100%; padding:12px; margin:10px 0;">
+        <input type="tel" id="phone" placeholder="手機號碼" style="width:100%; padding:12px; margin:10px 0;">
+        <input type="date" id="birth" style="width:100%; padding:12px; margin:10px 0;">
+        <button id="regBtn" style="width:100%; padding:14px; background:#8b0000; color:white; border:none;">加入會員</button>
     </div>
     
-    <div id="errorPanel" style="display:none; background:#ffebee; padding:20px; border-radius:12px; text-align:center;">
-        <p id="errorMsg">連線失敗</p>
-        <button onclick="location.reload()" style="margin-top:10px; padding:10px 20px;">重新整理</button>
+    <div id="errorPanel" style="display:none; background:#ffebee; padding:20px; text-align:center;">
+        <p>連線失敗</p>
+        <button onclick="location.reload()">重新整理</button>
     </div>
 
 <script>
-// ========== GAS 網址 ==========
+// 請替換成你新部署的 GAS 網址
 const GAS_URL = "https://script.google.com/macros/s/AKfycbwuMlqWFj3RH0_34JsmOmz4CTyJyJ8hE5UQIgKoEnO4B12aEZoeItu-RHlRByKp115n6A/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
 
@@ -53,55 +43,29 @@ let userId = null;
 const urlParams = new URLSearchParams(window.location.search);
 const referrerId = urlParams.get('referrerId');
 
-function setDebugMsg(msg) {
-    const el = document.getElementById('debugMsg');
-    if (el) el.innerText = msg;
-    console.log(msg);
-}
-
 async function init() {
-    setDebugMsg("初始化中...");
     try {
         await liff.init({ liffId: LIFF_ID });
-        setDebugMsg("LIFF 成功");
-        
-        if (!liff.isLoggedIn()) {
-            setDebugMsg("跳轉登入");
-            liff.login();
-            return;
-        }
-        
+        if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         userId = profile.userId;
-        setDebugMsg("使用者: " + profile.displayName);
-        
         await checkMember();
-        
     } catch(e) {
-        setDebugMsg("錯誤: " + e.message);
-        showError(e.message);
+        showError();
     }
 }
 
 async function checkMember() {
-    showLoading();
-    
     try {
-        const url = GAS_URL + "?action=checkID&userId=" + encodeURIComponent(userId) + "&t=" + Date.now();
-        setDebugMsg("檢查會員...");
-        
-        const res = await fetch(url);
+        const res = await fetch(GAS_URL + "?action=checkID&userId=" + userId + "&t=" + Date.now());
         const data = await res.json();
-        setDebugMsg("回應: " + JSON.stringify(data));
-        
-        if (data.isMember === true) {
+        if (data.isMember) {
             showMember(data.userName, data.points);
         } else {
             showGuest();
         }
     } catch(e) {
-        setDebugMsg("檢查失敗: " + e.message);
-        showError(e.message);
+        showError();
     }
 }
 
@@ -109,37 +73,26 @@ async function register() {
     const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const birth = document.getElementById('birth').value;
-    
-    if (!name) { alert("請填寫姓名"); return; }
-    if (!phone) { alert("請填寫手機"); return; }
-    if (!birth) { alert("請填寫生日"); return; }
+    if (!name || !phone || !birth) { alert("請填寫完整資料"); return; }
     
     const btn = document.getElementById('regBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
-    setDebugMsg("註冊中...");
     
     try {
-        const postData = {
-            action: "register",
-            name: name,
-            phone: phone,
-            birthday: birth,
-            userId: userId,
-            referrerId: referrerId || ""
-        };
-        
-        setDebugMsg("發送: " + JSON.stringify(postData));
-        
-        const response = await fetch(GAS_URL, {
+        const res = await fetch(GAS_URL, {
             method: "POST",
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(postData)
+            body: JSON.stringify({
+                action: "register",
+                name: name,
+                phone: phone,
+                birthday: birth,
+                userId: userId,
+                referrerId: referrerId || ""
+            })
         });
-        
-        const result = await response.text();
-        setDebugMsg("結果: " + result);
-        
+        const result = await res.text();
         if (result === "SUCCESS") {
             alert("註冊成功！");
             await checkMember();
@@ -147,14 +100,12 @@ async function register() {
             alert("您已經是會員了！");
             await checkMember();
         } else {
-            alert("註冊失敗: " + result);
+            alert("註冊失敗：" + result);
             btn.disabled = false;
             btn.innerText = "加入會員";
         }
-        
     } catch(e) {
-        setDebugMsg("錯誤: " + e.message);
-        alert("網路錯誤: " + e.message);
+        alert("網路錯誤：" + e.message);
         btn.disabled = false;
         btn.innerText = "加入會員";
     }
@@ -166,29 +117,19 @@ function share() {
     alert("推薦連結已複製！");
 }
 
-function showLoading() {
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('memberPanel').style.display = 'none';
-    document.getElementById('guestPanel').style.display = 'none';
-    document.getElementById('errorPanel').style.display = 'none';
-}
-
 function showMember(name, points) {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('memberPanel').style.display = 'block';
     document.getElementById('guestPanel').style.display = 'none';
     document.getElementById('errorPanel').style.display = 'none';
-    
     document.getElementById('points').innerText = points;
     document.getElementById('memberQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + userId;
-    
     let nameEl = document.getElementById('welcomeName');
     if (!nameEl) {
         nameEl = document.createElement('p');
         nameEl.id = 'welcomeName';
         nameEl.style.textAlign = 'center';
         nameEl.style.fontWeight = 'bold';
-        nameEl.style.margin = '10px 0';
         document.getElementById('memberPanel').insertBefore(nameEl, document.getElementById('memberPanel').firstChild);
     }
     nameEl.innerText = "歡迎，" + name + " 會員";
@@ -199,30 +140,18 @@ function showGuest() {
     document.getElementById('memberPanel').style.display = 'none';
     document.getElementById('guestPanel').style.display = 'block';
     document.getElementById('errorPanel').style.display = 'none';
-    
-    const qrData = referrerId || userId;
-    if (qrData) {
-        document.getElementById('guestQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + qrData;
-    }
 }
 
-function showError(msg) {
+function showError() {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('memberPanel').style.display = 'none';
     document.getElementById('guestPanel').style.display = 'none';
     document.getElementById('errorPanel').style.display = 'block';
-    document.getElementById('errorMsg').innerHTML = msg || "連線失敗";
 }
 
-// 綁定註冊按鈕事件
 document.getElementById('regBtn').addEventListener('click', register);
+document.getElementById('birth').addEventListener('focus', function() { if (!this.value) this.value = "2000-01-01"; });
 
-// 生日預設值
-document.getElementById('birth').addEventListener('focus', function() {
-    if (!this.value) this.value = "2000-01-01";
-});
-
-// 啟動
 init();
 </script>
 </body>
