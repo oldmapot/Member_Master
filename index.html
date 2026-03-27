@@ -37,12 +37,13 @@
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 50px; opacity: 1;} }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .debug-panel { background: #f0f0f0; border-top: 2px solid #ccc; margin-top: 20px; padding: 10px; font-size: 11px; text-align: left; font-family: monospace; max-height: 200px; overflow-y: auto; border-radius: 8px; }
+        .debug-panel { background: #f0f0f0; border-top: 2px solid #ccc; margin-top: 20px; padding: 10px; font-size: 11px; text-align: left; font-family: monospace; max-height: 250px; overflow-y: auto; border-radius: 8px; }
         .debug-panel h4 { margin: 0 0 5px 0; font-size: 12px; color: #666; }
-        .debug-panel pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
+        .debug-panel pre { margin: 0; white-space: pre-wrap; word-break: break-all; font-size: 10px; }
         .error-message { color: #d32f2f; background: #ffebee; padding: 12px; border-radius: 10px; margin: 15px 0; font-size: 14px; }
         .retry-btn { background: var(--main-red); color: white; padding: 8px 16px; border: none; border-radius: 8px; margin-top: 10px; font-size: 14px; cursor: pointer; }
         .success-badge { background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; margin-left: 8px; }
+        .force-member-btn { background: #ff9800; color: white; padding: 10px; border: none; border-radius: 8px; margin-top: 10px; font-size: 12px; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
@@ -91,6 +92,7 @@
                 • 點數價值：$1 點 = NT$1 元<br>• 本人消費：<strong>5% 點數回饋</strong><br>• 推薦好友：<strong>2% 點數回饋</strong>
             </div>
             <button style="background:var(--line-green); color:white;" onclick="handleShare()">推薦好友領招待</button>
+            <button class="force-member-btn" onclick="forceShowMember()">🔧 強制顯示會員畫面 (除錯用)</button>
         </div>
         
         <div id="ui-error" style="display:none; padding-top:100px;">
@@ -101,11 +103,12 @@
             <button class="retry-btn" onclick="location.reload()">重新整理</button>
         </div>
         
-        <!-- 除錯面板 - 顯示執行過程 -->
+        <!-- 除錯面板 -->
         <div class="debug-panel" id="debugPanel">
             <h4>🔍 除錯資訊 (點擊下方按鈕可複製)</h4>
             <pre id="debugLog">等待載入...</pre>
-            <button onclick="copyDebugLog()" style="margin-top:5px; font-size:10px;">複製除錯資訊</button>
+            <button onclick="copyDebugLog()" style="margin-top:5px; font-size:10px;">📋 複製除錯資訊</button>
+            <button onclick="manualCheck()" style="margin-top:5px; margin-left:5px; font-size:10px;">🔄 手動檢查會員</button>
         </div>
     </div>
 
@@ -117,6 +120,7 @@
     const liffId = "2009625010-p9sVIUWe";
     let myId = "";
     let debugMessages = [];
+    let memberData = null;
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('referrerId');
     
@@ -125,12 +129,16 @@
         const timestamp = new Date().toLocaleTimeString();
         let logMsg = `[${timestamp}] ${message}`;
         if (data) {
-            logMsg += `\n資料: ${JSON.stringify(data, null, 2)}`;
+            try {
+                logMsg += `\n📦 資料: ${JSON.stringify(data, null, 2)}`;
+            } catch(e) {
+                logMsg += `\n📦 資料: ${data}`;
+            }
         }
         debugMessages.push(logMsg);
-        // 只保留最近 30 條
-        if (debugMessages.length > 30) debugMessages.shift();
-        document.getElementById('debugLog').innerText = debugMessages.join('\n\n');
+        if (debugMessages.length > 50) debugMessages.shift();
+        const debugEl = document.getElementById('debugLog');
+        if (debugEl) debugEl.innerText = debugMessages.join('\n\n');
         console.log(message, data || '');
     }
     
@@ -142,12 +150,38 @@
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
+        addDebug("✅ 除錯資訊已複製到剪貼簿");
         alert('除錯資訊已複製到剪貼簿！');
+    }
+    
+    function manualCheck() {
+        addDebug("🔄 手動觸發會員檢查");
+        if (myId) {
+            checkMemberStatus();
+        } else {
+            addDebug("❌ 尚無使用者 ID，請稍後再試");
+        }
+    }
+    
+    function forceShowMember() {
+        addDebug("🔧 強制顯示會員畫面（除錯用）");
+        if (memberData) {
+            showMemberUI(memberData);
+        } else {
+            // 模擬會員資料
+            const mockData = {
+                isMember: true,
+                userName: "測試會員",
+                points: 100
+            };
+            addDebug("📝 使用模擬資料顯示會員畫面", mockData);
+            showMemberUI(mockData);
+        }
     }
     
     // LIFF 初始化
     async function initLIFF() {
-        addDebug("🔧 開始初始化 LIFF...");
+        addDebug("🚀 開始初始化 LIFF...");
         showLoading();
         
         try {
@@ -160,67 +194,100 @@
                 return;
             }
             
-            addDebug("✅ 使用者已登入，獲取個人資料...");
+            addDebug("✅ 使用者已登入，開始獲取個人資料...");
             const profile = await liff.getProfile();
             myId = profile.userId;
-            addDebug("👤 獲取使用者 ID", { userId: myId, displayName: profile.displayName });
+            addDebug("👤 成功獲取使用者 ID", { 
+                userId: myId, 
+                displayName: profile.displayName,
+                statusMessage: profile.statusMessage || "無"
+            });
             
-            // 檢查會員狀態
+            // 立即檢查會員狀態
+            addDebug("🔍 準備檢查會員狀態...");
             await checkMemberStatus();
             
         } catch (e) {
-            addDebug("❌ LIFF 初始化失敗", { error: e.message });
+            addDebug("❌ LIFF 初始化失敗", { error: e.message, stack: e.stack });
             showError();
         }
     }
     
     function showLoading() {
-        document.getElementById('ui-loading').style.display = 'block';
-        document.getElementById('ui-guest').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'none';
-        document.getElementById('ui-error').style.display = 'none';
+        const loading = document.getElementById('ui-loading');
+        const guest = document.getElementById('ui-guest');
+        const member = document.getElementById('ui-member');
+        const error = document.getElementById('ui-error');
+        if(loading) loading.style.display = 'block';
+        if(guest) guest.style.display = 'none';
+        if(member) member.style.display = 'none';
+        if(error) error.style.display = 'none';
     }
     
     function showError() {
-        document.getElementById('ui-loading').style.display = 'none';
-        document.getElementById('ui-guest').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'none';
-        document.getElementById('ui-error').style.display = 'block';
+        const loading = document.getElementById('ui-loading');
+        const guest = document.getElementById('ui-guest');
+        const member = document.getElementById('ui-member');
+        const error = document.getElementById('ui-error');
+        if(loading) loading.style.display = 'none';
+        if(guest) guest.style.display = 'none';
+        if(member) member.style.display = 'none';
+        if(error) error.style.display = 'block';
     }
     
-    // 檢查會員狀態
+    // 檢查會員狀態 - 修正版
     async function checkMemberStatus() {
-        addDebug("🔍 開始檢查會員狀態", { userId: myId, gasUrl: gasUrl });
+        if (!myId) {
+            addDebug("❌ 無法檢查會員：沒有使用者 ID");
+            showGuestUI();
+            return;
+        }
         
-        const url = `${gasUrl}?action=checkID&userId=${myId}&t=${Date.now()}`;
-        addDebug("📡 發送請求", { url: url });
+        addDebug("🔍 開始檢查會員狀態", { userId: myId });
+        
+        const url = `${gasUrl}?action=checkID&userId=${encodeURIComponent(myId)}&t=${Date.now()}`;
+        addDebug("📡 發送請求到 GAS", { url: url.substring(0, 100) + "..." });
         
         try {
-            const response = await fetch(url);
-            addDebug("📥 收到回應", { status: response.status, statusText: response.statusText });
+            // 設置 15 秒超時
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            addDebug("📥 收到 HTTP 回應", { 
+                status: response.status, 
+                statusText: response.statusText,
+                ok: response.ok 
+            });
             
             const responseText = await response.text();
-            addDebug("📄 原始回應內容", { rawResponse: responseText });
+            addDebug("📄 原始回應內容 (前500字)", { 
+                responseText: responseText.substring(0, 500),
+                length: responseText.length 
+            });
             
             let data;
             try {
                 data = JSON.parse(responseText);
                 addDebug("✅ JSON 解析成功", data);
             } catch (e) {
-                addDebug("❌ JSON 解析失敗", { error: e.message, rawText: responseText });
+                addDebug("❌ JSON 解析失敗", { error: e.message, rawText: responseText.substring(0, 200) });
                 showGuestUI();
                 return;
             }
             
-            addDebug("📊 會員狀態判斷", { 
-                hasData: !!data, 
+            addDebug("📊 會員狀態判斷結果", { 
                 isMember: data.isMember,
+                hasData: !!data,
                 userName: data.userName,
                 points: data.points
             });
             
             if (data && data.isMember === true) {
-                addDebug("🎉 會員驗證成功，顯示會員畫面", { name: data.userName, points: data.points });
+                addDebug("🎉 會員驗證成功！顯示會員畫面", { name: data.userName, points: data.points });
+                memberData = data;
                 showMemberUI(data);
             } else {
                 addDebug("👤 非會員或尚未註冊，顯示註冊畫面");
@@ -228,42 +295,65 @@
             }
             
         } catch (error) {
-            addDebug("❌ 檢查會員狀態失敗", { error: error.message, stack: error.stack });
+            if (error.name === 'AbortError') {
+                addDebug("⏰ 請求超時 (15秒)", { userId: myId });
+            } else {
+                addDebug("❌ 檢查會員狀態失敗", { error: error.message, type: error.name });
+            }
             showGuestUI();
         }
     }
 
     function showMemberUI(res) {
-        addDebug("🎉 執行 showMemberUI", res);
+        addDebug("🎉 執行 showMemberUI", { 
+            userName: res.userName, 
+            points: res.points,
+            userId: myId 
+        });
         
-        document.getElementById('ui-loading').style.display = 'none';
-        document.getElementById('ui-guest').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'block';
-        document.getElementById('ui-error').style.display = 'none';
+        const loading = document.getElementById('ui-loading');
+        const guest = document.getElementById('ui-guest');
+        const member = document.getElementById('ui-member');
+        const error = document.getElementById('ui-error');
         
-        document.getElementById('userNameDisplay').innerHTML = `歡迎，${res.userName} 會員 <span class="success-badge">已驗證</span>`;
-        document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
-        document.getElementById('userPoints').innerText = `${res.points || 0} pt`;
+        if(loading) loading.style.display = 'none';
+        if(guest) guest.style.display = 'none';
+        if(member) member.style.display = 'block';
+        if(error) error.style.display = 'none';
         
-        addDebug("✅ 會員畫面已顯示");
+        const nameDisplay = document.getElementById('userNameDisplay');
+        if(nameDisplay) nameDisplay.innerHTML = `歡迎，${res.userName} 會員 <span class="success-badge">✓ 已驗證</span>`;
+        
+        const qrImg = document.getElementById('memberQr');
+        if(qrImg) qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
+        
+        const pointsDisplay = document.getElementById('userPoints');
+        if(pointsDisplay) pointsDisplay.innerText = `${res.points || 0} pt`;
+        
+        addDebug("✅ 會員畫面已完整顯示");
     }
 
     function showGuestUI() {
         addDebug("📝 執行 showGuestUI", { referrerId: referrerId, myId: myId });
         
-        document.getElementById('ui-loading').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'none';
-        document.getElementById('ui-guest').style.display = 'block';
-        document.getElementById('ui-error').style.display = 'none';
+        const loading = document.getElementById('ui-loading');
+        const guest = document.getElementById('ui-guest');
+        const member = document.getElementById('ui-member');
+        const error = document.getElementById('ui-error');
+        
+        if(loading) loading.style.display = 'none';
+        if(member) member.style.display = 'none';
+        if(guest) guest.style.display = 'block';
+        if(error) error.style.display = 'none';
         
         const qrData = referrerId || myId;
         if(qrData) {
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
-            document.getElementById('guestQr').src = qrUrl;
-            addDebug("📱 生成 QR Code", { qrData: qrData, qrUrl: qrUrl });
+            const guestQr = document.getElementById('guestQr');
+            if(guestQr) guestQr.src = qrUrl;
+            addDebug("📱 生成 QR Code", { qrData: qrData });
         } else {
             addDebug("⚠️ 無法生成 QR Code：沒有可用的 ID");
-            document.getElementById('guestQr').src = "";
         }
     }
 
@@ -367,11 +457,14 @@
     }
     
     // 設定生日預設值
-    document.getElementById('regBirth').addEventListener('focus', function() {
-        if (!this.value) this.value = "2000-01-01";
-    });
+    const birthInput = document.getElementById('regBirth');
+    if(birthInput) {
+        birthInput.addEventListener('focus', function() {
+            if (!this.value) this.value = "2000-01-01";
+        });
+    }
     
-    addDebug("🚀 頁面載入完成，開始執行");
+    addDebug("🚀 頁面載入完成，開始執行 initLIFF()");
     // 啟動
     initLIFF();
 </script>
