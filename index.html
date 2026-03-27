@@ -2,181 +2,160 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老娘鍋 x 一點甜 會員中心</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>老娘鍋 x 一點甜</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 20px; background-color: #fdf5e6; display: flex; justify-content: center; min-height: 100vh; margin: 0; }
-        .card { width: 100%; max-width: 400px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); align-self: center; }
-        h2 { color: #8b0000; text-align: center; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: #8b0000; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        button:disabled { background: #ccc; }
+        :root { --main-red: #8b0000; --line-green: #06C755; }
+        body { font-family: -apple-system, sans-serif; background-color: #fdf5e6; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+        .card { width: 90%; max-width: 380px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); align-self: center; text-align: center; border: 2px solid var(--main-red); position: relative; }
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:#fdf5e6; display:flex; justify-content:center; align-items:center; z-index:999; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #ddd; border-top: 4px solid var(--main-red); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        h2 { color: var(--main-red); margin: 10px 0; }
+        .qr-box { margin: 15px 0; padding: 10px; background: #fff; border: 1px solid #eee; border-radius: 15px; display: inline-block; }
+        .qr-box img { width: 200px; height: 200px; display: block; }
+        
+        .point-badge { background: var(--main-red); color: white; padding: 15px; border-radius: 15px; margin: 15px 0; }
+        .point-badge h1 { margin: 5px 0; font-size: 32px; }
+        
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn-share { background: var(--line-green); color: white; }
+        .btn-reg { background: var(--main-red); color: white; }
+        .btn-close { background: #eee; color: #666; font-size: 14px; }
+        
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .intro-text { font-size: 14px; color: #555; line-height: 1.6; margin: 15px 0; text-align: left; }
     </style>
 </head>
 <body>
-    <div class="card" id="formBox" style="display:none;">
-        <h2>老娘鍋 x 一點甜</h2>
-        <p style="text-align:center; color:#666;">加入會員領取專屬招待禮</p>
-        <input type="text" id="name" placeholder="請輸入姓名">
-        <input type="tel" id="phone" placeholder="請輸入手機號碼">
-        <input type="date" id="birthday">
-        <button id="submitBtn" onclick="submitForm()">確認註冊</button>
+    <div id="loading" class="loading-overlay"><div class="spinner"></div></div>
+
+    <div class="card" id="mainCard" style="display:none;">
+        <h2 id="cardTitle">老娘鍋 x 一點甜</h2>
+        <p id="cardSub" style="color:#666; font-size:14px;"></p>
+
+        <div class="qr-box">
+            <img id="qrImg" src="" alt="請稍候...">
+            <p id="qrHint" style="font-size:12px; color:var(--main-red); font-weight:bold; margin-top:8px;"></p>
+        </div>
+
+        <div id="pointArea" class="point-badge" style="display:none;">
+            <p style="margin:0; font-size:13px; opacity:0.8;">目前可用點數</p>
+            <h1 id="userPoints">0 <span style="font-size:14px;">pt</span></h1>
+        </div>
+
+        <div id="introArea" class="intro-text" style="display:none;">
+            <strong>🎁 好友專屬招待禮：</strong><br>
+            恭喜！結帳時出示上方 QR Code，即享「特製小菜」或「手工甜點」一份！加入會員還能再享消費 5% 回饋起。
+        </div>
+
+        <div id="formArea" style="display:none; text-align: left;">
+            <hr>
+            <p style="font-weight:bold; color:var(--main-red); text-align:center;">註冊領取永久回饋</p>
+            <input type="text" id="name" placeholder="姓名">
+            <input type="tel" id="phone" placeholder="電話">
+            <button class="btn-reg" id="regBtn" onclick="submitForm()">立即加入會員</button>
+        </div>
+
+        <button id="shareBtn" class="btn-share" onclick="shareToFriend()" style="display:none;">LINE 分享好友領招待</button>
+        <button class="btn-close" onclick="liff.closeWindow()">返回聊天室</button>
     </div>
 
 <script>
-    let userId = "";
-    const gasUrl = "https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec"; 
+    const gasUrl = "https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec";
+    let myId = "";
+    let myName = "";
+    const urlParams = new URLSearchParams(window.location.search);
+    const referrerId = urlParams.get('referrerId');
 
     async function initLIFF() {
         try {
-            await liff.init({ liffId: "2009625010-p9sVIUWe" }); 
-            if (liff.isLoggedIn()) {
-                const profile = await liff.getProfile();
-                userId = profile.userId;
-                checkMembership(userId);
-            } else {
-                liff.login();
-            }
-        } catch (e) { console.error("LIFF 失敗", e); }
+            await liff.init({ liffId: "2009625010-p9sVIUWe" });
+            if (!liff.isLoggedIn()) { liff.login(); return; }
+            const profile = await liff.getProfile();
+            myId = profile.userId;
+            checkStatus();
+        } catch (e) { console.error(e); }
     }
     initLIFF();
 
-    function checkMembership(id) {
-        fetch(gasUrl + "?action=checkID&userId=" + id, { cache: "no-cache" })
+    function checkStatus() {
+        fetch(`${gasUrl}?action=checkID&userId=${myId}`)
         .then(res => res.json())
         .then(res => {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('mainCard').style.display = 'block';
+
             if (res.isMember) {
-                // 🚀 重點：這裡必須傳入 4 個參數，QR Code 才會畫出來
-                showSuccess(`歡迎回來，${res.userName}！`, res.points, id, res.userName);
+                // 會員模式：顯示集點碼
+                myName = res.userName;
+                showMemberUI(res.points);
             } else {
-                document.getElementById('formBox').style.display = 'block';
+                // 非會員模式：顯示招待碼 + 註冊表
+                showGuestUI();
             }
-        })
-        .catch(err => {
-            document.getElementById('formBox').style.display = 'block';
         });
+    }
+
+    function showMemberUI(points) {
+        document.getElementById('cardSub').innerText = `${myName} 的行動會員卡`;
+        document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
+        document.getElementById('qrHint').innerText = "結帳請出示此碼集點";
+        document.getElementById('pointArea').style.display = 'block';
+        document.getElementById('userPoints').innerHTML = `${points} <span style="font-size:14px;">pt</span>`;
+        document.getElementById('shareBtn').style.display = 'block';
+    }
+
+    function showGuestUI() {
+        // 如果是點連結進來的，QR Code 顯示推薦人的，讓他能直接被掃描領招待
+        const displayId = referrerId || myId; 
+        document.getElementById('cardTitle').innerText = "歡迎來到 老娘鍋 x 一點甜";
+        document.getElementById('cardSub').innerText = "專屬招待券";
+        document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${displayId}`;
+        document.getElementById('qrHint').innerText = "結帳出示此碼享招待禮";
+        document.getElementById('introArea').style.display = 'block';
+        document.getElementById('formArea').style.display = 'block';
     }
 
     async function submitForm() {
-        const btn = document.getElementById('submitBtn');
-        const urlParams = new URLSearchParams(window.location.search);
-        const referrerId = urlParams.get('referrerId') || "";
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        if(!name || !phone) { alert("請填寫姓名與電話"); return; }
 
-        const data = {
-            action: "register",
-            name: document.getElementById('name').value,
-            phone: document.getElementById('phone').value,
-            birthday: document.getElementById('birthday').value,
-            userId: userId,
-            referrerId: referrerId
-        };
+        const btn = document.getElementById('regBtn');
+        btn.disabled = true; btn.innerText = "處理中...";
 
-        if(!data.name || !data.phone || !userId) {
-            alert("請填寫完整資料"); return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = "正在為您綁定...";
-
-        fetch(gasUrl, {
-            method: "POST",
-            mode: "no-cors", 
-            body: JSON.stringify(data)
-        });
-
-        setTimeout(() => {
-            alert("註冊成功！歡迎加入老娘鍋！");
-            location.reload(); // 註冊完重新整理直接進入會員卡
-        }, 1200);
-    }
-
-    function showSuccess(title, points, id, userName) {
-        const qrCodeUrl = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${id}`;
-        const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${id}`;
-
-        document.body.innerHTML = `
-            <div style="text-align:center; padding:20px; background-color:#fdf5e6; min-height:100vh; display:flex; flex-direction:column; align-items:center; font-family:sans-serif; width:100%;">
-                <div style="background:white; padding:25px; border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.1); width:90%; max-width:350px; border:2px solid #8b0000;">
-                    <h2 style="color:#8b0000; margin:0;">老娘鍋 x 一點甜</h2>
-                    <p style="color:#666; font-size:14px; margin-top:5px;">${userName} 的行動會員卡</p>
-                    
-                    <div style="margin: 20px 0; background:#fff; padding:10px; display:inline-block; border-radius:10px; border:1px solid #eee;">
-                        <img src="${qrCodeUrl}" alt="集點碼" style="width:200px; display:block;">
-                        <p style="font-size:12px; color:#8b0000; margin-top:8px; font-weight:bold;">結帳請出示此碼集點</p>
-                    </div>
-
-                    <div style="background:#8b0000; color:white; padding:15px; border-radius:15px; margin-bottom:20px;">
-                        <p style="margin:0; font-size:14px; opacity:0.8;">目前可用點數</p>
-                        <h1 style="margin:5px 0; font-size:36px;">${points} <span style="font-size:16px;">pt</span></h1>
-                    </div>
-
-                    <button onclick="shareToFriend('${id}')" style="width:100%; padding:15px; background:#06C755; color:white; border:none; border-radius:10px; font-size:16px; font-weight:bold; cursor:pointer; margin-bottom:12px;">
-                        LINE 分享好友拿招待
-                    </button>
-                    
-                    <button onclick="liff.closeWindow()" style="width:100%; padding:12px; background:#eee; color:#333; border:none; border-radius:10px; font-size:14px; cursor:pointer;">
-                        返回聊天室
-                    </button>
-                </div>
-                <p style="font-size:12px; color:#8b0000; margin-top:15px; line-height:1.5;">
-                    ※ 點數於消費隔日凌晨生效<br>
-                    ※ 推薦好友成功消費再享 2% 回饋
-                </p>
-            </div>`;
-    }
-
-    function shareToFriend(id) {
-        const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${id}`;
+        const data = { action: "register", name, phone, userId: myId, referrerId: referrerId || "" };
         
+        fetch(gasUrl, { method: "POST", mode: "no-cors", body: JSON.stringify(data) });
+        
+        setTimeout(() => {
+            alert("註冊成功！歡迎加入！");
+            location.reload();
+        }, 1500);
+    }
+
+    function shareToFriend() {
+        const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
         if (liff.isApiAvailable('shareTargetPicker')) {
-            liff.shareTargetPicker([
-                {
-                    "type": "flex",
-                    "altText": "🎁 你的好友送你老娘鍋專屬招待禮！",
-                    "contents": {
-                        "type": "bubble",
-                        "hero": {
-                            "type": "image",
-                            "url": "https://images.unsplash.com/photo-1590671886400-8f8088b97cb0?q=80&w=1000&auto=format&fit=crop",
-                            "size": "full",
-                            "aspectRatio": "20:13",
-                            "aspectMode": "cover"
-                        },
-                        "body": {
-                            "type": "box",
-                            "layout": "vertical",
-                            "contents": [
-                                {"type": "text", "text": "老娘鍋 x 一點甜", "weight": "bold", "color": "#8b0000", "size": "sm"},
-                                {"type": "text", "text": "好友專屬招待禮 🍲", "weight": "bold", "size": "xl", "margin": "md"},
-                                {"type": "text", "text": "透過此連結註冊，結帳出示 QR Code 即享小菜/點心招待，還可累積消費回饋！", "wrap": true, "size": "xs", "margin": "md", "color": "#666666"}
-                            ]
-                        },
-                        "footer": {
-                            "type": "box",
-                            "layout": "vertical",
-                            "contents": [
-                                {
-                                    "type": "button",
-                                    "action": { "type": "uri", "label": "立即領取招待", "uri": shareUrl },
-                                    "style": "primary",
-                                    "color": "#8b0000"
-                                }
-                            ]
-                        }
-                    }
+            liff.shareTargetPicker([{
+                "type": "flex",
+                "altText": "🎁 送你老娘鍋專屬招待禮！",
+                "contents": {
+                    "type": "bubble",
+                    "hero": { "type": "image", "url": "https://images.unsplash.com/photo-1590671886400-8f8088b97cb0?q=80&w=1000&auto=format&fit=crop", "size": "full", "aspectRatio": "20:13", "aspectMode": "cover" },
+                    "body": { "type": "box", "layout": "vertical", "contents": [
+                        {"type": "text", "text": "老娘鍋 x 一點甜", "weight": "bold", "color": "#8b0000", "size": "sm"},
+                        {"type": "text", "text": "好友專屬招待禮 🍲", "weight": "bold", "size": "xl", "margin": "md"},
+                        {"type": "text", "text": "出示 QR Code 即享招待禮，點擊下方領取！", "wrap": true, "size": "xs", "margin": "md", "color": "#666666"}
+                    ]},
+                    "footer": { "type": "box", "layout": "vertical", "contents": [
+                        { "type": "button", "action": { "type": "uri", "label": "立即查看招待碼", "uri": shareUrl }, "style": "primary", "color": "#8b0000" }
+                    ]}
                 }
-            ]).then(res => {
-                if (res) alert("已成功分享給好友！");
-            }).catch(err => console.log("分享取消"));
-        } else {
-            const textArea = document.createElement("textarea");
-            textArea.value = `✨ 發現高雄隱藏版美味！老娘鍋 x 一點甜 ✨\n\n點擊連結註冊，結帳出示我的 QR Code 享招待：\n${shareUrl}`;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            alert("推薦文案已複製！快貼給朋友吧～");
+            }]).then(res => { if (res) console.log("分享成功"); });
         }
     }
 </script>
