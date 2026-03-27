@@ -9,7 +9,7 @@
 <body style="font-family: sans-serif; padding: 20px; max-width: 400px; margin: 0 auto;">
     <h1 style="color:#8b0000;">老娘鍋 x 一點甜</h1>
     <div id="loading" style="text-align:center; padding:40px;">載入中...</div>
-    <div id="memberView" style="display:none;">
+    <div id="memberPanel" style="display:none;">
         <div style="background:#8b0000; color:white; padding:20px; border-radius:12px; text-align:center;">
             <p>目前可用點數</p>
             <h2 id="points">0</h2>
@@ -17,26 +17,31 @@
         <img id="memberQr" style="width:180px; margin:20px auto; display:block;">
         <button onclick="shareLink()" style="width:100%; padding:14px; background:#06C755; color:white; border:none;">推薦好友</button>
     </div>
-    <div id="guestView" style="display:none;">
+    <div id="guestPanel" style="display:none;">
         <input type="text" id="name" placeholder="真實姓名" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
         <input type="tel" id="phone" placeholder="手機號碼" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
         <input type="date" id="birth" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-        <button id="regBtn" style="width:100%; padding:14px; background:#8b0000; color:white; border:none; border-radius:8px;">加入會員</button>
+        <button id="regBtn" style="width:100%; padding:14px; background:#8b0000; color:white; border:none;">加入會員</button>
     </div>
-    <div id="errorView" style="display:none; background:#ffebee; padding:20px; border-radius:12px; text-align:center;">
-        連線失敗<br><button onclick="location.reload()" style="margin-top:10px; padding:8px 20px;">重新整理</button>
+    <div id="errorPanel" style="display:none; background:#ffebee; padding:20px; text-align:center;">
+        連線失敗<br><button onclick="location.reload()">重新整理</button>
     </div>
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyk1j0rQflpZIW-TIw7JWDHRuSixGGSR8YDh0z2AmBlMbLdLbLdlVh5gRH/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
+
 let userId = null;
-const referrerId = new URLSearchParams(location.search).get('referrerId');
+const urlParams = new URLSearchParams(location.search);
+const referrerId = urlParams.get('referrerId');
 
 async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
+        if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+        }
         const profile = await liff.getProfile();
         userId = profile.userId;
         await checkMember();
@@ -47,9 +52,10 @@ async function init() {
 
 async function checkMember() {
     try {
-        const res = await fetch(GAS_URL + "?action=checkID&userId=" + encodeURIComponent(userId) + "&t=" + Date.now());
+        const url = GAS_URL + "?action=checkID&userId=" + userId + "&t=" + Date.now();
+        const res = await fetch(url);
         const data = await res.json();
-        if (data.isMember === true) {
+        if (data.isMember) {
             showMember(data.userName, data.points);
         } else {
             showGuest();
@@ -63,14 +69,18 @@ async function register() {
     const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const birth = document.getElementById('birth').value;
-    if (!name || !phone || !birth) { alert("請填寫完整資料"); return; }
+    
+    if (!name || !phone || !birth) {
+        alert("請填寫完整資料");
+        return;
+    }
     
     const btn = document.getElementById('regBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
     
     try {
-        const url = GAS_URL + "?action=register&userId=" + encodeURIComponent(userId) + "&name=" + encodeURIComponent(name) + "&phone=" + encodeURIComponent(phone) + "&birthday=" + encodeURIComponent(birth) + "&referrerId=" + encodeURIComponent(referrerId || "");
+        const url = GAS_URL + "?action=register&userId=" + userId + "&name=" + encodeURIComponent(name) + "&phone=" + phone + "&birthday=" + birth + "&referrerId=" + (referrerId || "");
         const res = await fetch(url);
         const result = await res.text();
         
@@ -81,12 +91,12 @@ async function register() {
             alert("您已經是會員了！");
             await checkMember();
         } else {
-            alert("註冊失敗: " + result);
+            alert("註冊失敗：" + result);
             btn.disabled = false;
             btn.innerText = "加入會員";
         }
     } catch(e) {
-        alert("網路錯誤: " + e.message);
+        alert("網路錯誤：" + e.message);
         btn.disabled = false;
         btn.innerText = "加入會員";
     }
@@ -94,10 +104,11 @@ async function register() {
 
 function showMember(name, points) {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('guestView').style.display = 'none';
-    document.getElementById('memberView').style.display = 'block';
+    document.getElementById('guestPanel').style.display = 'none';
+    document.getElementById('memberPanel').style.display = 'block';
     document.getElementById('points').innerText = points;
     document.getElementById('memberQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + userId;
+    
     let nameEl = document.getElementById('welcomeName');
     if (!nameEl) {
         nameEl = document.createElement('p');
@@ -105,15 +116,15 @@ function showMember(name, points) {
         nameEl.style.textAlign = 'center';
         nameEl.style.fontWeight = 'bold';
         nameEl.style.marginBottom = '15px';
-        document.getElementById('memberView').insertBefore(nameEl, document.getElementById('memberView').firstChild);
+        document.getElementById('memberPanel').insertBefore(nameEl, document.getElementById('memberPanel').firstChild);
     }
     nameEl.innerText = "歡迎，" + name + " 會員";
 }
 
 function showGuest() {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('memberView').style.display = 'none';
-    document.getElementById('guestView').style.display = 'block';
+    document.getElementById('memberPanel').style.display = 'none';
+    document.getElementById('guestPanel').style.display = 'block';
     const qrData = referrerId || userId;
     if (qrData) {
         document.getElementById('guestQr').src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + qrData;
@@ -122,9 +133,9 @@ function showGuest() {
 
 function showError() {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('memberView').style.display = 'none';
-    document.getElementById('guestView').style.display = 'none';
-    document.getElementById('errorView').style.display = 'block';
+    document.getElementById('memberPanel').style.display = 'none';
+    document.getElementById('guestPanel').style.display = 'none';
+    document.getElementById('errorPanel').style.display = 'block';
 }
 
 function shareLink() {
@@ -133,7 +144,7 @@ function shareLink() {
     alert("推薦連結已複製！");
 }
 
-document.getElementById('regBtn').addEventListener('click', register);
+document.getElementById('regBtn').onclick = register;
 document.getElementById('birth').addEventListener('focus', function() {
     if (!this.value) this.value = "2000-01-01";
 });
