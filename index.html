@@ -9,40 +9,27 @@
         :root { --main-red: #8b0000; --line-green: #06C755; --bg-cream: #fdf5e6; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background-color: var(--bg-cream); margin: 0; padding: 15px; display: flex; justify-content: center; }
         .card { width: 100%; max-width: 380px; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid var(--main-red); text-align: center; box-sizing: border-box; min-height: 520px; position: relative; }
-        
         h2 { color: var(--main-red); margin: 0 0 15px 0; }
         .info-list { text-align: left; font-size: 15px; color: #444; line-height: 1.7; background: #f9f9f9; padding: 15px; border-radius: 12px; margin: 15px 0; border: 1px solid #eee; }
         .qr-box img { width: 180px; height: 180px; border: 1px solid #eee; padding: 5px; background: #fff; }
-
         .form-group { text-align: left; margin-top: 10px; }
         label { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
         input { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        
         .check-group { font-size: 14px; color: #555; margin: 12px 0; display: flex; align-items: flex-start; text-align: left; line-height: 1.5; }
         .check-group input { width: 22px; height: 22px; margin-right: 12px; flex-shrink: 0; }
         .check-link { color: var(--main-red); font-weight: bold; text-decoration: underline; cursor: pointer; }
-
         button { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 17px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-reg { background: var(--main-red); color: white; }
         .btn-reg:disabled { background: #ccc; }
-
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; max-height: 75%; border-radius: 20px; padding: 25px; overflow-y: auto; text-align: left; }
         .modal-header { font-size: 18px; font-weight: bold; color: var(--main-red); margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .modal-body { font-size: 15px; color: #444; line-height: 1.8; white-space: pre-wrap; }
         .modal-close { display: block; width: 100%; background: #f0f0f0; color: #333; padding: 14px; border-radius: 10px; text-align: center; margin-top: 20px; font-weight: bold; text-decoration: none; }
-
         #toast { visibility: hidden; min-width: 250px; background: rgba(0,0,0,0.85); color: #fff; text-align: center; border-radius: 50px; padding: 16px; position: fixed; z-index: 3000; bottom: 50px; left: 50%; transform: translateX(-50%); }
         #toast.show { visibility: visible; animation: fadein 0.5s; }
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 50px; opacity: 1;} }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .debug-panel { background: #f0f0f0; border-top: 2px solid #ccc; margin-top: 20px; padding: 10px; font-size: 11px; text-align: left; font-family: monospace; max-height: 250px; overflow-y: auto; border-radius: 8px; }
-        .debug-panel h4 { margin: 0 0 5px 0; font-size: 12px; color: #666; }
-        .debug-panel pre { margin: 0; white-space: pre-wrap; word-break: break-all; font-size: 10px; }
-        .error-message { color: #d32f2f; background: #ffebee; padding: 12px; border-radius: 10px; margin: 15px 0; font-size: 14px; }
-        .retry-btn { background: var(--main-red); color: white; padding: 8px 16px; border: none; border-radius: 8px; margin-top: 10px; font-size: 14px; cursor: pointer; }
-        .success-badge { background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; margin-left: 8px; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 50px; opacity: 1;} }
     </style>
 </head>
 <body>
@@ -73,7 +60,7 @@
             <div class="form-group">
                 <label>真實姓名</label><input type="text" id="regName" placeholder="請填寫姓名">
                 <label>手機號碼</label><input type="tel" id="regPhone" placeholder="09xxxxxxxx">
-                <label>生日 (預設 2000 年)</label><input type="date" id="regBirth">
+                <label>生日</label><input type="date" id="regBirth" value="2000-01-01">
                 <label class="check-group"><input type="checkbox" id="checkRights"><span>同意 <a class="check-link" onclick="openModal('rights')">會員權益與點數規則</a></span></label>
                 <label class="check-group"><input type="checkbox" id="checkLegal"><span>同意 <a class="check-link" onclick="openModal('legal')">法務免責與防弊聲明</a></span></label>
                 <button class="btn-reg" id="regBtn" onclick="submitForm()">加入會員領取招待</button>
@@ -92,315 +79,77 @@
             </div>
             <button style="background:var(--line-green); color:white;" onclick="handleShare()">推薦好友領招待</button>
         </div>
-        
-        <div id="ui-error" style="display:none; padding-top:100px;">
-            <div class="error-message">
-                ⚠️ 無法連線到會員系統<br>
-                請檢查網路連線後點擊下方按鈕重試
-            </div>
-            <button class="retry-btn" onclick="location.reload()">重新整理</button>
-        </div>
-        
-        <!-- 除錯面板 -->
-        <div class="debug-panel" id="debugPanel">
-            <h4>🔍 除錯資訊 (點擊下方按鈕可複製)</h4>
-            <pre id="debugLog">等待載入...</pre>
-            <button onclick="copyDebugLog()" style="margin-top:5px; font-size:10px;">📋 複製除錯資訊</button>
-            <button onclick="manualCheck()" style="margin-top:5px; margin-left:5px; font-size:10px;">🔄 手動檢查會員</button>
-        </div>
     </div>
 
 <script>
-    // ========== 請更新為您新的 GAS 網址 ==========
     const gasUrl = "https://script.google.com/macros/s/AKfycby1YCNUjtY3ZoTLJmeN86Y1UMBKXFJFcvWkdBupwnwByEWCtzVHjp09A6_3twyCepTBPg/exec";
-    // ============================================
-    
     const liffId = "2009625010-p9sVIUWe";
     let myId = "";
-    let debugMessages = [];
-    let memberData = null;
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('referrerId');
-    
-    // 除錯函數
-    function addDebug(message, data = null) {
-        const timestamp = new Date().toLocaleTimeString();
-        let logMsg = `[${timestamp}] ${message}`;
-        if (data) {
-            try {
-                logMsg += `\n📦 資料: ${JSON.stringify(data, null, 2)}`;
-            } catch(e) {
-                logMsg += `\n📦 資料: ${data}`;
-            }
-        }
-        debugMessages.push(logMsg);
-        if (debugMessages.length > 50) debugMessages.shift();
-        const debugEl = document.getElementById('debugLog');
-        if (debugEl) debugEl.innerText = debugMessages.join('\n\n');
-        console.log(message, data || '');
-    }
-    
-    function copyDebugLog() {
-        const logText = debugMessages.join('\n\n');
-        const el = document.createElement('textarea');
-        el.value = logText;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        addDebug("✅ 除錯資訊已複製到剪貼簿");
-        alert('除錯資訊已複製到剪貼簿！');
-    }
-    
-    function manualCheck() {
-        addDebug("🔄 手動觸發會員檢查");
-        if (myId) {
-            checkMemberStatus();
-        } else {
-            addDebug("❌ 尚無使用者 ID，請稍後再試");
-        }
-    }
-    
-    // LIFF 初始化
+
     async function initLIFF() {
-        addDebug("🚀 開始初始化 LIFF...");
-        showLoading();
-        
         try {
             await liff.init({ liffId: liffId });
-            addDebug("✅ LIFF 初始化成功");
-            
-            if (!liff.isLoggedIn()) {
-                addDebug("🔐 使用者未登入，導向登入頁面");
-                liff.login();
-                return;
-            }
-            
-            addDebug("✅ 使用者已登入，開始獲取個人資料...");
+            if (!liff.isLoggedIn()) { liff.login(); return; }
             const profile = await liff.getProfile();
             myId = profile.userId;
-            addDebug("👤 成功獲取使用者 ID", { 
-                userId: myId, 
-                displayName: profile.displayName,
-                statusMessage: profile.statusMessage || "無"
-            });
-            
-            addDebug("🔍 準備檢查會員狀態...");
-            await checkMemberStatus();
-            
-        } catch (e) {
-            addDebug("❌ LIFF 初始化失敗", { error: e.message });
-            showError();
-        }
+            fetchData();
+        } catch (e) { console.error("LIFF 失敗", e); showGuestUI(); }
     }
-    
-    function showLoading() {
-        const loading = document.getElementById('ui-loading');
-        const guest = document.getElementById('ui-guest');
-        const member = document.getElementById('ui-member');
-        const error = document.getElementById('ui-error');
-        if(loading) loading.style.display = 'block';
-        if(guest) guest.style.display = 'none';
-        if(member) member.style.display = 'none';
-        if(error) error.style.display = 'none';
-    }
-    
-    function showError() {
-        const loading = document.getElementById('ui-loading');
-        const guest = document.getElementById('ui-guest');
-        const member = document.getElementById('ui-member');
-        const error = document.getElementById('ui-error');
-        if(loading) loading.style.display = 'none';
-        if(guest) guest.style.display = 'none';
-        if(member) member.style.display = 'none';
-        if(error) error.style.display = 'block';
-    }
-    
-    // 檢查會員狀態
-    async function checkMemberStatus() {
-        if (!myId) {
-            addDebug("❌ 無法檢查會員：沒有使用者 ID");
-            showGuestUI();
-            return;
-        }
-        
-        addDebug("🔍 開始檢查會員狀態", { userId: myId });
-        
-        const url = `${gasUrl}?action=checkID&userId=${encodeURIComponent(myId)}&t=${Date.now()}`;
-        addDebug("📡 發送請求到 GAS", { url: url.substring(0, 100) + "..." });
-        
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
-            
-            const response = await fetch(url, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            
-            addDebug("📥 收到 HTTP 回應", { 
-                status: response.status, 
-                statusText: response.statusText,
-                ok: response.ok 
-            });
-            
-            const responseText = await response.text();
-            addDebug("📄 原始回應內容", { 
-                responseText: responseText.substring(0, 500),
-                length: responseText.length 
-            });
-            
-            let data;
-            try {
-                data = JSON.parse(responseText);
-                addDebug("✅ JSON 解析成功", data);
-            } catch (e) {
-                addDebug("❌ JSON 解析失敗", { error: e.message });
-                showGuestUI();
-                return;
-            }
-            
-            addDebug("📊 會員狀態判斷結果", { 
-                isMember: data.isMember,
-                userName: data.userName,
-                points: data.points
-            });
-            
-            if (data && data.isMember === true) {
-                addDebug("🎉 會員驗證成功！顯示會員畫面", { name: data.userName, points: data.points });
-                memberData = data;
-                showMemberUI(data);
-            } else {
-                addDebug("👤 非會員或尚未註冊，顯示註冊畫面");
-                showGuestUI();
-            }
-            
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                addDebug("⏰ 請求超時 (15秒)");
-            } else {
-                addDebug("❌ 檢查會員狀態失敗", { error: error.message, type: error.name });
-            }
-            showGuestUI();
-        }
+    initLIFF();
+
+    function fetchData() {
+        const safety = setTimeout(() => {
+            if (document.getElementById('ui-loading').style.display !== 'none') showGuestUI();
+        }, 4000);
+
+        fetch(`${gasUrl}?action=checkID&userId=${myId}`, { redirect: 'follow' })
+        .then(res => res.json())
+        .then(res => {
+            clearTimeout(safety);
+            if (res && res.isMember) showMemberUI(res);
+            else showGuestUI();
+        })
+        .catch(() => { clearTimeout(safety); showGuestUI(); });
     }
 
     function showMemberUI(res) {
-        addDebug("🎉 執行 showMemberUI", { 
-            userName: res.userName, 
-            points: res.points,
-            userId: myId 
-        });
-        
-        const loading = document.getElementById('ui-loading');
-        const guest = document.getElementById('ui-guest');
-        const member = document.getElementById('ui-member');
-        const error = document.getElementById('ui-error');
-        
-        if(loading) loading.style.display = 'none';
-        if(guest) guest.style.display = 'none';
-        if(member) member.style.display = 'block';
-        if(error) error.style.display = 'none';
-        
-        const nameDisplay = document.getElementById('userNameDisplay');
-        if(nameDisplay) nameDisplay.innerHTML = `歡迎，${res.userName} 會員 <span class="success-badge">✓ 已驗證</span>`;
-        
-        const qrImg = document.getElementById('memberQr');
-        if(qrImg) qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
-        
-        const pointsDisplay = document.getElementById('userPoints');
-        if(pointsDisplay) pointsDisplay.innerText = `${res.points || 0} pt`;
-        
-        addDebug("✅ 會員畫面已完整顯示");
+        document.getElementById('ui-loading').style.display = 'none';
+        document.getElementById('ui-guest').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'block';
+        document.getElementById('userNameDisplay').innerText = `歡迎，${res.userName} 會員`;
+        document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
+        document.getElementById('userPoints').innerText = `${res.points} pt`;
     }
 
     function showGuestUI() {
-        addDebug("📝 執行 showGuestUI", { referrerId: referrerId, myId: myId });
-        
-        const loading = document.getElementById('ui-loading');
-        const guest = document.getElementById('ui-guest');
-        const member = document.getElementById('ui-member');
-        const error = document.getElementById('ui-error');
-        
-        if(loading) loading.style.display = 'none';
-        if(member) member.style.display = 'none';
-        if(guest) guest.style.display = 'block';
-        if(error) error.style.display = 'none';
-        
-        const qrData = referrerId || myId;
-        if(qrData) {
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
-            const guestQr = document.getElementById('guestQr');
-            if(guestQr) guestQr.src = qrUrl;
-            addDebug("📱 生成 QR Code", { qrData: qrData });
-        } else {
-            addDebug("⚠️ 無法生成 QR Code：沒有可用的 ID");
-        }
+        document.getElementById('ui-loading').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'none';
+        document.getElementById('ui-guest').style.display = 'block';
+        const finalId = referrerId || myId;
+        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${finalId}`;
     }
 
-    // 註冊函數
     async function submitForm() {
-        const name = document.getElementById('regName').value.trim();
-        const phone = document.getElementById('regPhone').value.trim();
+        const name = document.getElementById('regName').value;
+        const phone = document.getElementById('regPhone').value;
         const birth = document.getElementById('regBirth').value;
-        
-        addDebug("📝 開始註冊流程", { name, phone, birth, userId: myId, referrerId });
-        
-        if(!name) { alert("請填寫真實姓名"); return; }
-        if(!phone) { alert("請填寫手機號碼"); return; }
-        if(!birth) { alert("請填寫生日"); return; }
-        if(!document.getElementById('checkRights').checked) { alert("請同意會員權益與點數規則"); return; }
-        if(!document.getElementById('checkLegal').checked) { alert("請同意法務免責與防弊聲明"); return; }
+        if(!name || !phone || !birth) { alert("請填寫姓名、電話與生日"); return; }
+        if(!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { alert("請勾選同意條款"); return; }
         
         const btn = document.getElementById('regBtn');
-        const originalText = btn.innerText;
-        btn.disabled = true;
-        btn.innerText = "資料處理中...";
-        
-        try {
-            const requestBody = { 
-                action: "register", 
-                name: name, 
-                phone: phone, 
-                birthday: birth, 
-                userId: myId, 
-                referrerId: referrerId || "" 
-            };
-            addDebug("📤 發送註冊請求", requestBody);
-            
-            const response = await fetch(gasUrl, { 
-                method: "POST", 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody) 
-            });
-            
-            const result = await response.text();
-            addDebug("📥 註冊回應", { result: result, status: response.status });
-            
-            if (result === "SUCCESS") {
-                addDebug("✅ 註冊成功，重新檢查會員狀態");
-                alert("🎉 註冊成功！\n\n歡迎加入會員，現在即可領取招待！");
-                showLoading();
-                await checkMemberStatus();
-            } else if (result === "DUPLICATE") {
-                addDebug("ℹ️ 已是會員，重新載入會員資料");
-                alert("ℹ️ 您已經是會員了！\n將為您載入會員資料。");
-                showLoading();
-                await checkMemberStatus();
-            } else {
-                addDebug("❌ 註冊失敗", { result: result });
-                alert("❌ 註冊失敗，請稍後再試。\n\n回應內容：" + result);
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
-            
-        } catch (error) {
-            addDebug("❌ 註冊請求錯誤", { error: error.message });
-            alert("網路連線異常，請檢查網路後重試。\n\n錯誤訊息：" + error.message);
-            btn.disabled = false;
-            btn.innerText = originalText;
-        }
+        btn.disabled = true; btn.innerText = "資料同步中...";
+
+        fetch(gasUrl, { 
+            method: "POST", 
+            mode: "no-cors", 
+            body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: referrerId || "" }) 
+        }).then(() => {
+            setTimeout(() => { alert("註冊成功！"); location.reload(); }, 2000);
+        });
     }
 
-    // 條款內容
     const terms = {
         rights: { title: "會員權益與規則", text: "◆ 點數價值：$1 點 = NT$1 元。\n◆ 本人集點：實付額之 5% (效期12月)。\n◆ 朋友回饋：好友消費額之 2% (效期6月)。\n◆ 生效時間：採隔日生效制。\n◆ 購買餐券：提撥 3% 點數。\n◆ 特殊日期：春節、母親節等檔期暫停折抵。\n◆ 特殊活動：本人集點 3%，朋友回饋 1%。" },
         legal: { title: "法務免責聲明", text: "◆ 非現金化：點數不可兌換現金或轉讓。\n◆ 終止權：店家保有修改、暫停或終止活動之權利。\n◆ 營運調整：因不可抗力因素點數失效時不得要求賠償。\n◆ 誠信監測：若偵測異常集點或虛假推薦，店家有權凍結帳號。\n◆ 最終解釋權：本公司保有活動最終解釋權。" }
@@ -416,35 +165,10 @@
     function handleShare() {
         const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
         const text = `✨ 送你老娘鍋專屬招待券！\n出示 QR Code 即可領取招待禮：\n${shareUrl}`;
-        
-        const el = document.createElement('textarea'); 
-        el.value = text; 
-        document.body.appendChild(el); 
-        el.select(); 
-        document.execCommand('copy'); 
-        document.body.removeChild(el);
-        
-        const toast = document.getElementById("toast");
-        toast.className = "show";
-        setTimeout(() => { toast.className = ""; }, 3000);
-        
-        if (typeof liff !== 'undefined' && liff.isInClient()) {
-            liff.shareTargetPicker([{ type: "text", text: text }])
-                .catch(err => addDebug("分享選單錯誤", err));
-        }
-        addDebug("📤 分享連結已複製", { shareUrl });
+        const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+        document.getElementById("toast").className = "show";
+        setTimeout(() => { document.getElementById("toast").className = ""; }, 3000);
     }
-    
-    // 設定生日預設值
-    const birthInput = document.getElementById('regBirth');
-    if(birthInput) {
-        birthInput.addEventListener('focus', function() {
-            if (!this.value) this.value = "2000-01-01";
-        });
-    }
-    
-    addDebug("🚀 頁面載入完成，開始執行 initLIFF()");
-    initLIFF();
 </script>
 </body>
 </html>
