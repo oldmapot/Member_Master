@@ -15,8 +15,8 @@
     </style>
 </head>
 <body>
-    <div class="card" id="formBox">
-        <h2>老娘鍋 x 一點甜</h2>
+    <div class="card" id="formBox" style="display:none;">
+    <h2>老娘鍋 x 一點甜</h2>
         <input type="text" id="name" placeholder="請輸入姓名">
         <input type="tel" id="phone" placeholder="請輸入手機號碼">
         <input type="date" id="birthday">
@@ -42,16 +42,23 @@
     initLIFF();
 
     function checkMembership(id) {
-        fetch(gasUrl + "?action=checkID&userId=" + id)
+        // 加上 cache: "no-cache" 確保每次都是抓最新試算表資料
+        fetch(gasUrl + "?action=checkID&userId=" + id, { cache: "no-cache" })
         .then(res => res.json())
         .then(res => {
             if (res.isMember) {
-                showSuccess("歡迎回來！", "您已經是老娘鍋的會員囉。");
+                // 🚀 只要是會員，立刻執行顯示點數卡，不讓用戶看到註冊表單
+                showSuccess(`歡迎回來，${res.userName}！`, `目前可用點數：${res.points} pt`);
+            } else {
+                console.log("新朋友，顯示註冊頁面");
+                document.getElementById('formBox').style.display = 'block';
             }
         })
-        .catch(err => console.log("準備註冊新會員"));
+        .catch(err => {
+            console.error("檢查失敗", err);
+            document.getElementById('formBox').style.display = 'block';
+        });
     }
-
     async function submitForm() {
         const btn = document.getElementById('submitBtn');
         const data = {
