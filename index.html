@@ -203,9 +203,9 @@
 
     function handleShare() {
         const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
-        const copyText = `🍲 老娘鍋 x 一點甜 專屬招待 🍲\n送你招待券，加入會員再領回饋點數！\n點我領取：${shareUrl}`;
+        const copyText = `const copyText = `✨ 發現高雄隱藏版美味 ✨\n🍲 老娘鍋 x 一點甜 🍦\n\n這是我專屬的招待回饋碼\n立即加入會員領取招待禮\n消費再享點數回饋！\n\n👉 點我領取：${shareUrl}`;;
 
-        // 1. 先執行複製動作 (確保使用者手中一定有連結)
+        // 1. 執行複製
         const el = document.createElement('textarea');
         el.value = copyText;
         document.body.appendChild(el);
@@ -213,7 +213,7 @@
         document.execCommand('copy');
         document.body.removeChild(el);
 
-        // 2. 嘗試呼叫 LINE 原生分享視窗
+        // 2. 判斷環境執行分享或提示
         if (liff.isApiAvailable('shareTargetPicker')) {
             liff.shareTargetPicker([{
                 "type": "flex",
@@ -224,27 +224,22 @@
                     "body": { "type": "box", "layout": "vertical", "contents": [
                         {"type": "text", "text": "老娘鍋 x 一點甜", "weight": "bold", "color": "#8b0000", "size": "sm"},
                         {"type": "text", "text": "好友專屬招待禮 🍲", "weight": "bold", "size": "xl", "margin": "md"},
-                        {"type": "text", "text": "送你招待券，加入再領你專屬的消費回饋點數！", "wrap": true, "size": "xs", "margin": "md", "color": "#666666"}
+                        {"type": "text", "text": "送你招待券，加入再領回饋點數！", "wrap": true, "size": "xs", "margin": "md", "color": "#666666"}
                     ]},
                     "footer": { "type": "box", "layout": "vertical", "contents": [
-                        { "type": "button", "action": { "type": "uri", "label": "立即領取", "uri": shareUrl }, "style": "primary", "color": "#8b0000" }
+                        { "type": "button", "action": { "type": "uri", "label": "立即領取回饋", "uri": shareUrl }, "style": "primary", "color": "#8b0000" }
                     ]}
                 }
             }]).then(function (res) {
-                if (res) {
-                    // 使用者成功透過分享視窗送出
-                    console.log("Flex message sent");
-                } else {
-                    // 使用者點了分享但中途取消，此時提示已複製連結
-                    alert("推薦連結已複製成功！\n趕快貼給好友領招待禮吧，還能累積好友的消費回饋唷！");
-                }
+                // 不管發送成功還是取消，都彈出我們自己的乾淨視窗告知「連結已複製」
+                // 這樣使用者就知道就算沒傳成功，也可以手動貼上
+                openModal('copySuccess');
             }).catch(function (err) {
-                // 分享功能出錯，改用提示告知已複製
-                alert("推薦連結已複製成功！\n趕快貼給好友領招待禮吧，還能累積好友的消費回饋唷！");
+                openModal('copySuccess');
             });
         } else {
-            // 在一般瀏覽器開啟時，直接彈出提示
-            alert("推薦連結已複製成功！\n趕快貼給好友領招待禮吧，還能累積好友的消費回饋唷！");
+            // 一般瀏覽器直接彈出
+            openModal('copySuccess');
         }
     }
 
