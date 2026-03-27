@@ -12,20 +12,12 @@
         h2 { color: var(--main-red); margin: 0 0 15px 0; }
         .info-list { text-align: left; font-size: 15px; color: #444; line-height: 1.7; background: #f9f9f9; padding: 15px; border-radius: 12px; margin: 15px 0; border: 1px solid #eee; }
         .qr-box img { width: 180px; height: 180px; border: 1px solid #eee; padding: 5px; background: #fff; }
-        .form-group { text-align: left; margin-top: 10px; }
-        label { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
         input { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
         .check-group { font-size: 14px; color: #555; margin: 12px 0; display: flex; align-items: flex-start; text-align: left; line-height: 1.5; }
         .check-group input { width: 22px; height: 22px; margin-right: 12px; flex-shrink: 0; }
-        .check-link { color: var(--main-red); font-weight: bold; text-decoration: underline; cursor: pointer; }
         button { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 17px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-reg { background: var(--main-red); color: white; }
         .btn-reg:disabled { background: #ccc; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 85%; max-height: 75%; border-radius: 20px; padding: 25px; overflow-y: auto; text-align: left; }
-        .modal-header { font-size: 18px; font-weight: bold; color: var(--main-red); margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .modal-body { font-size: 15px; color: #444; line-height: 1.8; white-space: pre-wrap; }
-        .modal-close { display: block; width: 100%; background: #f0f0f0; color: #333; padding: 14px; border-radius: 10px; text-align: center; margin-top: 20px; font-weight: bold; text-decoration: none; }
         #toast { visibility: hidden; min-width: 250px; background: rgba(0,0,0,0.85); color: #fff; text-align: center; border-radius: 50px; padding: 16px; position: fixed; z-index: 3000; bottom: 50px; left: 50%; transform: translateX(-50%); }
         #toast.show { visibility: visible; animation: fadein 0.5s; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -34,20 +26,12 @@
 </head>
 <body>
 
-    <div id="termsModal" class="modal">
-        <div class="modal-content">
-            <div id="modalTitle" class="modal-header"></div>
-            <div id="modalBody" class="modal-body"></div>
-            <a href="javascript:void(0)" class="modal-close" onclick="closeModal()">我已閱讀並了解</a>
-        </div>
-    </div>
-
     <div id="toast">✅ 專屬推薦碼已複製！</div>
 
     <div class="card">
         <h2>老娘鍋 x 一點甜</h2>
         
-        <div id="ui-loading" style="padding-top:100px;">
+        <div id="ui-loading" style="display:block; padding-top:100px;">
             <div style="width:40px; height:40px; border:4px solid #f3f3f3; border-top:4px solid var(--main-red); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto;"></div>
             <p style="color:#999; margin-top:15px;">同步會員資料中...</p>
         </div>
@@ -57,12 +41,11 @@
                 🎁 <strong>好友專屬招待禮</strong><br>結帳時出示下方 QR Code，即享美味招待一份！
             </div>
             <div class="qr-box" style="margin-bottom:20px;"><img id="guestQr" src=""></div>
-            <div class="form-group">
-                <label>真實姓名</label><input type="text" id="regName" placeholder="請填寫姓名">
-                <label>手機號碼</label><input type="tel" id="regPhone" placeholder="09xxxxxxxx">
-                <label>生日</label><input type="date" id="regBirth" value="2000-01-01">
-                <label class="check-group"><input type="checkbox" id="checkRights"><span>同意 <a class="check-link" onclick="openModal('rights')">會員權益與點數規則</a></span></label>
-                <label class="check-group"><input type="checkbox" id="checkLegal"><span>同意 <a class="check-link" onclick="openModal('legal')">法務免責與防弊聲明</a></span></label>
+            <div style="text-align:left;">
+                <label style="font-weight:bold; font-size:14px;">真實姓名</label><input type="text" id="regName" placeholder="請填寫姓名">
+                <label style="font-weight:bold; font-size:14px;">手機號碼</label><input type="tel" id="regPhone" placeholder="09xxxxxxxx">
+                <label style="font-weight:bold; font-size:14px;">生日</label><input type="date" id="regBirth" value="2000-01-01">
+                <label class="check-group"><input type="checkbox" id="checkOk"><span>我已閱讀並同意會員權益與法務免責聲明</span></label>
                 <button class="btn-reg" id="regBtn" onclick="submitForm()">加入會員領取招待</button>
             </div>
         </div>
@@ -95,28 +78,30 @@
             const profile = await liff.getProfile();
             myId = profile.userId;
             fetchData();
-        } catch (e) { console.error("LIFF 失敗", e); showGuestUI(); }
+        } catch (e) { showGuestUI(); }
     }
     initLIFF();
 
     function fetchData() {
-        const safety = setTimeout(() => {
-            if (document.getElementById('ui-loading').style.display !== 'none') showGuestUI();
-        }, 4000);
+        // 抓資料期間，確保 UI 只有 Loading 顯示
+        document.getElementById('ui-guest').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'none';
 
         fetch(`${gasUrl}?action=checkID&userId=${myId}`, { redirect: 'follow' })
         .then(res => res.json())
         .then(res => {
-            clearTimeout(safety);
-            if (res && res.isMember) showMemberUI(res);
-            else showGuestUI();
+            if (res && res.isMember === true) {
+                showMemberUI(res);
+            } else {
+                showGuestUI();
+            }
         })
-        .catch(() => { clearTimeout(safety); showGuestUI(); });
+        .catch(() => { showGuestUI(); });
     }
 
     function showMemberUI(res) {
         document.getElementById('ui-loading').style.display = 'none';
-        document.getElementById('ui-guest').style.display = 'none';
+        document.getElementById('ui-guest').style.display = 'none'; // 雙重鎖定隱藏
         document.getElementById('ui-member').style.display = 'block';
         document.getElementById('userNameDisplay').innerText = `歡迎，${res.userName} 會員`;
         document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
@@ -125,7 +110,7 @@
 
     function showGuestUI() {
         document.getElementById('ui-loading').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'none';
+        document.getElementById('ui-member').style.display = 'none'; // 雙重鎖定隱藏
         document.getElementById('ui-guest').style.display = 'block';
         const finalId = referrerId || myId;
         document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${finalId}`;
@@ -135,33 +120,25 @@
         const name = document.getElementById('regName').value;
         const phone = document.getElementById('regPhone').value;
         const birth = document.getElementById('regBirth').value;
-        if(!name || !phone || !birth) { alert("請填寫姓名、電話與生日"); return; }
-        if(!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { alert("請勾選同意條款"); return; }
+        if(!name || !phone || !birth || !document.getElementById('checkOk').checked) { alert("請填寫完整並勾選同意"); return; }
         
         const btn = document.getElementById('regBtn');
-        btn.disabled = true; btn.innerText = "資料同步中...";
+        btn.disabled = true; btn.innerText = "註冊中...";
 
         fetch(gasUrl, { 
             method: "POST", 
             mode: "no-cors", 
             body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: referrerId || "" }) 
         }).then(() => {
-            setTimeout(() => { alert("註冊成功！"); location.reload(); }, 2000);
+            // 註冊完後，直接假定成功並切換到會員介面（不再 reload 避免快取問題）
+            alert("註冊成功！歡迎加入老娘鍋 x 一點甜");
+            showMemberUI({ userName: name, points: 0 }); 
+        }).catch(() => {
+            alert("系統繁忙，請稍後再試");
+            btn.disabled = false;
         });
     }
 
-    const terms = {
-        rights: { title: "會員權益與規則", text: "◆ 點數價值：$1 點 = NT$1 元。\n◆ 本人集點：實付額之 5% (效期12月)。\n◆ 朋友回饋：好友消費額之 2% (效期6月)。\n◆ 生效時間：採隔日生效制。\n◆ 購買餐券：提撥 3% 點數。\n◆ 特殊日期：春節、母親節等檔期暫停折抵。\n◆ 特殊活動：本人集點 3%，朋友回饋 1%。" },
-        legal: { title: "法務免責聲明", text: "◆ 非現金化：點數不可兌換現金或轉讓。\n◆ 終止權：店家保有修改、暫停或終止活動之權利。\n◆ 營運調整：因不可抗力因素點數失效時不得要求賠償。\n◆ 誠信監測：若偵測異常集點或虛假推薦，店家有權凍結帳號。\n◆ 最終解釋權：本公司保有活動最終解釋權。" }
-    };
-
-    function openModal(type) {
-        document.getElementById('modalTitle').innerText = terms[type].title;
-        document.getElementById('modalBody').innerText = terms[type].text;
-        document.getElementById('termsModal').style.display = 'flex';
-    }
-    function closeModal() { document.getElementById('termsModal').style.display = 'none'; }
-    
     function handleShare() {
         const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
         const text = `✨ 送你老娘鍋專屬招待券！\n出示 QR Code 即可領取招待禮：\n${shareUrl}`;
