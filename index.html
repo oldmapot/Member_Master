@@ -23,57 +23,80 @@
         <button id="submitBtn" onclick="submitForm()">確認註冊</button>
     </div>
 
-    <script>
-        let userId = "";
+   <script>
+    let userId = "";
+    // ⚠️ 記得把下面換成你實際的 GAS 網址
+    const gasUrl = "https://script.google.com/macros/s/AKfycbwwXAPVNQ-CJ3MfcxBebxtthvHGwrK9YTXGS_a5yqL2Ss7JAF1jJoAFSHOHWx-AdhT-Cw/exec"; 
 
-        // 初始化 LIFF 並抓取用戶 ID
-        async function initLIFF() {
-            try {
-                // 這裡的 liffId 務必填入你 LINE Developers 後台申請的 ID
-                await liff.init({ liffId: "2009625010-p9sVIUWe" }); 
-                if (liff.isLoggedIn()) {
-                    const profile = await liff.getProfile();
-                    userId = profile.userId;
-                } else {
-                    liff.login();
-                }
-            } catch (e) { console.error("LIFF 失敗", e); }
-        }
-        initLIFF();
-
-        async function submitForm() {
-            const btn = document.getElementById('submitBtn');
-            const data = {
-                name: document.getElementById('name').value,
-                phone: document.getElementById('phone').value,
-                birthday: document.getElementById('birthday').value,
-                userId: userId
-            };
-
-            if(!data.name || !data.phone || !userId) {
-                alert("請完整填寫資料"); return;
+    // 初始化 LIFF 並抓取用戶 ID
+    async function initLIFF() {
+        try {
+            await liff.init({ liffId: "2009625010-p9sVIUWe" }); 
+            if (liff.isLoggedIn()) {
+                const profile = await liff.getProfile();
+                userId = profile.userId;
+                // 🚀 抓到 ID 後，立刻去檢查是不是會員
+                checkMembership(userId);
+            } else {
+                liff.login();
             }
+        } catch (e) { console.error("LIFF 失敗", e); }
+    }
+    initLIFF();
 
-            btn.disabled = true;
-            btn.innerText = "正在為您綁定...";
+    // 🔍 檢查會員身分
+    function checkMembership(id) {
+        // 這邊不能用 no-cors，因為我們要「讀取」GAS 回傳的結果
+        fetch(gasUrl + "?action=checkID&userId=" + id)
+        .then(res => res.json())
+        .then(res => {
+            if (res.isMember) {
+                // 如果已經是會員，直接清空畫面顯示歡迎語
+                document.body.innerHTML = `
+                    <div style="text-align:center; padding:50px; background-color:#fdf5e6; height:100vh;">
+                        <h2 style="color:#8b0000;">歡迎回來！</h2>
+                        <p>您已經是老娘鍋的會員囉。<br>可以直接在 LINE 選單查詢您的點數。</p>
+                        <button onclick="liff.closeWindow()" style="padding:15px 30px; background:#8b0000; color:white; border:none; border-radius:8px; font-size:16px;">返回 LINE</button>
+                    </div>`;
+            }
+        })
+        .catch(err => console.log("目前還不是會員，顯示註冊表單"));
+    }
 
-            // 1. 先執行 fetch 送資料 (不等待 return 直接往下走)
-            fetch("你的_GAS_部署網址", {
-                method: "POST",
-                mode: "no-cors", 
-                body: JSON.stringify(data)
-            });
+    // 📝 提交註冊表單
+    async function submitForm() {
+        const btn = document.getElementById('submitBtn');
+        const data = {
+            name: document.getElementById('name').value,
+            phone: document.getElementById('phone').value,
+            birthday: document.getElementById('birthday').value,
+            userId: userId
+        };
 
-            // 2. 延遲 1.5 秒後直接顯示成功 (因為 no-cors 拿不到回報，我們手動結束它)
-            setTimeout(() => {
-                alert("註冊成功！歡迎加入老娘鍋！");
-                if (liff.isInClient()) {
-                    liff.closeWindow(); // 在 LINE 內自動關閉
-                } else {
-                    document.body.innerHTML = "<h1>註冊成功</h1><p>請回到 LINE 即可</p>";
-                }
-            }, 1500);
+        if(!data.name || !data.phone || !userId) {
+            alert("請完整填寫資料"); return;
         }
-    </script>
+
+        btn.disabled = true;
+        btn.innerText = "正在為您綁定...";
+
+        // 送出資料到 GAS
+        fetch(gasUrl, {
+            method: "POST",
+            mode: "no-cors", 
+            body: JSON.stringify(data)
+        });
+
+        // 延遲 1.5 秒後關閉
+        setTimeout(() => {
+            alert("註冊成功！歡迎加入老娘鍋！");
+            if (liff.isInClient()) {
+                liff.closeWindow(); 
+            } else {
+                document.body.innerHTML = "<h1>註冊成功</h1><p>請回到 LINE 即可</p>";
+            }
+        }, 1500);
+    }
+</script>
 </body>
 </html>
