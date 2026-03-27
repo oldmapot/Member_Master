@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老娘領地-店員過卡系統</title>
+    <title>老娘領地-店員端</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: "Microsoft JhengHei", sans-serif; padding: 15px; background: #f4f7f6; color: #333; }
+        body { font-family: "Microsoft JhengHei", sans-serif; padding: 15px; background: #f4f7f6; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
         .header { border-bottom: 2px solid #eee; margin-bottom: 15px; padding-bottom: 10px; text-align: center; }
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        .hint { font-size: 12px; color: #666; font-weight: normal; margin-left: 5px; }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .btn-scan { background: #00b900; color: white; margin-bottom: 15px; }
         .btn-submit { background: #1a73e8; color: white; }
-        .btn-submit:disabled { background: #ccc; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
         .member-box { background: #fff9c4; padding: 15px; border-radius: 10px; margin-bottom: 15px; display: none; }
         .red { color: #d93025; font-weight: bold; }
@@ -30,41 +30,41 @@
     </div>
 
     <div class="member-box" id="member-ui">
-        顧客姓名：<b id="cus-name">-</b><br>
-        現有效點數：<b id="cus-pts" class="red">0</b> 點
+        顧客：<b id="cus-name">-</b> | 現有：<b id="cus-pts" class="red">0</b> 點
     </div>
 
-    <button class="btn btn-scan" onclick="handleScan()">📷 掃描顧客會員碼</button>
+    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 掃描顧客 QR Code</button>
 
     <div id="form-ui" style="opacity: 0.4; pointer-events: none;">
         <div class="input-group">
             <label>1. 本日消費總額</label>
-            <input type="number" id="totalSpend" oninput="doCalc()" placeholder="請輸入結帳總金額">
+            <input type="number" id="totalSpend" oninput="doCalc()" placeholder="輸入消費總金額">
         </div>
 
         <div class="input-group">
-            <label>2. 折抵點數 (上限：<span id="max-hint" class="red">0</span>)</label>
-            <input type="number" id="redeemAmount" oninput="doCalc()" placeholder="輸入要扣除的點數">
+            <label>2. 餐券消費</label>
+            <input type="number" id="ticketSpend" oninput="doCalc()" placeholder="使用餐券支付金額" style="margin-bottom:8px;">
+            <label style="font-size:13px;">本次新購餐券 <span class="hint">(購買餐券不適用點數折抵)</span></label>
+            <input type="number" id="buyTicket" oninput="doCalc()" placeholder="新購餐券金額">
         </div>
 
         <div class="input-group">
-            <label>3. 餐券操作 (非點數折抵)</label>
-            <input type="number" id="ticketSpend" oninput="doCalc()" placeholder="使用餐券支付的金額" style="margin-bottom:8px;">
-            <input type="number" id="buyTicket" oninput="doCalc()" placeholder="本次新購餐券的金額">
+            <label>3. 折抵點數 <span class="hint">(上限：<span id="max-hint" class="red">0</span> 點)</span></label>
+            <input type="number" id="redeemAmount" oninput="doCalc()" placeholder="輸入要折抵的點數">
         </div>
 
         <div class="info-box">
+            結帳基準額 (扣除餐券)：$<span id="settle-base">0</span><br>
             集點基準金額：$<span id="earn-base">0</span><br>
             今日發放點數：<b id="new-pts">0</b> 點<br>
             更新後總點數：<b id="after-pts">0</b> 點
         </div>
 
-        <button class="btn btn-submit" id="submitBtn" onclick="submitData()">確認過卡 (發送通知簡訊)</button>
+        <button class="btn btn-submit" id="submitBtn" onclick="submitData()">確認過卡結帳 (發送通知)</button>
     </div>
 </div>
 
 <script>
-// --- 請務必填寫以下資訊 ---
 const STAFF_GAS_URL = "https://script.google.com/macros/s/AKfycbxrlYGoxOuTUJ9y9YQreRRNpSYly2c7yGuOw0ppPmfJJL7xLo6RLZDBF2htCaHwnB6Y/exec"; 
 const LIFF_ID = "2009625641-AYIKoXbw"; 
 
@@ -73,63 +73,53 @@ let customerId = "";
 let currentPoints = 0;
 let staff = {};
 
-// 初始化
 async function init() {
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
-    }
+    if (!liff.isLoggedIn()) { liff.login(); return; }
     const urlParams = new URLSearchParams(window.location.search);
     const key = urlParams.get('k');
     const profile = await liff.getProfile();
-
-    // 驗證店員
     const res = await fetch(`${STAFF_GAS_URL}?action=staffLogin&userId=${profile.userId}&keyword=${key}`);
     staff = await res.json();
-    
     if(staff.success) {
         document.getElementById('shop-name').innerText = staff.branch;
         document.getElementById('staff-name').innerText = staff.name;
     } else {
-        alert("身分驗證失敗，請洽管理員");
+        alert("身分驗證失敗");
         liff.closeWindow();
     }
 }
 
-// 掃描
 async function handleScan() {
     const result = await liff.scanCodeV2();
     customerId = result.value;
-    
     const res = await fetch(`${STAFF_GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
     const data = await res.json();
-    
     if(data.isMember) {
         document.getElementById('member-ui').style.display = 'block';
         document.getElementById('form-ui').style.opacity = '1';
         document.getElementById('form-ui').style.pointerEvents = 'auto';
-        
         document.getElementById('cus-name').innerText = data.userName;
         document.getElementById('cus-pts').innerText = data.points;
         currentPoints = Number(data.points);
         config = data.config;
         doCalc();
-    } else {
-        alert("找不到會員資料");
     }
 }
 
-// 計算
 function doCalc() {
     const total = Number(document.getElementById('totalSpend').value) || 0;
-    const tPay = Number(document.getElementById('ticketSpend').value) || 0;
-    const tBuy = Number(document.getElementById('buyTicket').value) || 0;
+    const tPay = Number(document.getElementById('ticketSpend').value) || 0; // 使用餐券支付
+    const tBuy = Number(document.getElementById('buyTicket').value) || 0; // 新購餐券
     
-    // 折抵上限計算
+    // 邏輯修正：結帳基準 = 消費總額 - 使用餐券支付
+    const settleBase = total - tPay;
+    document.getElementById('settle-base').innerText = settleBase > 0 ? settleBase : 0;
+
+    // 折抵上限基於「結帳基準」
     let max = 0;
-    if (total >= config.minSpend) {
-        max = Math.min(currentPoints, Math.floor(total * config.maxRate));
+    if (settleBase >= config.minSpend) {
+        max = Math.min(currentPoints, Math.floor(settleBase * config.maxRate));
     }
     document.getElementById('max-hint').innerText = max;
     
@@ -139,20 +129,18 @@ function doCalc() {
         document.getElementById('redeemAmount').value = max;
     }
 
-    // 集點 = (消費 - 折抵 - 餐券支付) * 比例 + (新購餐券 * 比例)
-    const base = total - redeem - tPay;
-    const newPts = Math.floor((base > 0 ? base : 0) * config.earnRate) + Math.floor(tBuy * config.ticketRate);
+    // 集點基準 = 結帳基準 - 實際折抵
+    const earnBase = settleBase - redeem;
+    const newPts = Math.floor((earnBase > 0 ? earnBase : 0) * config.earnRate) + Math.floor(tBuy * config.ticketRate);
     
-    document.getElementById('earn-base').innerText = base > 0 ? base : 0;
+    document.getElementById('earn-base').innerText = earnBase > 0 ? earnBase : 0;
     document.getElementById('new-pts').innerText = newPts;
     document.getElementById('after-pts').innerText = currentPoints - redeem + newPts;
 }
 
-// 送出
 async function submitData() {
     const total = Number(document.getElementById('totalSpend').value);
-    if(!total || total <= 0) return alert("請輸入有效的消費金額");
-    
+    if(!total) return alert("請輸入金額");
     document.getElementById('submitBtn').disabled = true;
     document.getElementById('submitBtn').innerText = "處理中...";
 
@@ -169,18 +157,9 @@ async function submitData() {
         ticketRate: config.ticketRate
     };
 
-    try {
-        await fetch(STAFF_GAS_URL, {
-            method: "POST",
-            body: JSON.stringify(payload)
-        });
-        alert("結帳成功！已同步發送 LINE 通知。");
-        liff.closeWindow();
-    } catch (e) {
-        alert("系統錯誤，請檢查網路或聯繫開發者");
-        document.getElementById('submitBtn').disabled = false;
-        document.getElementById('submitBtn').innerText = "確認過卡 (發送通知簡訊)";
-    }
+    await fetch(STAFF_GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+    alert("過卡成功！");
+    liff.closeWindow();
 }
 
 init();
