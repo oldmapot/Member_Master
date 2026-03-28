@@ -20,28 +20,27 @@
         .locked { opacity: 0.4; pointer-events: none; }
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
-        .hint { font-size: 12px; color: #d93025; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="header">
-        <h2 style="margin:0;"><span id="shop-name">載入中...</span></h2>
+        <h2 style="margin:0;"><span id="shop-name">系統初始化...</span></h2>
         <div style="font-size:14px; color:#666; margin-top:5px;">
             夥伴：<span id="staff-name">-</span> <span id="role-text" class="role-badge">-</span>
         </div>
     </div>
 
-    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 點我掃描顧客會員碼</button>
+    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描</button>
 
     <div class="member-info" id="member-ui">
-        顧客：<b id="cus-name">-</b> | 現有點數：<b id="cus-pts" style="color:red;">0</b> 點
+        顧客：<b id="cus-name">-</b> | 現有資產：<b id="cus-pts" style="color:red;">0</b> 點
     </div>
 
     <div id="form-ui" class="locked">
-        <label style="background:#e3f2fd; padding:10px; display:block; border-radius:8px; margin-bottom:15px; cursor:pointer;">
-            <input type="checkbox" id="ticketMode" onchange="toggleMode()" style="width:auto;"> <b>勾選：單純購買餐券模式</b>
+        <label style="background:#fff3e0; padding:10px; display:block; border-radius:8px; margin-bottom:15px; cursor:pointer; border:1px solid #ff9800;">
+            <input type="checkbox" id="ticketMode" onchange="toggleMode()" style="width:auto;"> <b>勾選：購買餐券模式 (無股東分紅)</b>
         </label>
 
         <div id="normal-fields">
@@ -54,58 +53,61 @@
                 <input type="number" id="ticketSpend" oninput="doCalc()" placeholder="輸入餐券支付額">
             </div>
             <div class="input-group">
-                <label>3. 折抵點數 <span class="hint">(上限：<span id="max-hint">0</span> 點)</span></label>
+                <label>3. 折抵點數 (上限：<span id="max-hint" style="color:blue;">0</span> 點)</label>
                 <input type="number" id="redeemAmount" oninput="doCalc()" placeholder="欲折抵點數">
             </div>
         </div>
 
         <div id="ticket-fields" style="display:none; border:2px solid #1a73e8; padding:10px; border-radius:8px; margin-bottom:15px;">
             <label>購買餐券金額</label>
-            <input type="number" id="buyTicket" oninput="doCalc()" placeholder="輸入購買餐券金額">
-            <div class="hint" style="margin-top:5px;">※ 購買餐券不適用點數折抵</div>
+            <input type="number" id="buyTicket" oninput="doCalc()" placeholder="輸入購買金額">
         </div>
 
         <div class="info-box">
-            今日發放點數：<b id="new-pts" style="color:#1a73e8;">0</b> 點<br>
-            更新後總點數：<b id="after-pts">0</b> 點
+            本次預計發放點數：<b id="new-pts" style="color:#1a73e8;">0</b> 點<br>
+            結帳後總資產：<b id="after-pts">0</b> 點
         </div>
 
-        <button class="btn btn-submit" id="submitBtn" onclick="submitData()">確認過卡結帳 (發送通知)</button>
+        <button class="btn btn-submit" id="submitBtn" onclick="submitData()">確認過卡 (發送股東/消費通知)</button>
     </div>
 </div>
 
 <script>
-// --- 請務必更換以下資訊 ---
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxrlYGoxOuTUJ9y9YQreRRNpSYly2c7yGuOw0ppPmfJJL7xLo6RLZDBF2htCaHwnB6Y/exec"; 
 const LIFF_ID = "2009625641-AYIKoXbw"; 
 
 let config = {}, customerId = "", currentPoints = 0, staff = {};
 
 async function init() {
-    await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
-    const urlParams = new URLSearchParams(window.location.search);
-    const key = urlParams.get('k');
-    const profile = await liff.getProfile();
-    
-    const res = await fetch(`${GAS_URL}?action=staffLogin&userId=${profile.userId}&keyword=${key}`);
-    staff = await res.json();
-    
-    if(staff.success) {
-        document.getElementById('shop-name').innerText = staff.branch;
-        document.getElementById('staff-name').innerText = staff.name;
-        document.getElementById('role-text').innerText = staff.role;
-    } else {
-        alert("身分驗證失敗，請洽管理員");
-        liff.closeWindow();
+    try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        const urlParams = new URLSearchParams(window.location.search);
+        const key = urlParams.get('k');
+        const profile = await liff.getProfile();
+        
+        const res = await fetch(`${GAS_URL}?action=staffLogin&userId=${profile.userId}&keyword=${key}`);
+        staff = await res.json();
+        
+        if(staff.success) {
+            document.getElementById('shop-name').innerText = staff.branch;
+            document.getElementById('staff-name').innerText = staff.name;
+            document.getElementById('role-text').innerText = staff.role;
+        } else {
+            alert("權限驗證失敗！");
+        }
+    } catch (e) {
+        alert("系統啟動失敗: " + e.message);
     }
 }
 
 async function handleScan() {
     try {
+        // 確保相機啟動
         const result = await liff.scanCodeV2();
+        if (!result.value) return;
+
         customerId = result.value;
-        
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
         
@@ -115,13 +117,13 @@ async function handleScan() {
             document.getElementById('cus-name').innerText = data.userName;
             document.getElementById('cus-pts').innerText = data.points;
             currentPoints = Number(data.points);
-            config = data.config;
+            config = data.config; // 這裡包含 earnRate, ticketRate, refRate 等
             doCalc();
         } else {
-            alert("找不到此會員，請重新掃描");
+            alert("查無此會員編號！");
         }
     } catch (err) {
-        console.error(err);
+        alert("相機或資料抓取錯誤: " + err.message);
     }
 }
 
@@ -133,54 +135,69 @@ function toggleMode() {
 }
 
 function doCalc() {
+    if (!config.earnRate) return;
     const isTicket = document.getElementById('ticketMode').checked;
-    const tBuy = Number(document.getElementById('buyTicket').value) || 0;
-    const total = Number(document.getElementById('totalSpend').value) || 0;
-    const tPay = Number(document.getElementById('ticketSpend').value) || 0;
     
     let newPts = 0, redeem = 0;
+    
     if (isTicket) {
+        const tBuy = Number(document.getElementById('buyTicket').value) || 0;
         newPts = Math.floor(tBuy * config.ticketRate);
     } else {
+        const total = Number(document.getElementById('totalSpend').value) || 0;
+        const tPay = Number(document.getElementById('ticketSpend').value) || 0;
         const settleBase = total - tPay;
-        const max = (settleBase >= config.minSpend) ? Math.min(currentPoints, Math.floor(settleBase * config.maxRate)) : 0;
-        document.getElementById('max-hint').innerText = max;
+        
+        // 計算折抵上限
+        const maxRedeem = (settleBase >= config.minSpend) ? Math.min(currentPoints, Math.floor(settleBase * config.maxRate)) : 0;
+        document.getElementById('max-hint').innerText = maxRedeem;
         
         redeem = Number(document.getElementById('redeemAmount').value) || 0;
-        if (redeem > max) {
-            redeem = max;
-            document.getElementById('redeemAmount').value = max;
+        if (redeem > maxRedeem) {
+            redeem = maxRedeem;
+            document.getElementById('redeemAmount').value = maxRedeem;
         }
         newPts = Math.floor((settleBase - redeem) * config.earnRate);
     }
     
     document.getElementById('new-pts').innerText = newPts;
-    document.getElementById('after-pts').innerText = currentPoints - redeem + newPts;
+    document.getElementById('after-pts').innerText = (currentPoints - redeem + newPts);
 }
 
 async function submitData() {
-    const isTicket = document.getElementById('ticketMode').checked;
-    document.getElementById('submitBtn').disabled = true;
-    document.getElementById('submitBtn').innerText = "處理中...";
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerText = "處理中...";
 
     const payload = {
         action: "addPoints",
-        isTicketMode: isTicket,
+        isTicketMode: document.getElementById('ticketMode').checked,
         customerId: customerId,
         branch: staff.branch,
         staffName: staff.name,
         staffRole: staff.role,
         totalSpend: Number(document.getElementById('totalSpend').value) || 0,
         ticketSpend: Number(document.getElementById('ticketSpend').value) || 0,
-        redeemAmount: isTicket ? 0 : (Number(document.getElementById('redeemAmount').value) || 0),
-        buyTicket: isTicket ? Number(document.getElementById('buyTicket').value) : 0,
+        redeemAmount: Number(document.getElementById('redeemAmount').value) || 0,
+        buyTicket: Number(document.getElementById('buyTicket').value) || 0,
         earnRate: config.earnRate,
-        ticketRate: config.ticketRate
+        ticketRate: config.ticketRate,
+        refRate: config.refRate
     };
 
-    await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
-    alert("結帳完成！");
-    liff.closeWindow();
+    try {
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+        if (res.ok) {
+            alert("結帳與股東分紅發放完成！");
+            liff.closeWindow();
+        } else {
+            throw new Error("伺服器回應錯誤");
+        }
+    } catch (e) {
+        alert("提交失敗: " + e.message);
+        btn.disabled = false;
+        btn.innerText = "重新提交";
+    }
 }
 
 init();
