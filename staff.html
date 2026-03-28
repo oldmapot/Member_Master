@@ -129,8 +129,16 @@ async function init() {
 async function handleScan() {
     addDebug("啟動相機掃描...");
     try {
-        const result = await liff.scanCodeV2();
-        if (!result.value) {
+        let result;
+        // 先嘗試 scanCodeV2，如果失敗則用 scanCode
+        try {
+            result = await liff.scanCodeV2();
+        } catch (v2Error) {
+            addDebug("scanCodeV2 失敗，改用 scanCode", true);
+            result = await liff.scanCode();
+        }
+        
+        if (!result || !result.value) {
             addDebug("掃描取消或無結果");
             return;
         }
@@ -196,7 +204,6 @@ function doCalc() {
         newPts = Math.floor((settleBase - redeem) * (config.earnRate || 0));
     }
     
-    // 顯示推薦人分紅預告
     let refBonusMsg = "";
     if (!isTicket && currentReferrerId && currentReferrerId !== "" && currentReferrerId !== customerId) {
         let refBonus = Math.floor(settleBase * (config.refRate || 0));
@@ -210,8 +217,7 @@ function doCalc() {
     document.getElementById('after-pts').innerText = (currentPoints - (redeem || 0) + newPts);
 }
 
-async function submitData() {
-    // 檢查是否已掃描會員
+function submitData() {
     if (!customerId) {
         alert("請先掃描會員 QR Code！");
         return;
@@ -220,75 +226,56 @@ async function submitData() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
-    addDebug("提交消費資料...");
+    addDebug("提交消費資料（使用 GET 方式）...");
 
     const isTicketMode = document.getElementById('ticketMode').checked;
     
-    // 計算實付金額和點數
-    let settleBase = 0;
-    if (isTicketMode) {
-        settleBase = Number(document.getElementById('buyTicket').value) || 0;
-    } else {
-        const total = Number(document.getElementById('totalSpend').value) || 0;
-        const tPay = Number(document.getElementById('ticketSpend').value) || 0;
-        const redeem = Number(document.getElementById('redeemAmount').value) || 0;
-        settleBase = total - tPay - redeem;
-    }
+    const params = new URLSearchParams();
+    params.append('action', 'addPoints');
+    params.append('customerId', customerId);
+    params.append('branch', staff.branch);
+    params.append('staffName', staff.name);
+    params.append('staffRole', staff.role);
+    params.append('isTicketMode', isTicketMode);
+    params.append('totalSpend', document.getElementById('totalSpend').value || 0);
+    params.append('ticketSpend', document.getElementById('ticketSpend').value || 0);
+    params.append('redeemAmount', document.getElementById('redeemAmount').value || 0);
+    params.append('buyTicket', document.getElementById('buyTicket').value || 0);
+    params.append('earnRate', config.earnRate);
+    params.append('ticketRate', config.ticketRate);
+    params.append('refRate', config.refRate);
     
-    const payload = {
-        action: "addPoints",
-        customerId: customerId,
-        branch: staff.branch,
-        staffName: staff.name,
-        staffRole: staff.role,
-        isTicketMode: isTicketMode,
-        totalSpend: Number(document.getElementById('totalSpend').value) || 0,
-        ticketSpend: Number(document.getElementById('ticketSpend').value) || 0,
-        redeemAmount: Number(document.getElementById('redeemAmount').value) || 0,
-        buyTicket: Number(document.getElementById('buyTicket').value) || 0,
-        earnRate: config.earnRate,
-        ticketRate: config.ticketRate,
-        refRate: config.refRate
-    };
+    const url = GAS_URL + "?" + params.toString();
+    addDebug(`請求網址: ${url.substring(0, 200)}...`);
     
-    addDebug(`發送資料: ${JSON.stringify(payload)}`);
-
-    try {
-        const res = await fetch(GAS_URL, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload) 
-        });
-        
-        const result = await res.json();
-        addDebug(`伺服器回應: ${JSON.stringify(result)}`);
-        
-        if (result.status === "SUCCESS") {
-            let msg = `✅ 結帳成功！\n\n`;
-            msg += `消費者：${result.customer.name}\n`;
-            msg += `獲得點數：+${result.customer.pointsEarned} 點\n`;
-            msg += `剩餘點數：${result.customer.pointsAfter} 點\n`;
-            if (result.referrer) {
-                msg += `\n🎉 推薦人獲得：+${result.referrer.bonus} 點分紅！\n已發送 LINE 通知給推薦人。`;
-            }
-            alert(msg);
-            addDebug("結帳完成，關閉視窗");
-            // 延遲關閉，讓用戶看到結果
-            setTimeout(() => {
-                liff.closeWindow();
-            }, 2000);
-        } else {
-            throw new Error("伺服器回應錯誤: " + JSON.stringify(result));
-        }
-    } catch (e) {
-        addDebug("提交失敗: " + e.message, true);
-        alert("提交失敗: " + e.message);
+    const img = new Image();
+    let timeout = setTimeout(function() {
+        addDebug("提交超時", true);
+        alert("提交超時，請檢查網路後重試");
         btn.disabled = false;
         btn.innerText = "確認過卡 (發送股東/消費通知)";
-    }
+    }, 10000);
+    
+    img.onload = function() {
+        clearTimeout(timeout);
+        addDebug("✅ 提交成功！");
+        alert("✅ 結帳成功！\n\n已發送點數通知給會員和推薦人。");
+        setTimeout(() => {
+            liff.closeWindow();
+        }, 2000);
+    };
+    
+    img.onerror = function() {
+        clearTimeout(timeout);
+        addDebug("❌ 提交失敗", true);
+        alert("提交失敗，請稍後重試");
+        btn.disabled = false;
+        btn.innerText = "確認過卡 (發送股東/消費通知)";
+    };
+    
+    img.src = url;
 }
 
-// 啟動
 init();
 </script>
 </body>
