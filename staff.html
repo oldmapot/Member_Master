@@ -11,16 +11,17 @@
         .header { text-align: center; border-bottom: 2px solid #eee; margin-bottom: 15px; padding-bottom: 10px; }
         .role-badge { background: #333; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
         .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
-        .btn-scan { background: #00b900; color: white; }
-        .btn-submit { background: #1a73e8; color: white; margin-top: 10px; }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-submit { background: #00b900; color: white; margin-top: 10px; }
         .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        .locked { opacity: 0.5; pointer-events: none; }
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
         .debug-log { background: #f0f0f0; padding: 10px; font-size: 11px; font-family: monospace; margin-top: 15px; border-radius: 6px; max-height: 150px; overflow-y: auto; }
+        .success { color: #00b900; }
+        .error { color: #d32f2f; }
     </style>
 </head>
 <body>
@@ -33,7 +34,11 @@
         </div>
     </div>
 
-    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描</button>
+    <div class="input-group">
+        <label>🔍 輸入會員 ID (LINE User ID)</label>
+        <input type="text" id="memberIdInput" placeholder="請貼上或輸入會員ID">
+        <button class="btn-primary" id="searchBtn" onclick="searchMember()" style="margin-top:5px;">查詢會員</button>
+    </div>
 
     <div class="member-info" id="member-ui">
         顧客：<b id="cus-name">-</b><br>
@@ -41,7 +46,7 @@
         現有資產：<b id="cus-pts" style="color:#1a73e8;">0</b> 點
     </div>
 
-    <div id="form-ui" class="locked">
+    <div id="form-ui" style="display:none;">
         <label style="background:#fff3e0; padding:10px; display:block; border-radius:8px; margin-bottom:15px; cursor:pointer; border:1px solid #ff9800;">
             <input type="checkbox" id="ticketMode" onchange="toggleMode()" style="width:auto;"> <b>勾選：購買餐券模式 (無股東分紅)</b>
         </label>
@@ -72,7 +77,7 @@
             <div style="margin-top:8px;">結帳後總資產：<b id="after-pts">0</b> 點</div>
         </div>
 
-        <button class="btn btn-submit" id="submitBtn" onclick="submitData()">確認過卡 (發送股東/消費通知)</button>
+        <button class="btn-submit" id="submitBtn" onclick="submitData()">✅ 確認過卡 (發送股東/消費通知)</button>
     </div>
     
     <div id="debugLog" class="debug-log"></div>
@@ -126,33 +131,24 @@ async function init() {
     }
 }
 
-async function handleScan() {
-    addDebug("啟動相機掃描...");
+async function searchMember() {
+    const inputId = document.getElementById('memberIdInput').value.trim();
+    if (!inputId) {
+        alert("請輸入會員 ID");
+        return;
+    }
+    
+    customerId = inputId;
+    addDebug(`查詢會員: ${customerId}`);
+    
     try {
-        let result;
-        // 先嘗試 scanCodeV2，如果失敗則用 scanCode
-        try {
-            result = await liff.scanCodeV2();
-        } catch (v2Error) {
-            addDebug("scanCodeV2 失敗，改用 scanCode", true);
-            result = await liff.scanCode();
-        }
-        
-        if (!result || !result.value) {
-            addDebug("掃描取消或無結果");
-            return;
-        }
-        
-        customerId = result.value;
-        addDebug(`掃描到會員ID: ${customerId}`);
-        
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
         addDebug(`會員資料回應: ${JSON.stringify(data)}`);
         
         if(data.isMember) {
             document.getElementById('member-ui').style.display = 'block';
-            document.getElementById('form-ui').classList.remove('locked');
+            document.getElementById('form-ui').style.display = 'block';
             document.getElementById('cus-name').innerText = data.userName;
             document.getElementById('cus-pts').innerText = data.points;
             document.getElementById('cus-referrer').innerText = data.referrerId || "無推薦人";
@@ -166,8 +162,8 @@ async function handleScan() {
             alert("查無此會員編號！");
         }
     } catch (err) {
-        addDebug("相機或資料抓取錯誤: " + err.message, true);
-        alert("相機或資料抓取錯誤: " + err.message);
+        addDebug("查詢失敗: " + err.message, true);
+        alert("查詢失敗: " + err.message);
     }
 }
 
@@ -219,14 +215,14 @@ function doCalc() {
 
 function submitData() {
     if (!customerId) {
-        alert("請先掃描會員 QR Code！");
+        alert("請先查詢會員！");
         return;
     }
     
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
-    addDebug("提交消費資料（使用 GET 方式）...");
+    addDebug("提交消費資料...");
 
     const isTicketMode = document.getElementById('ticketMode').checked;
     
@@ -246,14 +242,14 @@ function submitData() {
     params.append('refRate', config.refRate);
     
     const url = GAS_URL + "?" + params.toString();
-    addDebug(`請求網址: ${url.substring(0, 200)}...`);
+    addDebug(`發送請求...`);
     
     const img = new Image();
     let timeout = setTimeout(function() {
         addDebug("提交超時", true);
         alert("提交超時，請檢查網路後重試");
         btn.disabled = false;
-        btn.innerText = "確認過卡 (發送股東/消費通知)";
+        btn.innerText = "✅ 確認過卡 (發送股東/消費通知)";
     }, 10000);
     
     img.onload = function() {
@@ -270,7 +266,7 @@ function submitData() {
         addDebug("❌ 提交失敗", true);
         alert("提交失敗，請稍後重試");
         btn.disabled = false;
-        btn.innerText = "確認過卡 (發送股東/消費通知)";
+        btn.innerText = "✅ 確認過卡 (發送股東/消費通知)";
     };
     
     img.src = url;
