@@ -141,30 +141,49 @@
         document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${rid}`;
     }
 
-    async function register() {
-        const name = document.getElementById('regName').value.trim();
-        const phone = document.getElementById('regPhone').value.trim();
-        const birth = document.getElementById('regBirth').value;
-        if (!name || !phone || !birth) { openModal('formError'); return; }
-        if (!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { openModal('checkError'); return; }
-        document.getElementById('regBtn').disabled = true;
-        document.getElementById('regBtn').innerText = "處理中...";
-        try {
-            const rid = new URLSearchParams(window.location.search).get('referrerId') || "";
-            await fetch(GAS_URL, {
-                method: "POST",
-                mode: "no-cors",
-                body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: rid })
-            });
-            openModal('regSuccess');
-            setTimeout(checkMember, 3000);
-        } catch (e) { 
-            document.getElementById('regBtn').disabled = false;
-            document.getElementById('regBtn').innerText = "立即加入會員並領取招待";
-            openModal('connectError');
-        }
-    }
+    // 1. 這段負責讓客人在打字時「自動跳出連字號」 (放在 register 函數外面)
+document.getElementById('regPhone').addEventListener('input', function (e) {
+    let x = e.target.value.replace(/\D/g, '').match(/(\d{0,4})(\d{0,3})(\d{0,3})/);
+    e.target.value = !x[2] ? x[1] : x[1] + '-' + x[2] + (x[3] ? '-' + x[3] : '');
+});
 
+async function register() {
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const birth = document.getElementById('regBirth').value;
+
+    // --- 關鍵修改：強制檢查格式 (一定要 09XX-XXX-XXX) ---
+    const phoneReg = /^09\d{2}-\d{3}-\d{3}$/;
+    if (!phoneReg.test(phone)) {
+        alert("請輸入正確的手機號碼格式：09XX-XXX-XXX");
+        // 如果格式不對，就把按鈕恢復，停止執行
+        document.getElementById('regBtn').disabled = false;
+        document.getElementById('regBtn').innerText = "立即加入會員並領取招待";
+        return; 
+    }
+    // ------------------------------------------------
+
+    if (!name || !phone || !birth) { openModal('formError'); return; }
+    if (!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { openModal('checkError'); return; }
+    
+    document.getElementById('regBtn').disabled = true;
+    document.getElementById('regBtn').innerText = "處理中...";
+    
+    try {
+        const rid = new URLSearchParams(window.location.search).get('referrerId') || "";
+        await fetch(GAS_URL, {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify({ action: "register", name, phone, birthday: birth, userId: myId, referrerId: rid })
+        });
+        openModal('regSuccess');
+        setTimeout(checkMember, 3000);
+    } catch (e) { 
+        document.getElementById('regBtn').disabled = false;
+        document.getElementById('regBtn').innerText = "立即加入會員並領取招待";
+        openModal('connectError');
+    }
+}
     function handleShare() {
         const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}`;
         const copyText = `✨ 發現高雄隱藏版美味 ✨\n🍲 老娘鍋 x 一點甜 🍦\n\n這是我專屬的招待回饋碼\n立即加入會員領取招待禮\n消費再享點數回饋！\n\n👉 點我領取：${shareUrl}`;
@@ -238,6 +257,7 @@
     }
 
     init();
+    
 </script>
 </body>
 </html>
