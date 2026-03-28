@@ -103,11 +103,34 @@ async function init() {
 
 async function handleScan() {
     try {
-        // 確保相機啟動
+        // 1. 啟動相機
         const result = await liff.scanCodeV2();
-        if (!result.value) return;
+        if (!result || !result.value) return;
 
         customerId = result.value;
+        const rawID = String(customerId);
+
+        // --- 【新增：招待禮暴力攔截】 ---
+        if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
+            // 直接彈出視窗，並強行中斷後續的「會員查詢」邏輯
+            alert(
+                "🎁 【新客招待禮確認】\n" +
+                "--------------------\n" +
+                "● 招待內容：小菜一份 或 霜淇淋一支\n\n" +
+                "⚠️ 店員提醒：\n" +
+                "這是「新客專用」招待碼，無法進行集點。\n" +
+                "請引導顧客完成註冊後，再掃描其「個人會員碼」。"
+            );
+            
+            // 清空當前選取的 ID 並重置 UI
+            customerId = "";
+            document.getElementById('member-ui').style.display = 'none';
+            document.getElementById('form-ui').classList.add('locked');
+            return; // 這裡最重要：直接結束，不跑下面的 fetch！
+        }
+        // --- 攔截結束 ---
+
+        // 2. 原本的會員查詢邏輯 (只有不是 GIFT_BY_ 開頭的才會跑這裡)
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
         
@@ -117,7 +140,7 @@ async function handleScan() {
             document.getElementById('cus-name').innerText = data.userName;
             document.getElementById('cus-pts').innerText = data.points;
             currentPoints = Number(data.points);
-            config = data.config; // 這裡包含 earnRate, ticketRate, refRate 等
+            config = data.config; 
             doCalc();
         } else {
             alert("查無此會員編號！");
