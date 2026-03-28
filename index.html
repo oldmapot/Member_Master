@@ -6,49 +6,59 @@
     <title>老娘的一點心意｜會員中心</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/oldmapot/Member_Master/assets/brand-style.css">
+    <script>
+        // 立即執行：防止主題閃爍
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const brand = params.get('from') || 'pot';
+            document.documentElement.className = (brand === 'sweet') ? 'theme-sweet' : 'theme-pot';
+            window.currentBrand = brand;
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/gh/oldmapot/Member_Master/assets/brand-logic.js"></script>
-    
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
     <style>
         :root { --main-red: #8b0000; --line-green: #06C755; --bg-cream: #fdf5e6; --text-gray: #333; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background-color: var(--bg-cream); margin: 0; padding: 15px; display: flex; justify-content: center; font-size: 17px; color: var(--text-gray); }
         .card { width: 100%; max-width: 400px; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid var(--main-red); box-sizing: border-box; text-align: left; }
-        h2 { color: var(--main-red); margin: 0 0 15px 0; text-align: center; font-size: 22px; }
-        .center { text-align: center; }
         
-        /* 重新整理按鈕樣式 */
-        .refresh-btn { 
-            background: rgba(0,0,0,0.05); color: var(--text-gray); 
-            border: none; padding: 8px 15px; border-radius: 20px; 
-            font-size: 13px; cursor: pointer; display: block; margin: 0 auto 10px;
-            transition: 0.3s;
-        }
-        .refresh-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
+        /* 動態調整卡片邊框色 */
+        .theme-sweet .card { border-color: #FFB7D5; }
+        .theme-pot .card { border-color: var(--main-red); }
 
+        h2 { color: var(--main-red); margin: 0 0 15px 0; text-align: center; font-size: 22px; }
+        .theme-sweet h2 { color: #d63384; }
+
+        .center { text-align: center; }
+        .refresh-btn { background: rgba(0,0,0,0.05); color: var(--text-gray); border: none; padding: 8px 15px; border-radius: 20px; font-size: 13px; cursor: pointer; display: block; margin: 0 auto 10px; transition: 0.3s; }
         .qr-box { text-align: center; margin: 15px 0; }
         .qr-box img { width: 200px; height: 200px; border: 1px solid #eee; padding: 8px; background: #fff; }
-        .point-badge { background: var(--main-red); color: white; padding: 20px; border-radius: 15px; margin: 10px 0 20px; text-align: center; position: relative; }
+        
+        .point-badge { background: var(--main-red); color: white; padding: 20px; border-radius: 15px; margin: 10px 0 20px; text-align: center; }
+        .theme-sweet .point-badge { background: #FFB7D5; color: #333; }
         .point-badge h1 { margin: 5px 0; font-size: 36px; }
         
-        .form-group { margin-top: 20px; }
-        label { font-weight: bold; margin-bottom: 8px; display: block; font-size: 16px; }
-        input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; font-size: 17px; }
-        .btn-reg { background: var(--main-red); color: white; width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; }
-        .btn-share { background: var(--line-green); color: white; width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 15px; }
-        
+        button { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .btn-share { background: var(--line-green); color: white; margin-top: 15px; }
+
+        /* 漂亮卡片 Modal 樣式 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: white; width: 100%; max-width: 350px; border-radius: 25px; padding: 30px; text-align: center; position: relative; }
+        .modal-header { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: var(--main-red); }
+        .theme-sweet .modal-header { color: #d63384; }
+        .close-btn { background: var(--main-red); color: white; margin-top: 20px; }
+        .theme-sweet .close-btn { background: #FFB7D5; color: #333; }
+
         #ui-member, #ui-guest { display: none; }
-        
-        /* 覆蓋品牌背景顏色以適應原設計 */
-        .theme-pot { --brand-bg: #1a1a1a; }
-        .theme-sweet { --brand-bg: #FFF9E6; }
     </style>
 </head>
 <body>
 
     <div id="brand-loading-mask">
-    <div id="brand-icon-box"></div>
-    <p id="brand-loading-text"></p>
-</div>
+        <div id="brand-icon-box"></div>
+        <p id="brand-loading-text">同步中...</p>
+    </div>
 
     <div class="card">
         <h2 id="brand-title">老娘鍋 x 一點甜</h2>
@@ -57,7 +67,7 @@
             <p id="userNameDisplay" class="center" style="font-weight:bold;"></p>
             <div class="qr-box">
                 <img id="memberQr" src="">
-                <p style="font-size:14px; color:var(--main-red); font-weight:bold; margin-top:10px;" class="center">結帳請出示此碼集點</p>
+                <p style="font-size:14px; font-weight:bold; margin-top:10px;" class="center">結帳請出示此碼集點</p>
             </div>
             
             <button class="refresh-btn" onclick="refreshData()">🔄 點數更新</button>
@@ -67,16 +77,20 @@
                 <h1 id="userPoints">0 點</h1>
             </div>
             
-            <div style="text-align: left; font-size: 13px; color: #666; line-height: 1.6; background: #fdfaf6; padding: 12px; border-radius: 10px; margin-bottom: 15px;">
-                • $1 點 = NT$1 元｜消費享 5% 回饋<br>
-                • 推薦好友領招待，再享 2% 回饋
-            </div>
-            
             <button class="btn-share" onclick="handleShare()">推薦好友領招待禮</button>
         </div>
 
-        <div id="ui-guest">
-            </div>
+        <div id="ui-guest" class="center">
+            <p>正在載入註冊資訊...</p>
+        </div>
+    </div>
+
+    <div id="customModal" class="modal">
+        <div class="modal-content">
+            <div id="modalTitle" class="modal-header"></div>
+            <div id="modalBody" class="modal-body"></div>
+            <button class="close-btn" onclick="closeModal()">我理解了</button>
+        </div>
     </div>
 
 <script>
@@ -90,20 +104,16 @@
             if (!liff.isLoggedIn()) { liff.login(); return; }
             const profile = await liff.getProfile();
             myId = profile.userId;
-            
-            // 開始檢查會員資料
             await checkMember();
-        } catch (e) { 
-            console.error(e); 
+        } catch (e) {
+            console.error(e);
             if (window.closeBrandLoading) window.closeBrandLoading();
         }
     }
 
-    // 重新整理功能
     async function refreshData() {
         if (window.openBrandLoading) {
-            const params = new URLSearchParams(window.location.search);
-            const msg = (params.get('from') === 'sweet') ? "正在為您甜點進度..." : "老娘幫你重新刷個新...";
+            const msg = (window.currentBrand === 'sweet') ? "正在為您甜點進度..." : "老娘幫你重新刷個新...";
             window.openBrandLoading(msg);
         }
         await checkMember();
@@ -111,29 +121,70 @@
 
     async function checkMember() {
         try {
-            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}`, { redirect: 'follow' });
+            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}`);
             const data = await res.json();
-            
             if (data.isMember) {
                 document.getElementById('ui-member').style.display = 'block';
-                document.getElementById('ui-guest').style.display = 'none';
                 document.getElementById('userNameDisplay').innerText = `歡迎，${data.userName} 會員`;
                 document.getElementById('userPoints').innerText = `${data.points} pt`;
                 document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
             } else {
-                showGuestUI();
+                document.getElementById('ui-guest').innerHTML = "<p>您尚未註冊會員喔！</p>";
+                document.getElementById('ui-guest').style.display = 'block';
             }
-        } catch (e) { 
-            showGuestUI(); 
         } finally {
-            // 資料載入完成，關閉品牌動畫
             if (window.closeBrandLoading) window.closeBrandLoading();
         }
     }
 
-    // 其他原本的函數 (showGuestUI, register, handleShare, Modal 等) 保持原樣...
-    // ...
-    
+    function handleShare() {
+        const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}&from=${window.currentBrand}`;
+        const copyText = `✨ 發現高雄隱藏版美味 ✨\n🍲 老娘鍋 x 一點甜 🍦\n\n送您專屬招待禮，加入領回饋！\n👉 點我領取：${shareUrl}`;
+
+        const el = document.createElement('textarea');
+        el.value = copyText;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+
+        // 彈出漂亮卡片
+        openModal('copySuccess');
+
+        if (liff.isApiAvailable('shareTargetPicker')) {
+            liff.shareTargetPicker([{
+                "type": "flex",
+                "altText": "🎁 您的好友送您招待禮！",
+                "contents": {
+                    "type": "bubble",
+                    "body": { "type": "box", "layout": "vertical", "contents": [
+                        {"type": "text", "text": "好友專屬招待禮 🍲", "weight": "bold", "size": "xl"},
+                        {"type": "text", "text": "送您招待券，加入再領回饋點數！", "wrap": true, "size": "xs", "margin": "md"}
+                    ]},
+                    "footer": { "type": "box", "layout": "vertical", "contents": [
+                        { "type": "button", "action": { "type": "uri", "label": "立即領取", "uri": shareUrl }, "style": "primary", "color": window.currentBrand === 'sweet' ? '#FFB7D5' : '#8b0000' }
+                    ]}
+                }
+            }]);
+        }
+    }
+
+    function openModal(type) {
+        const modal = document.getElementById('customModal');
+        const title = document.getElementById('modalTitle');
+        const body = document.getElementById('modalBody');
+
+        if (type === 'copySuccess') {
+            title.innerText = "✨ 複製成功";
+            body.innerHTML = `<p>推薦連結已幫你備妥！<br>快傳給好友領取招待禮吧！你也能累積消費回饋唷</p><div style="font-size:40px;margin-top:10px;">🎁</div>`;
+        }
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('customModal').style.display = 'none';
+    }
+
     init();
 </script>
 </body>
