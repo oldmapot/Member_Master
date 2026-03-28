@@ -20,10 +20,7 @@
         .locked { opacity: 0.5; pointer-events: none; }
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
-        .debug-log { background: #f0f0f0; padding: 10px; font-size: 11px; font-family: monospace; margin-top: 15px; border-radius: 6px; max-height: 150px; overflow-y: auto; display: none; }
-        .success-badge { color: #1a73e8; font-weight: bold; }
-        .warning { color: #f5a623; }
-        .error { color: #d32f2f; }
+        .debug-log { background: #f0f0f0; padding: 10px; font-size: 11px; font-family: monospace; margin-top: 15px; border-radius: 6px; max-height: 150px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -91,7 +88,6 @@ function addDebug(msg, isError) {
     const logDiv = document.getElementById('debugLog');
     const time = new Date().toLocaleTimeString();
     const prefix = isError ? '❌' : '📝';
-    logDiv.style.display = 'block';
     logDiv.innerHTML += `<div style="border-bottom:1px solid #ddd; padding:4px 0;">${prefix} [${time}] ${msg}</div>`;
     logDiv.scrollTop = logDiv.scrollHeight;
     console.log(msg);
@@ -215,6 +211,12 @@ function doCalc() {
 }
 
 async function submitData() {
+    // 檢查是否已掃描會員
+    if (!customerId) {
+        alert("請先掃描會員 QR Code！");
+        return;
+    }
+    
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
@@ -222,7 +224,19 @@ async function submitData() {
 
     const isTicketMode = document.getElementById('ticketMode').checked;
     
+    // 計算實付金額和點數
+    let settleBase = 0;
+    if (isTicketMode) {
+        settleBase = Number(document.getElementById('buyTicket').value) || 0;
+    } else {
+        const total = Number(document.getElementById('totalSpend').value) || 0;
+        const tPay = Number(document.getElementById('ticketSpend').value) || 0;
+        const redeem = Number(document.getElementById('redeemAmount').value) || 0;
+        settleBase = total - tPay - redeem;
+    }
+    
     const payload = {
+        action: "addPoints",
         customerId: customerId,
         branch: staff.branch,
         staffName: staff.name,
@@ -259,7 +273,10 @@ async function submitData() {
             }
             alert(msg);
             addDebug("結帳完成，關閉視窗");
-            liff.closeWindow();
+            // 延遲關閉，讓用戶看到結果
+            setTimeout(() => {
+                liff.closeWindow();
+            }, 2000);
         } else {
             throw new Error("伺服器回應錯誤: " + JSON.stringify(result));
         }
