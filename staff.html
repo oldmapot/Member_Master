@@ -190,12 +190,11 @@ async function submitData() {
     btn.innerText = "處理中...";
 
     const payload = {
-        action: "addPoints",
-        isTicketMode: document.getElementById('ticketMode').checked,
         customerId: customerId,
         branch: staff.branch,
         staffName: staff.name,
         staffRole: staff.role,
+        isTicketMode: document.getElementById('ticketMode').checked,
         totalSpend: Number(document.getElementById('totalSpend').value) || 0,
         ticketSpend: Number(document.getElementById('ticketSpend').value) || 0,
         redeemAmount: Number(document.getElementById('redeemAmount').value) || 0,
