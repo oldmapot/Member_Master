@@ -1,35 +1,36 @@
-// 立即執行：在 DOM 還沒完全載入前就先決定主題，避免閃爍
+// 第一階段：立即判斷主題 (不等待 DOM)
 (function() {
     const params = new URLSearchParams(window.location.search);
-    const from = params.get('from') || 'pot';
-    document.documentElement.setAttribute('data-brand', from); // 在 html 標籤標記來源
+    window.currentBrand = params.get('from') || 'pot';
+    // 立即在 html 標籤加上 class，讓 CSS 能瞬間反應
+    document.documentElement.className = (window.currentBrand === 'sweet') ? 'theme-sweet' : 'theme-pot';
 })();
 
+// 第二階段：當畫面載入後，填入對應的圖案與文字
 document.addEventListener('DOMContentLoaded', () => {
-    const from = document.documentElement.getAttribute('data-brand');
-    
+    const from = window.currentBrand;
     const config = {
         'pot': {
-            theme: 'theme-pot',
             icon: 'pot-animation',
-            quotes: ["老娘正在準備你的心意...", "別催，老娘正在幫你算點數...", "火鍋滾了，心意也快好了..."]
+            quotes: ["老娘正在準備你的心意...", "火鍋滾了，心意也快好了..."]
         },
         'sweet': {
-            theme: 'theme-sweet',
             icon: 'pudding-animation',
-            quotes: ["正在為你的生活，加入一點甜...", "生活七八分苦？今天必須一點甜。", "遇見你，就是一點甜..."]
+            quotes: ["正在為您的生活，加入一點甜...", "遇見你，就是一點甜..."]
         }
     };
 
     const active = config[from] || config['pot'];
-    document.body.classList.add(active.theme);
     
-    const textEl = document.getElementById('brand-loading-text');
-    if (textEl) textEl.innerText = active.quotes[Math.floor(Math.random() * active.quotes.length)];
-
+    // 填入動畫圖案
     const iconBox = document.getElementById('brand-icon-box');
     if (iconBox) iconBox.innerHTML = `<div class="${active.icon}"></div>`;
 
+    // 填入隨機文案
+    const textEl = document.getElementById('brand-loading-text');
+    if (textEl) textEl.innerText = active.quotes[Math.floor(Math.random() * active.quotes.length)];
+
+    // 全域控制函數
     window.closeBrandLoading = () => {
         const mask = document.getElementById('brand-loading-mask');
         if (mask) {
