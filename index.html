@@ -132,23 +132,34 @@
         } catch (e) { showGuestUI(); }
     }
 
-    function showGuestUI() {
-        document.getElementById('ui-loading').style.display = 'none';
-        document.getElementById('ui-member').style.display = 'none';
-        document.getElementById('ui-guest').style.display = 'block';
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const rid = urlParams.get('referrerId');
+    async function showGuestUI() {
+    document.getElementById('ui-loading').style.display = 'none';
+    document.getElementById('ui-member').style.display = 'none';
+    document.getElementById('ui-guest').style.display = 'block';
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const rid = urlParams.get('referrerId');
 
-        // 修正：如果網址有推薦人，QR Code 生成 GIFT_BY_ 前綴，並顯示來源
-        if (rid && rid !== myId) {
-            document.getElementById('invitationText').innerText = `🎁 鍋友 (ID:${rid}) 贈送的招待禮`;
-            document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GIFT_BY_${rid}`;
-        } else {
-            // 無推薦人時，隱藏招待碼區塊或顯示預設
-            document.getElementById('invitationHeader').style.display = 'none';
+    if (rid && rid !== myId) {
+        // 先顯示預設文字，避免畫面空空的
+        document.getElementById('invitationText').innerText = `🎁 鍋友送您的專屬招待禮`;
+        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GIFT_BY_${rid}`;
+
+        // --- 新增：去問 GAS 推薦人的名字 ---
+        try {
+            const res = await fetch(`${GAS_URL}?action=checkID&userId=${rid}`);
+            const data = await res.json();
+            if (data.isMember && data.userName) {
+                // 成功抓到名字，把難看的 ID 換掉
+                document.getElementById('invitationText').innerText = `🎁 您的好友【${data.userName}】送您的招待禮`;
+            }
+        } catch (e) {
+            console.log("無法取得推薦人姓名");
         }
+    } else {
+        document.getElementById('invitationHeader').style.display = 'none';
     }
+}
 
     document.getElementById('regPhone').addEventListener('input', function (e) {
         let x = e.target.value.replace(/\D/g, '').match(/(\d{0,4})(\d{0,3})(\d{0,3})/);
