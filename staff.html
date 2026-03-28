@@ -127,15 +127,23 @@ async function handleScan() {
         const result = await liff.scanCodeV2();
         if (!result || !result.value) return;
 
+        // --- 1. 開始查詢：開啟品牌 Loading ---
+        if (window.openBrandLoading) {
+            window.openBrandLoading("老娘正在查詢會員資料...");
+        }
+
         customerId = result.value;
         const rawID = String(customerId);
 
+        // 判斷是否為新客招待禮
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
+            // --- 查詢結束：關閉 Loading ---
+            if (window.closeBrandLoading) window.closeBrandLoading();
+
             customerId = "";
             document.getElementById('member-ui').style.display = 'none';
             document.getElementById('form-ui').classList.add('locked');
 
-            // 使用自定義彈窗，不會鎖死相機關閉流程
             showModal(`
                 <h3 style="color:#e91e63; margin-top:0;">🎁 新客招待禮確認</h3>
                 <hr>
@@ -145,8 +153,12 @@ async function handleScan() {
             return; 
         }
 
+        // 向 GAS 發送查詢請求
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
+        
+        // --- 2. 資料回傳：不論成功失敗都關閉 Loading ---
+        if (window.closeBrandLoading) window.closeBrandLoading();
         
         if(data.isMember) {
             document.getElementById('member-ui').style.display = 'block';
@@ -160,7 +172,9 @@ async function handleScan() {
             showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
         }
     } catch (err) {
-        console.log("掃描取消:", err.message);
+        // 出錯或取消也要確保 Loading 關閉，才不會卡死畫面
+        if (window.closeBrandLoading) window.closeBrandLoading();
+        console.log("掃描取消或出錯:", err.message);
     }
 }
 
