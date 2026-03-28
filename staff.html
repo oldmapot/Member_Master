@@ -20,7 +20,6 @@
         .locked { opacity: 0.4; pointer-events: none; }
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
-        .referrer-info { color: #f5a623; font-size: 13px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -36,9 +35,7 @@
     <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描</button>
 
     <div class="member-info" id="member-ui">
-        顧客：<b id="cus-name">-</b><br>
-        推薦人：<b id="cus-referrer" style="color:#f5a623;">-</b><br>
-        現有資產：<b id="cus-pts" style="color:red;">0</b> 點
+        顧客：<b id="cus-name">-</b> | 現有資產：<b id="cus-pts" style="color:red;">0</b> 點
     </div>
 
     <div id="form-ui" class="locked">
@@ -68,7 +65,6 @@
 
         <div class="info-box">
             本次預計發放點數：<b id="new-pts" style="color:#1a73e8;">0</b> 點<br>
-            <div id="ref-bonus-display" class="referrer-info"></div>
             結帳後總資產：<b id="after-pts">0</b> 點
         </div>
 
@@ -80,7 +76,7 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxrlYGoxOuTUJ9y9YQreRRNpSYly2c7yGuOw0ppPmfJJL7xLo6RLZDBF2htCaHwnB6Y/exec"; 
 const LIFF_ID = "2009625641-AYIKoXbw"; 
 
-let config = {}, customerId = "", currentPoints = 0, currentReferrerId = "", staff = {};
+let config = {}, customerId = "", currentPoints = 0, staff = {};
 
 async function init() {
     try {
@@ -107,6 +103,7 @@ async function init() {
 
 async function handleScan() {
     try {
+        // 確保相機啟動
         const result = await liff.scanCodeV2();
         if (!result.value) return;
 
@@ -119,10 +116,8 @@ async function handleScan() {
             document.getElementById('form-ui').classList.remove('locked');
             document.getElementById('cus-name').innerText = data.userName;
             document.getElementById('cus-pts').innerText = data.points;
-            document.getElementById('cus-referrer').innerText = data.referrerId || "無推薦人";
             currentPoints = Number(data.points);
-            currentReferrerId = data.referrerId || "";
-            config = data.config;
+            config = data.config; // 這裡包含 earnRate, ticketRate, refRate 等
             doCalc();
         } else {
             alert("查無此會員編號！");
@@ -143,17 +138,17 @@ function doCalc() {
     if (!config.earnRate) return;
     const isTicket = document.getElementById('ticketMode').checked;
     
-    let newPts = 0, redeem = 0, settleBase = 0;
+    let newPts = 0, redeem = 0;
     
     if (isTicket) {
         const tBuy = Number(document.getElementById('buyTicket').value) || 0;
         newPts = Math.floor(tBuy * config.ticketRate);
-        settleBase = tBuy;
     } else {
         const total = Number(document.getElementById('totalSpend').value) || 0;
         const tPay = Number(document.getElementById('ticketSpend').value) || 0;
-        settleBase = total - tPay;
+        const settleBase = total - tPay;
         
+        // 計算折抵上限
         const maxRedeem = (settleBase >= config.minSpend) ? Math.min(currentPoints, Math.floor(settleBase * config.maxRate)) : 0;
         document.getElementById('max-hint').innerText = maxRedeem;
         
@@ -165,64 +160,35 @@ function doCalc() {
         newPts = Math.floor((settleBase - redeem) * config.earnRate);
     }
     
-    // 顯示推薦人分紅預告
-    let refBonusDisplay = "";
-    if (!isTicket && currentReferrerId && currentReferrerId !== "" && currentReferrerId !== customerId && settleBase > 0) {
-        let refBonus = Math.floor(settleBase * config.refRate);
-        if (refBonus > 0) {
-            refBonusDisplay = `📢 推薦人將獲得 ${refBonus} 點分紅！`;
-        }
-    }
-    document.getElementById('ref-bonus-display').innerHTML = refBonusDisplay;
-    
     document.getElementById('new-pts').innerText = newPts;
     document.getElementById('after-pts').innerText = (currentPoints - redeem + newPts);
 }
 
 async function submitData() {
-    if (!customerId) {
-        alert("請先掃描會員 QR Code！");
-        return;
-    }
-    
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
 
     const payload = {
+        action: "addPoints",
+        isTicketMode: document.getElementById('ticketMode').checked,
         customerId: customerId,
         branch: staff.branch,
         staffName: staff.name,
         staffRole: staff.role,
-        isTicketMode: document.getElementById('ticketMode').checked,
         totalSpend: Number(document.getElementById('totalSpend').value) || 0,
         ticketSpend: Number(document.getElementById('ticketSpend').value) || 0,
         redeemAmount: Number(document.getElementById('redeemAmount').value) || 0,
         buyTicket: Number(document.getElementById('buyTicket').value) || 0,
         earnRate: config.earnRate,
         ticketRate: config.ticketRate,
-        refRate: config.refRate,
-        points: currentPoints
+        refRate: config.refRate
     };
 
     try {
-        const res = await fetch(GAS_URL, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload) 
-        });
-        
-        const result = await res.json();
-        
-        if (result.status === "SUCCESS") {
-            let msg = `✅ 結帳成功！\n\n`;
-            msg += `消費者：${result.customer.name}\n`;
-            msg += `獲得點數：+${result.customer.pointsEarned} 點\n`;
-            msg += `剩餘點數：${result.customer.pointsAfter} 點\n`;
-            if (result.referrer && result.referrer.bonus > 0) {
-                msg += `\n🎉 推薦人獲得：+${result.referrer.bonus} 點分紅！\n已發送 LINE 通知給推薦人。`;
-            }
-            alert(msg);
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+        if (res.ok) {
+            alert("結帳與股東分紅發放完成！");
             liff.closeWindow();
         } else {
             throw new Error("伺服器回應錯誤");
@@ -230,7 +196,7 @@ async function submitData() {
     } catch (e) {
         alert("提交失敗: " + e.message);
         btn.disabled = false;
-        btn.innerText = "確認過卡 (發送股東/消費通知)";
+        btn.innerText = "重新提交";
     }
 }
 
