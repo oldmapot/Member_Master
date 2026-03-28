@@ -11,17 +11,16 @@
         .header { text-align: center; border-bottom: 2px solid #eee; margin-bottom: 15px; padding-bottom: 10px; }
         .role-badge { background: #333; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
         .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
-        .btn-primary { background: #1a73e8; color: white; }
-        .btn-submit { background: #00b900; color: white; margin-top: 10px; }
+        .btn-scan { background: #00b900; color: white; }
+        .btn-submit { background: #1a73e8; color: white; margin-top: 10px; }
         .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .locked { opacity: 0.4; pointer-events: none; }
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
-        .debug-log { background: #f0f0f0; padding: 10px; font-size: 11px; font-family: monospace; margin-top: 15px; border-radius: 6px; max-height: 150px; overflow-y: auto; }
-        .success { color: #00b900; }
-        .error { color: #d32f2f; }
+        .referrer-info { color: #f5a623; font-size: 13px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -34,19 +33,15 @@
         </div>
     </div>
 
-    <div class="input-group">
-        <label>🔍 輸入會員 ID (LINE User ID)</label>
-        <input type="text" id="memberIdInput" placeholder="請貼上或輸入會員ID">
-        <button class="btn-primary" id="searchBtn" onclick="searchMember()" style="margin-top:5px;">查詢會員</button>
-    </div>
+    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描</button>
 
     <div class="member-info" id="member-ui">
         顧客：<b id="cus-name">-</b><br>
         推薦人：<b id="cus-referrer" style="color:#f5a623;">-</b><br>
-        現有資產：<b id="cus-pts" style="color:#1a73e8;">0</b> 點
+        現有資產：<b id="cus-pts" style="color:red;">0</b> 點
     </div>
 
-    <div id="form-ui" style="display:none;">
+    <div id="form-ui" class="locked">
         <label style="background:#fff3e0; padding:10px; display:block; border-radius:8px; margin-bottom:15px; cursor:pointer; border:1px solid #ff9800;">
             <input type="checkbox" id="ticketMode" onchange="toggleMode()" style="width:auto;"> <b>勾選：購買餐券模式 (無股東分紅)</b>
         </label>
@@ -72,15 +67,13 @@
         </div>
 
         <div class="info-box">
-            <div>本次預計發放點數：<b id="new-pts" style="color:#1a73e8;">0</b> 點</div>
-            <div id="ref-bonus-info" style="margin-top:5px; font-size:13px; color:#f5a623;"></div>
-            <div style="margin-top:8px;">結帳後總資產：<b id="after-pts">0</b> 點</div>
+            本次預計發放點數：<b id="new-pts" style="color:#1a73e8;">0</b> 點<br>
+            <div id="ref-bonus-display" class="referrer-info"></div>
+            結帳後總資產：<b id="after-pts">0</b> 點
         </div>
 
-        <button class="btn-submit" id="submitBtn" onclick="submitData()">✅ 確認過卡 (發送股東/消費通知)</button>
+        <button class="btn btn-submit" id="submitBtn" onclick="submitData()">確認過卡 (發送股東/消費通知)</button>
     </div>
-    
-    <div id="debugLog" class="debug-log"></div>
 </div>
 
 <script>
@@ -89,29 +82,13 @@ const LIFF_ID = "2009625641-AYIKoXbw";
 
 let config = {}, customerId = "", currentPoints = 0, currentReferrerId = "", staff = {};
 
-function addDebug(msg, isError) {
-    const logDiv = document.getElementById('debugLog');
-    const time = new Date().toLocaleTimeString();
-    const prefix = isError ? '❌' : '📝';
-    logDiv.innerHTML += `<div style="border-bottom:1px solid #ddd; padding:4px 0;">${prefix} [${time}] ${msg}</div>`;
-    logDiv.scrollTop = logDiv.scrollHeight;
-    console.log(msg);
-}
-
 async function init() {
-    addDebug("系統初始化中...");
     try {
         await liff.init({ liffId: LIFF_ID });
-        addDebug("LIFF 初始化成功");
-        if (!liff.isLoggedIn()) { 
-            addDebug("未登入，跳轉中...");
-            liff.login(); 
-            return; 
-        }
+        if (!liff.isLoggedIn()) { liff.login(); return; }
         const urlParams = new URLSearchParams(window.location.search);
         const key = urlParams.get('k');
         const profile = await liff.getProfile();
-        addDebug("店員登入驗證中...");
         
         const res = await fetch(`${GAS_URL}?action=staffLogin&userId=${profile.userId}&keyword=${key}`);
         staff = await res.json();
@@ -120,50 +97,38 @@ async function init() {
             document.getElementById('shop-name').innerText = staff.branch;
             document.getElementById('staff-name').innerText = staff.name;
             document.getElementById('role-text').innerText = staff.role;
-            addDebug(`登入成功：${staff.name} (${staff.branch})`);
         } else {
-            addDebug("權限驗證失敗！", true);
             alert("權限驗證失敗！");
         }
     } catch (e) {
-        addDebug("系統啟動失敗: " + e.message, true);
         alert("系統啟動失敗: " + e.message);
     }
 }
 
-async function searchMember() {
-    const inputId = document.getElementById('memberIdInput').value.trim();
-    if (!inputId) {
-        alert("請輸入會員 ID");
-        return;
-    }
-    
-    customerId = inputId;
-    addDebug(`查詢會員: ${customerId}`);
-    
+async function handleScan() {
     try {
+        const result = await liff.scanCodeV2();
+        if (!result.value) return;
+
+        customerId = result.value;
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
-        addDebug(`會員資料回應: ${JSON.stringify(data)}`);
         
         if(data.isMember) {
             document.getElementById('member-ui').style.display = 'block';
-            document.getElementById('form-ui').style.display = 'block';
+            document.getElementById('form-ui').classList.remove('locked');
             document.getElementById('cus-name').innerText = data.userName;
             document.getElementById('cus-pts').innerText = data.points;
             document.getElementById('cus-referrer').innerText = data.referrerId || "無推薦人";
             currentPoints = Number(data.points);
             currentReferrerId = data.referrerId || "";
             config = data.config;
-            addDebug(`會員：${data.userName}，點數：${data.points}，推薦人：${data.referrerId || "無"}`);
             doCalc();
         } else {
-            addDebug("查無此會員編號！", true);
             alert("查無此會員編號！");
         }
     } catch (err) {
-        addDebug("查詢失敗: " + err.message, true);
-        alert("查詢失敗: " + err.message);
+        alert("相機或資料抓取錯誤: " + err.message);
     }
 }
 
@@ -182,7 +147,7 @@ function doCalc() {
     
     if (isTicket) {
         const tBuy = Number(document.getElementById('buyTicket').value) || 0;
-        newPts = Math.floor(tBuy * (config.ticketRate || 0));
+        newPts = Math.floor(tBuy * config.ticketRate);
         settleBase = tBuy;
     } else {
         const total = Number(document.getElementById('totalSpend').value) || 0;
@@ -197,79 +162,77 @@ function doCalc() {
             redeem = maxRedeem;
             document.getElementById('redeemAmount').value = maxRedeem;
         }
-        newPts = Math.floor((settleBase - redeem) * (config.earnRate || 0));
+        newPts = Math.floor((settleBase - redeem) * config.earnRate);
     }
     
-    let refBonusMsg = "";
-    if (!isTicket && currentReferrerId && currentReferrerId !== "" && currentReferrerId !== customerId) {
-        let refBonus = Math.floor(settleBase * (config.refRate || 0));
+    // 顯示推薦人分紅預告
+    let refBonusDisplay = "";
+    if (!isTicket && currentReferrerId && currentReferrerId !== "" && currentReferrerId !== customerId && settleBase > 0) {
+        let refBonus = Math.floor(settleBase * config.refRate);
         if (refBonus > 0) {
-            refBonusMsg = `📢 推薦人將獲得 ${refBonus} 點分紅！`;
+            refBonusDisplay = `📢 推薦人將獲得 ${refBonus} 點分紅！`;
         }
     }
-    document.getElementById('ref-bonus-info').innerHTML = refBonusMsg;
+    document.getElementById('ref-bonus-display').innerHTML = refBonusDisplay;
     
     document.getElementById('new-pts').innerText = newPts;
-    document.getElementById('after-pts').innerText = (currentPoints - (redeem || 0) + newPts);
+    document.getElementById('after-pts').innerText = (currentPoints - redeem + newPts);
 }
 
-function submitData() {
+async function submitData() {
     if (!customerId) {
-        alert("請先查詢會員！");
+        alert("請先掃描會員 QR Code！");
         return;
     }
     
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
-    addDebug("提交消費資料...");
 
-    const isTicketMode = document.getElementById('ticketMode').checked;
-    
-    const params = new URLSearchParams();
-    params.append('action', 'addPoints');
-    params.append('customerId', customerId);
-    params.append('branch', staff.branch);
-    params.append('staffName', staff.name);
-    params.append('staffRole', staff.role);
-    params.append('isTicketMode', isTicketMode);
-    params.append('totalSpend', document.getElementById('totalSpend').value || 0);
-    params.append('ticketSpend', document.getElementById('ticketSpend').value || 0);
-    params.append('redeemAmount', document.getElementById('redeemAmount').value || 0);
-    params.append('buyTicket', document.getElementById('buyTicket').value || 0);
-    params.append('earnRate', config.earnRate);
-    params.append('ticketRate', config.ticketRate);
-    params.append('refRate', config.refRate);
-    
-    const url = GAS_URL + "?" + params.toString();
-    addDebug(`發送請求...`);
-    
-    const img = new Image();
-    let timeout = setTimeout(function() {
-        addDebug("提交超時", true);
-        alert("提交超時，請檢查網路後重試");
-        btn.disabled = false;
-        btn.innerText = "✅ 確認過卡 (發送股東/消費通知)";
-    }, 10000);
-    
-    img.onload = function() {
-        clearTimeout(timeout);
-        addDebug("✅ 提交成功！");
-        alert("✅ 結帳成功！\n\n已發送點數通知給會員和推薦人。");
-        setTimeout(() => {
+    const payload = {
+        action: "addPoints",
+        isTicketMode: document.getElementById('ticketMode').checked,
+        customerId: customerId,
+        branch: staff.branch,
+        staffName: staff.name,
+        staffRole: staff.role,
+        totalSpend: Number(document.getElementById('totalSpend').value) || 0,
+        ticketSpend: Number(document.getElementById('ticketSpend').value) || 0,
+        redeemAmount: Number(document.getElementById('redeemAmount').value) || 0,
+        buyTicket: Number(document.getElementById('buyTicket').value) || 0,
+        earnRate: config.earnRate,
+        ticketRate: config.ticketRate,
+        refRate: config.refRate,
+        points: currentPoints
+    };
+
+    try {
+        const res = await fetch(GAS_URL, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload) 
+        });
+        
+        const result = await res.json();
+        
+        if (result.status === "SUCCESS") {
+            let msg = `✅ 結帳成功！\n\n`;
+            msg += `消費者：${result.customer.name}\n`;
+            msg += `獲得點數：+${result.customer.pointsEarned} 點\n`;
+            msg += `剩餘點數：${result.customer.pointsAfter} 點\n`;
+            if (result.referrer && result.referrer.bonus > 0) {
+                msg += `\n🎉 推薦人獲得：+${result.referrer.bonus} 點分紅！\n已發送 LINE 通知給推薦人。`;
+            }
+            alert(msg);
             liff.closeWindow();
-        }, 2000);
-    };
-    
-    img.onerror = function() {
-        clearTimeout(timeout);
-        addDebug("❌ 提交失敗", true);
-        alert("提交失敗，請稍後重試");
+        } else {
+            throw new Error("伺服器回應錯誤");
+        }
+    } catch (e) {
+        alert("提交失敗: " + e.message);
         btn.disabled = false;
-        btn.innerText = "✅ 確認過卡 (發送股東/消費通知)";
-    };
-    
-    img.src = url;
+        btn.innerText = "確認過卡 (發送股東/消費通知)";
+    }
 }
 
 init();
