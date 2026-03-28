@@ -1,0 +1,52 @@
+/* 品牌全域變數 */
+.theme-pot { --brand-main: #E63946; --brand-bg: #1a1a1a; --brand-text: #ffffff; --btn-bg: #E63946; }
+.theme-sweet { --brand-main: #FFB7C5; --brand-bg: #FFF9E6; --brand-text: #5D4037; --btn-bg: #FFB7C5; }
+
+/* 1. Loading 遮罩 (全螢幕) */
+#brand-loading-mask {
+    position: fixed; inset: 0; z-index: 9999;
+    background-color: var(--brand-bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.4s ease;
+}
+
+#brand-loading-text {
+    color: var(--brand-text);
+    font-size: 1.1rem; font-weight: bold; margin-top: 1.5rem; letter-spacing: 1px;
+}
+
+/* 2. 老娘鍋動畫：跳動小鍋 */
+.pot-animation {
+    width: 50px; height: 35px; background: var(--brand-main);
+    border-radius: 0 0 12px 12px; position: relative;
+    animation: pot-jump 0.5s infinite alternate ease-in-out;
+}
+.pot-animation::before, .pot-animation::after { /* 鍋耳朵 */
+    content: ''; position: absolute; top: 5px; width: 10px; height: 8px;
+    background: var(--brand-main); border-radius: 3px;
+}
+.pot-animation::before { left: -8px; }
+.pot-animation::after { right: -8px; }
+@keyframes pot-jump { to { transform: translateY(-15px); } }
+
+/* 3. 一點甜動畫：晃動布丁 */
+.pudding-animation {
+    width: 45px; height: 40px; background: #FFD166;
+    border-radius: 8px 8px 4px 4px; position: relative;
+    box-shadow: 0 6px #B07D62 inset; /* 焦糖 */
+    animation: pudding-wobble 0.6s infinite ease-in-out;
+}
+@keyframes pudding-wobble {
+    0%, 100% { transform: rotate(-8deg) scale(1); }
+    50% { transform: rotate(8deg) scale(1.05); }
+}
+
+/* 4. 店員端按鈕專用：處理中狀態 */
+.btn-processing {
+    position: relative; color: transparent !important; pointer-events: none;
+}
+.btn-processing::after {
+    content: "處理中..."; position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%); color: white; animation: pulse 1s infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
