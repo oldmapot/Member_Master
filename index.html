@@ -6,20 +6,30 @@
     <title>老娘的一點心意｜會員中心</title>
     
     <script>
-        (function() {
-            const params = new URLSearchParams(window.location.search);
-            // 優先順序：網址參數 > 瀏覽器紀錄(localStorage) > 預設(pot)
-            let brand = params.get('from') || localStorage.getItem('user_brand_choice') || 'pot';
-            
-            // 如果網址有帶參數，就存進紀錄，下次進來沒參數也能反應
-            if (params.get('from')) {
-                localStorage.setItem('user_brand_choice', params.get('from'));
-            }
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        let brand = params.get('from') || localStorage.getItem('user_brand_choice') || 'pot';
+        
+        if (params.get('from')) {
+            localStorage.setItem('user_brand_choice', params.get('from'));
+        }
 
-            // 立刻幫 HTML 穿衣服，這時候 body 都還沒跑出來，所以不會閃
-            document.documentElement.className = (brand === 'sweet') ? 'theme-sweet' : 'theme-pot';
-            window.currentBrand = brand;
-        })();
+        const isSweet = (brand === 'sweet');
+        document.documentElement.className = isSweet ? 'theme-sweet' : 'theme-pot';
+        window.currentBrand = brand;
+
+        // 【最強視覺優化】：在 body 還沒出來前，先預設好 Loading 的背景顏色
+        // 一點甜就先給它粉黃色，老娘鍋就先給它深紅色，徹底消滅黑色閃爍
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #brand-loading-mask { 
+                background-color: ${isSweet ? '#FFF9E6' : '#1a1a1a'} !important; 
+                display: flex !important; 
+            }
+        `;
+        document.head.appendChild(style);
+    })();
+</script>
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/oldmapot/Member_Master/assets/brand-style.css">
     <script src="https://cdn.jsdelivr.net/gh/oldmapot/Member_Master/assets/brand-logic.js"></script>
@@ -63,9 +73,9 @@
 <body>
 
     <div id="brand-loading-mask">
-        <div id="brand-icon-box"></div>
-        <p id="brand-loading-text">同步中...</p>
-    </div>
+    <div id="brand-icon-box"></div>
+    <p id="brand-loading-text">載入中...</p>
+</div>
 
     <div class="card">
         <h2 id="brand-title">老娘鍋 x 一點甜</h2>
