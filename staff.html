@@ -170,30 +170,25 @@ async function submitData() {
     btn.innerText = "處理中...";
 
     const payload = {
+        action: "addPoints",
+        isTicketMode: document.getElementById('ticketMode').checked,
         customerId: customerId,
         branch: staff.branch,
         staffName: staff.name,
         staffRole: staff.role,
-        isTicketMode: document.getElementById('ticketMode').checked,
         totalSpend: Number(document.getElementById('totalSpend').value) || 0,
         ticketSpend: Number(document.getElementById('ticketSpend').value) || 0,
         redeemAmount: Number(document.getElementById('redeemAmount').value) || 0,
         buyTicket: Number(document.getElementById('buyTicket').value) || 0,
         earnRate: config.earnRate,
         ticketRate: config.ticketRate,
-        refRate: config.refRate,
-        points: currentPoints   // <--- 加上這行
+        refRate: config.refRate
     };
 
     try {
-        const res = await fetch(GAS_URL, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload) 
-        });
-        const result = await res.json();
-        if (result.status === "SUCCESS") {
-            alert("✅ 結帳成功！");
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+        if (res.ok) {
+            alert("結帳與股東分紅發放完成！");
             liff.closeWindow();
         } else {
             throw new Error("伺服器回應錯誤");
@@ -201,9 +196,10 @@ async function submitData() {
     } catch (e) {
         alert("提交失敗: " + e.message);
         btn.disabled = false;
-        btn.innerText = "確認過卡";
+        btn.innerText = "重新提交";
     }
 }
+
 init();
 </script>
 </body>
