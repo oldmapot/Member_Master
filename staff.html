@@ -20,9 +20,21 @@
         .locked { opacity: 0.4; pointer-events: none; }
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
+
+        /* 新增：自定義彈窗樣式 */
+        #customModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: center; }
+        .modal-btn { background: #00b900; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; margin-top: 20px; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
+
+<div id="customModal">
+    <div class="modal-content">
+        <div id="modalText" style="line-height: 1.6; text-align: left; font-size: 16px;"></div>
+        <button class="modal-btn" onclick="closeModal()">我了解了</button>
+    </div>
+</div>
 
 <div class="card">
     <div class="header">
@@ -78,6 +90,15 @@ const LIFF_ID = "2009625641-AYIKoXbw";
 
 let config = {}, customerId = "", currentPoints = 0, staff = {};
 
+// 彈窗控制
+function showModal(html) {
+    document.getElementById('modalText').innerHTML = html;
+    document.getElementById('customModal').style.display = 'flex';
+}
+function closeModal() {
+    document.getElementById('customModal').style.display = 'none';
+}
+
 async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
@@ -110,29 +131,20 @@ async function handleScan() {
         const rawID = String(customerId);
 
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
-            // --- 關鍵修正：先清空 ID 並隱藏 UI，確保狀態重置 ---
             customerId = "";
             document.getElementById('member-ui').style.display = 'none';
             document.getElementById('form-ui').classList.add('locked');
 
-            // --- 關鍵修正：手動關閉掃碼鏡頭視窗 ---
-            // 雖然 scanCodeV2 通常會自動關，但在 return 前彈出 alert 會卡住它
-            // 我們稍微延遲 100ms 彈出 alert，讓鏡頭有時間背景收起
-            setTimeout(() => {
-                alert(
-                    "🎁 【新客招待禮確認】\n" +
-                    "--------------------\n" +
-                    "● 招待內容：小菜一份 或 霜淇淋一支\n\n" +
-                    "⚠️ 店員提醒：\n" +
-                    "這是「新客專用」招待碼，無法進行集點。\n" +
-                    "請引導顧客完成註冊後，再掃描其「個人會員碼」。"
-                );
-            }, 100);
-            
+            // 使用自定義彈窗，不會鎖死相機關閉流程
+            showModal(`
+                <h3 style="color:#e91e63; margin-top:0;">🎁 新客招待禮確認</h3>
+                <hr>
+                <p><b>招待內容：</b>小菜一份 或 霜淇淋一支</p>
+                <p style="font-size:14px; color:#666;">⚠️ 這是新客專用碼，請引導顧客完成註冊後再掃會員碼集點。</p>
+            `);
             return; 
         }
 
-        // 2. 原本的會員查詢邏輯...
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
         
@@ -145,11 +157,10 @@ async function handleScan() {
             config = data.config; 
             doCalc();
         } else {
-            alert("查無此會員編號！");
+            showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
         }
     } catch (err) {
-        // 這裡如果是使用者自己按 X 關閉，會跳進 catch，所以不用特別處理
-        console.log("掃描取消或錯誤:", err.message);
+        console.log("掃描取消:", err.message);
     }
 }
 
@@ -174,7 +185,6 @@ function doCalc() {
         const tPay = Number(document.getElementById('ticketSpend').value) || 0;
         const settleBase = total - tPay;
         
-        // 計算折抵上限
         const maxRedeem = (settleBase >= config.minSpend) ? Math.min(currentPoints, Math.floor(settleBase * config.maxRate)) : 0;
         document.getElementById('max-hint').innerText = maxRedeem;
         
