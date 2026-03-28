@@ -1,6 +1,12 @@
-document.addEventListener('DOMContentLoaded', () => {
+// 立即執行：在 DOM 還沒完全載入前就先決定主題，避免閃爍
+(function() {
     const params = new URLSearchParams(window.location.search);
     const from = params.get('from') || 'pot';
+    document.documentElement.setAttribute('data-brand', from); // 在 html 標籤標記來源
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const from = document.documentElement.getAttribute('data-brand');
     
     const config = {
         'pot': {
@@ -24,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const iconBox = document.getElementById('brand-icon-box');
     if (iconBox) iconBox.innerHTML = `<div class="${active.icon}"></div>`;
 
-    // 關閉 Loading 的全域函數
     window.closeBrandLoading = () => {
         const mask = document.getElementById('brand-loading-mask');
         if (mask) {
@@ -33,11 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // 開啟 Loading 的全域函數 (用於店員端提交時)
     window.openBrandLoading = (customText) => {
         const mask = document.getElementById('brand-loading-mask');
-        if (mask) {
-            if (customText) document.getElementById('brand-loading-text').innerText = customText;
+        const textEl = document.getElementById('brand-loading-text');
+        if (mask && textEl) {
+            textEl.innerText = customText || "載入中...";
             mask.style.display = 'flex';
             mask.style.opacity = '1';
         }
