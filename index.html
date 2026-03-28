@@ -176,17 +176,17 @@
         if (!phoneReg.test(phone)) { alert("請輸入正確的手機號碼格式：09XX-XXX-XXX"); return; }
         if (!document.getElementById('checkRights').checked || !document.getElementById('checkLegal').checked) { openModal('checkError'); return; }
         
-        document.getElementById('regBtn').disabled = true;
-        document.getElementById('regBtn').innerText = "處理中...";
+        const btn = document.getElementById('regBtn');
+        btn.disabled = true;
+        btn.innerText = "處理中...";
         
         try {
-            // 修正：確實從網址列抓取推薦人ID
             const urlParams = new URLSearchParams(window.location.search);
             const rid = urlParams.get('referrerId') || "";
 
-            await fetch(GAS_URL, {
+            // --- 關鍵修正：移除 no-cors，使用標準 POST ---
+            const response = await fetch(GAS_URL, {
                 method: "POST",
-                mode: "no-cors",
                 body: JSON.stringify({ 
                     action: "register", 
                     name: name, 
@@ -197,17 +197,24 @@
                 })
             });
 
-            // 修正：no-cors 不等待內容，直接彈窗並跳轉
-            openModal('regSuccess');
-            setTimeout(() => {
-                // 註冊成功後重新整頁，讓 checkMember 判定為會員
-                window.location.href = window.location.origin + window.location.pathname;
-            }, 2500);
+            const result = await response.json(); // 等待後端回傳真實結果
+
+            if (result.success) {
+                openModal('regSuccess');
+                setTimeout(() => {
+                    // 註冊成功後，強制跳轉到「乾淨」的網址（移除 referrerId 等參數）
+                    // 這樣 checkMember() 重新啟動時才會抓到新會員資料
+                    window.location.href = window.location.origin + window.location.pathname;
+                }, 2000);
+            } else {
+                throw new Error(result.message || "註冊失敗");
+            }
 
         } catch (e) { 
-            document.getElementById('regBtn').disabled = false;
-            document.getElementById('regBtn').innerText = "立即加入會員並領取招待";
-            openModal('connectError');
+            console.error("註冊錯誤:", e);
+            btn.disabled = false;
+            btn.innerText = "立即加入會員並領取招待";
+            alert("系統繁忙或連線錯誤：" + e.message);
         }
     }
 
