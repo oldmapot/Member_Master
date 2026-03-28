@@ -44,7 +44,7 @@
             <p id="userNameDisplay" class="center" style="font-weight:bold;"></p>
             <div class="qr-box">
                 <img id="memberQr" src="">
-                <p style="font-size:14px; color:var(--main-red); font-weight:bold; margin-top:10px;" class="center">結帳請出示此碼集點</p>
+                <p style="font-size:14px; color:var(--main-red); font-weight:bold; margin-top:10px;" class="center">結帳請出示此碼集點，離店離櫃恕不補積點</p>
             </div>
             <div style="text-align: left; font-size: 15px; color: #444; line-height: 1.8; background: #fdfaf6; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee;">
                 • 點數價值：<strong>$1 點 = NT$1 元</strong><br>
@@ -53,7 +53,7 @@
             </div>
             <div class="point-badge">
                 <p style="margin:0; font-size:15px; opacity:0.8;">目前可用點數</p>
-                <h1 id="userPoints">0 pt</h1>
+                <h1 id="userPoints">0 點</h1>
             </div>
             <button class="btn-share" onclick="handleShare()">推薦好友領招待禮</button>
         </div>
@@ -74,7 +74,7 @@
                 <input type="text" id="regName" placeholder="請輸入姓名">
                 <label>手機號碼</label>
                 <input type="tel" id="regPhone" placeholder="09xxxxxxxx">
-                <label>生日 (領取壽星優惠)</label>
+                <label>生日 (領取壽星優惠/註冊後不可修改)</label>
                 <input type="date" id="regBirth" value="2000-01-01">
                 <label class="check-group">
                     <input type="checkbox" id="checkRights">
@@ -138,8 +138,14 @@
         document.getElementById('ui-guest').style.display = 'block';
         const urlParams = new URLSearchParams(window.location.search);
         const rid = urlParams.get('referrerId') || myId;
-        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${rid}`;
+        // 關鍵修改：如果是被推薦人，生成的碼要帶有 GIFT_BY_ 前綴
+    if (rid) {
+        document.getElementById('guestQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GIFT_BY_${rid}`;
+    } else {
+        // 如果連推薦人都沒有，就單純顯示註冊 QR (可不顯示碼)
+        document.getElementById('guestQr').style.display = 'none';
     }
+}
 
     // 1. 這段負責讓客人在打字時「自動跳出連字號」 (放在 register 函數外面)
 document.getElementById('regPhone').addEventListener('input', function (e) {
