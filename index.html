@@ -5,16 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>老娘的一點心意｜會員中心</title>
     
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/oldmapot/Member_Master/assets/brand-style.css">
     <script>
-        // 立即執行：防止主題閃爍
         (function() {
             const params = new URLSearchParams(window.location.search);
-            const brand = params.get('from') || 'pot';
+            // 優先順序：網址參數 > 瀏覽器紀錄(localStorage) > 預設(pot)
+            let brand = params.get('from') || localStorage.getItem('user_brand_choice') || 'pot';
+            
+            // 如果網址有帶參數，就存進紀錄，下次進來沒參數也能反應
+            if (params.get('from')) {
+                localStorage.setItem('user_brand_choice', params.get('from'));
+            }
+
+            // 立刻幫 HTML 穿衣服，這時候 body 都還沒跑出來，所以不會閃
             document.documentElement.className = (brand === 'sweet') ? 'theme-sweet' : 'theme-pot';
             window.currentBrand = brand;
         })();
     </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/oldmapot/Member_Master/assets/brand-style.css">
     <script src="https://cdn.jsdelivr.net/gh/oldmapot/Member_Master/assets/brand-logic.js"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
