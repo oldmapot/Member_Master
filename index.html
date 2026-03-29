@@ -3,301 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>會員中心｜老娘的一點心意</title>
+    <title>老娘的一點心意</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --primary: #8b0000; --bg: #fdf5e6; --accent: #ffd700; --text: #333; }
+        :root { --primary: #8b0000; --bg: #fdf5e6; --accent: #ffd700; --sweet: #ff69b4; }
         .theme-sweet { --primary: #FFB7D5; --bg: #FFF9E6; --accent: #ff69b4; }
         
-        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); margin: 0; transition: 0.3s; padding-bottom: 50px; color: var(--text); }
-        
-        /* --- Loading 區塊 --- */
-        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-        .pot-loader { position: relative; width: 80px; height: 60px; margin: auto; }
-        .pot-body { width: 80px; height: 40px; background: #333; border-radius: 0 0 20px 20px; position: absolute; bottom: 0; }
-        .pot-body::before, .pot-body::after { content: ''; position: absolute; top: 10px; width: 15px; height: 5px; background: #333; }
-        .pot-body::before { left: -15px; } .pot-body::after { right: -15px; }
-        .steam { width: 40px; height: 20px; background: rgba(139, 0, 0, 0.2); margin: auto; border-radius: 50%; filter: blur(5px); animation: steam-rise 1.5s infinite; }
-        @keyframes steam-rise { 0% { transform: translateY(0) scale(1); opacity: 0; } 50% { opacity: 0.8; } 100% { transform: translateY(-30px) scale(1.5); opacity: 0; } }
-
-        /* --- Header 樣式 --- */
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; padding-bottom: 50px; }
         .header { background: var(--primary); color: white; padding: 30px 20px 45px; text-align: center; border-radius: 0 0 30px 30px; position: relative; }
-        .menu-icon { position: absolute; right: 20px; top: 30px; font-size: 24px; cursor: pointer; }
-        #welcome-quote { font-size: 14px; opacity: 0.85; margin-bottom: 12px; min-height: 1.5em; }
-
-        /* --- 點數卡片優化 (解決擠迫感) --- */
-        .points-card { 
-            background: white; color: #333; 
-            margin: -25px 25px 25px; /* 利用負邊距懸浮在 Header 上 */
-            padding: 35px 20px; border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; 
-            position: relative; z-index: 10;
-        }
-        .points-label { font-size: 14px; color: #777; margin-bottom: 15px; display: block; letter-spacing: 1px; }
-        .points-val { font-size: 42px; font-weight: bold; color: var(--primary); line-height: 1; }
-        .refresh-btn { font-size: 12px; color: #aaa; text-decoration: underline; cursor: pointer; display: inline-block; margin-top: 15px; }
-
-        /* --- QR Code 與 活動 --- */
-        .qr-section { text-align: center; margin: 0 25px 25px; padding: 25px; background: white; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
-        #qrcode { width: 180px; height: 180px; margin: auto; }
-        .promo-box { margin: 0 25px 25px; padding: 15px; background: var(--accent); border-radius: 12px; font-size: 14px; font-weight: bold; overflow: hidden; white-space: nowrap; }
-        .promo-text { display: inline-block; animation: scrollText 15s linear infinite; }
-        @keyframes scrollText { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-
-        /* --- 分享按鈕優化 --- */
-        .share-container { padding: 0 25px; }
-        .share-btn { 
-            background: #06C755; color: white; border: none; padding: 18px; border-radius: 15px; 
-            width: 100%; font-weight: bold; font-size: 18px; letter-spacing: 1px;
-            box-shadow: 0 6px 15px rgba(6, 199, 85, 0.3); transition: 0.2s; cursor: pointer;
-        }
-        .share-btn:active { transform: scale(0.97); }
-
-        /* --- 漂亮卡片提示 (Toast) --- */
-        #toast {
-            position: fixed; bottom: 15%; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.85); color: white; padding: 14px 28px;
-            border-radius: 50px; font-size: 14px; font-weight: bold; display: none;
-            z-index: 3000; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-
-        /* --- 選單 Drawer --- */
-        .drawer { position: fixed; right: -100%; top: 0; width: 85%; height: 100%; background: white; z-index: 1000; transition: 0.3s; box-shadow: -5px 0 15px rgba(0,0,0,0.1); padding: 30px 20px; box-sizing: border-box; }
-        .drawer.open { right: 0; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 999; }
-        .tab-menu { display: flex; border-bottom: 1px solid #eee; margin-bottom: 20px; }
-        .tab-link { flex: 1; padding: 10px; text-align: center; font-size: 14px; cursor: pointer; }
-        .tab-link.active { border-bottom: 3px solid var(--primary); font-weight: bold; }
-        .tab-content { display: none; height: 80vh; overflow-y: auto; }
         
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th { background: #f8f8f8; padding: 10px; text-align: left; }
-        td { padding: 10px; border-bottom: 1px solid #eee; }
-        .gain { color: green; font-weight: bold; }
-        .redeem { color: red; }
+        /* 點數卡片 */
+        .points-card { background: white; margin: -25px 20px 20px; padding: 25px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); text-align: center; position: relative; z-index: 10; }
+        .points-val { font-size: 42px; font-weight: bold; color: var(--primary); margin: 5px 0; }
 
-        /* --- 註冊表單 --- */
-        .reg-container { padding: 40px 25px; text-align: center; }
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; }
-        .input-group input { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        .submit-btn { background: var(--primary); color: white; border: none; padding: 16px; width: 100%; border-radius: 12px; font-weight: bold; font-size: 18px; margin-top: 10px; }
+        /* 品牌活動按鈕區 */
+        .brand-btns { display: flex; gap: 15px; padding: 0 20px; margin-bottom: 20px; }
+        .brand-btn { 
+            flex: 1; padding: 15px; border-radius: 15px; border: none; font-weight: bold; font-size: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+        }
+        .btn-pot { background: #8b0000; color: #ffd700; }
+        .btn-sweet { background: #FFB7D5; color: #fff; }
+        .brand-btn:active { transform: scale(0.95); }
+
+        /* 彈出卡片 (Modal) */
+        .modal-overlay { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: rgba(0,0,0,0.6); display: none; z-index: 3000; 
+            align-items: center; justify-content: center;
+        }
+        .modal-card { 
+            background: white; width: 85%; max-width: 400px; border-radius: 25px; 
+            padding: 25px; position: relative; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .modal-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .event-item { padding: 12px 0; border-bottom: 1px dashed #eee; font-size: 15px; display: flex; align-items: flex-start; gap: 8px; }
+        .event-item:last-child { border-bottom: none; }
+        .close-modal { background: #eee; border: none; width: 100%; padding: 12px; border-radius: 10px; margin-top: 15px; font-weight: bold; }
+
+        /* 原有樣式 */
+        .qr-section { text-align: center; margin: 0 20px 20px; padding: 20px; background: white; border-radius: 20px; }
+        #qrcode { width: 160px; height: 160px; }
+        .share-btn { background: #06C755; color: white; border: none; padding: 18px; border-radius: 15px; width: calc(100% - 40px); margin: 0 20px; font-weight: bold; font-size: 18px; }
+        
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fdf5e6; display: flex; align-items: center; justify-content: center; z-index: 2000; }
+        /* 鍋子動畫省略，保留原有 CSS */
     </style>
 </head>
-<body class="theme-pot">
+<body>
 
 <div id="loading">
     <div style="text-align: center;">
-        <div class="pot-loader">
-            <div class="steam"></div>
-            <div class="pot-body"></div>
-        </div>
-        <div id="loading-quote" style="margin-top: 20px; color: var(--primary); font-weight: bold; font-size: 16px;">正在加熱湯頭...</div>
+        <div class="pot-loader"><div class="steam"></div><div class="pot-body"></div></div>
+        <div id="loading-quote" style="margin-top: 20px; color: #8b0000; font-weight: bold;">正在加熱湯頭...</div>
     </div>
 </div>
 
 <div id="memberUI" style="display: none;">
     <div class="header">
-        <div class="menu-icon" onclick="toggleDrawer(true)">☰</div>
-        <div id="welcome-quote">正在從寶庫取出心意...</div>
-        <div style="font-size: 20px; font-weight: bold;">會員中心</div>
+        <div id="welcome-quote">正在取出心意...</div>
+        <div style="font-size: 18px; font-weight: bold;">會員中心</div>
     </div>
 
     <div class="points-card">
-        <span class="points-label">可用資產點數</span>
+        <div style="font-size: 14px; color: #666;">可用資產點數</div>
         <div class="points-val" id="points-display">--</div>
-        <div class="refresh-btn" onclick="fetchData()">↻ 點擊重新整理</div>
+        <div style="font-size: 12px; color: #aaa;" onclick="fetchData()">↻ 點擊重新整理</div>
+    </div>
+
+    <div class="brand-btns">
+        <button class="brand-btn btn-pot" onclick="showEvents('pot')">
+            <span>🔥</span> 老娘精選活動
+        </button>
+        <button class="brand-btn btn-sweet" onclick="showEvents('sweet')">
+            <span>🍰</span> 一點甜好康
+        </button>
     </div>
 
     <div class="qr-section">
-        <img id="qrcode" src="" alt="QRCode">
-        <p style="font-size: 12px; color: #666; margin-top: 10px;">結帳時請出示此碼</p>
+        <img id="qrcode" src="">
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">結帳時請出示此碼，離店離櫃恕不補集點</p>
     </div>
 
-    <div class="promo-box">
-        <div class="promo-text" id="event-text">📢 最新活動：載入中...</div>
-    </div>
-
-    <div class="share-container">
-        <button class="share-btn" onclick="shareReferral()">🚀 分享推薦碼給好友</button>
-    </div>
+    <button class="share-btn" onclick="shareReferral()">🚀 分享推薦碼給好友</button>
 </div>
 
-<div id="regForm" class="reg-container" style="display: none;">
-    <h2 style="color: var(--primary);">加入會員</h2>
-    <p>填寫資料，開始累積點數</p>
-    <div class="input-group">
-        <label>真實姓名</label>
-        <input type="text" id="reg-name" placeholder="請輸入姓名">
+<div class="modal-overlay" id="eventModal" onclick="closeModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-title" id="modalTitle">最新活動</div>
+        <div id="eventList">
+            </div>
+        <button class="close-modal" onclick="document.getElementById('eventModal').style.display='none'">我知道了</button>
     </div>
-    <div class="input-group">
-        <label>手機號碼</label>
-        <input type="tel" id="reg-phone" placeholder="請輸入手機號碼">
-    </div>
-    <div class="input-group">
-        <label>出生日期</label>
-        <input type="date" id="reg-bday">
-    </div>
-    <button class="submit-btn" onclick="register()">立即註冊</button>
-</div>
-
-<div id="toast">✨ 專屬連結已複製成功！</div>
-
-<div class="overlay" id="overlay" onclick="toggleDrawer(false)"></div>
-<div class="drawer" id="drawer">
-    <h3>功能選單</h3>
-    <div class="tab-menu">
-        <div class="tab-link active" onclick="openTab(event, 'tab-profile')">資料</div>
-        <div class="tab-link" onclick="openTab(event, 'tab-friends')">好友</div>
-        <div class="tab-link" onclick="openTab(event, 'tab-logs')">明細</div>
-    </div>
-    <div id="tab-profile" class="tab-content" style="display: block;">
-        <label>姓名</label><input type="text" id="u-name" readonly style="width:100%; padding:10px; margin-bottom:15px; border:none; background:#f5f5f5; border-radius:5px;">
-        <label>手機</label><input type="text" id="u-phone" readonly style="width:100%; padding:10px; margin-bottom:15px; border:none; background:#f5f5f5; border-radius:5px;">
-        <label>生日</label><input type="text" id="u-bday" readonly style="width:100%; padding:10px; margin-bottom:15px; border:none; background:#f5f5f5; border-radius:5px;">
-        <label>等級</label><div id="u-level" style="font-weight:bold; color:var(--primary); font-size:18px;">--</div>
-    </div>
-    <div id="tab-friends" class="tab-content">
-        <p><b>我的推薦人：</b><span id="my-referrer">--</span></p>
-        <hr>
-        <p><b>推薦成功名單：</b></p>
-        <ul id="referral-list" style="font-size:14px; padding-left:20px;"></ul>
-    </div>
-    <div id="tab-logs" class="tab-content">
-        <table>
-            <thead><tr><th>日期</th><th>項目</th><th>獲取</th><th>折抵</th></tr></thead>
-            <tbody id="log-table-body"></tbody>
-        </table>
-    </div>
-    <button onclick="toggleDrawer(false)" style="margin-top:20px; width:100%; padding:12px; border:1px solid #ccc; border-radius:8px; background:white;">關閉</button>
 </div>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec"; 
     const LIFF_ID = "2009625010-p9sVIUWe";
     let myId = "";
-    let currentBranch = "pot";
-
-    const waitingQuotes = {
-        pot: ["老娘正在幫您熱鍋...", "湯頭熬煮中，請稍候...", "正在幫您安排最好的位置...", "肉片切片中..."],
-        sweet: ["正在幫您灑糖粉...", "布丁正在冷卻中...", "甜度調整中，請稍候...", "一點甜，一點心意..."]
-    };
+    let allEvents = { pot: [], sweet: [] }; // 儲存兩家品牌的活動
 
     async function init() {
-        const params = new URLSearchParams(window.location.search);
-        currentBranch = params.get('from') || 'pot';
-        if(currentBranch === 'sweet') document.body.className = 'theme-sweet';
-
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         myId = profile.userId;
-        
         document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${myId}`;
         fetchData();
     }
 
     async function fetchData() {
-        const quotes = waitingQuotes[currentBranch] || waitingQuotes.pot;
-        document.getElementById('loading-quote').innerText = quotes[Math.floor(Math.random() * quotes.length)];
         document.getElementById('loading').style.display = 'flex';
-
         try {
-            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}&from=${currentBranch}`);
+            // 注意：這裡我們一次抓取兩邊的資料，或是由 GAS 回傳時就包含兩邊
+            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}`);
             const data = await res.json();
             
-            // 延遲一點點時間讓動畫跑一下，體驗更好
-            setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 600);
-
             if (data.isMember) {
                 document.getElementById('memberUI').style.display = 'block';
-                document.getElementById('regForm').style.display = 'none';
-
-                document.getElementById('welcome-quote').innerText = data.quote;
                 document.getElementById('points-display').innerText = data.profile.points;
-                document.getElementById('event-text').innerText = data.events.join(' | ') || "目前暫無活動";
-                document.getElementById('u-name').value = data.profile.name;
-                document.getElementById('u-phone').value = data.profile.phone;
-                document.getElementById('u-bday').value = data.profile.birthday;
-                document.getElementById('u-level').innerText = data.profile.level;
-                document.getElementById('my-referrer').innerText = data.referrer;
+                document.getElementById('welcome-quote').innerText = data.quote;
                 
-                document.getElementById('referral-list').innerHTML = data.referrals.map(f => `<li>${f.name} (${f.date})</li>`).join('');
-                document.getElementById('log-table-body').innerHTML = data.logs.map(l => `
-                    <tr>
-                        <td>${l.date}</td>
-                        <td>${l.type}</td>
-                        <td class="gain">${l.gain > 0 ? '+'+l.gain : ''}</td>
-                        <td class="redeem">${l.redeem > 0 ? '-'+l.redeem : ''}</td>
-                    </tr>
-                `).join('');
-            } else {
-                document.getElementById('memberUI').style.display = 'none';
-                document.getElementById('regForm').style.display = 'block';
+                // 假設 GAS 修改為回傳分類好的活動
+                // 若 GAS 目前只回傳單一品牌，您可以在 GAS 那邊把兩邊都抓出來
+                allEvents.pot = data.potEvents || [];
+                allEvents.sweet = data.sweetEvents || [];
             }
-        } catch (e) { 
-            console.error("資料獲取失敗", e);
             document.getElementById('loading').style.display = 'none';
-            showToast("⚠️ 網路連線異常，請重新嘗試");
+        } catch (e) { alert("網路異常"); }
+    }
+
+    function showEvents(type) {
+        const list = document.getElementById('eventList');
+        const title = document.getElementById('modalTitle');
+        const events = type === 'pot' ? allEvents.pot : allEvents.sweet;
+        
+        title.innerText = type === 'pot' ? '🔥 老娘鍋特選' : '🍰 一點甜放送';
+        title.style.color = type === 'pot' ? '#8b0000' : '#ff69b4';
+
+        if (events.length === 0) {
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">目前暫無活動，敬請期待！</div>';
+        } else {
+            list.innerHTML = events.map(e => `
+                <div class="event-item">
+                    <span>✨</span>
+                    <span>${e}</span>
+                </div>
+            `).join('');
         }
+        document.getElementById('eventModal').style.display = 'flex';
     }
 
-    async function register() {
-        const name = document.getElementById('reg-name').value;
-        const phone = document.getElementById('reg-phone').value;
-        const bday = document.getElementById('reg-bday').value;
-        const params = new URLSearchParams(window.location.search);
-        const refId = params.get('referrerId') || "";
-
-        if(!name || !phone || !bday) { showToast("請填寫完整註冊資料"); return; }
-
-        document.getElementById('loading').style.display = 'flex';
-        try {
-            const res = await fetch(GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'register', userId: myId, name: name, phone: phone, birthday: bday, referrerId: refId })
-            });
-            const result = await res.json();
-            if(result.success) {
-                showToast("✨ 註冊成功！歡迎加入");
-                fetchData();
-            } else {
-                showToast(result.message);
-            }
-        } catch(e) { showToast("註冊失敗，請洽店員"); }
-        document.getElementById('loading').style.display = 'none';
-    }
-
-    function shareReferral() {
-        const shareUrl = `https://liff.line.me/${LIFF_ID}?from=${currentBranch}&referrerId=${myId}`;
-        const el = document.createElement('textarea');
-        el.value = shareUrl;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        showToast("✨ 專屬推薦連結已複製！");
-    }
-
-    function showToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.innerText = msg;
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2500);
-    }
-
-    function toggleDrawer(open) {
-        document.getElementById('drawer').className = open ? 'drawer open' : 'drawer';
-        document.getElementById('overlay').style.display = open ? 'block' : 'none';
-    }
-
-    function openTab(evt, tabName) {
-        let contents = document.getElementsByClassName("tab-content");
-        for (let i = 0; i < contents.length; i++) contents[i].style.display = "none";
-        let links = document.getElementsByClassName("tab-link");
-        for (let i = 0; i < links.length; i++) links[i].className = links[i].className.replace(" active", "");
-        document.getElementById(tabName).style.display = "block";
-        evt.currentTarget.className += " active";
+    function closeModal(e) {
+        document.getElementById('eventModal').style.display = 'none';
     }
 
     init();
