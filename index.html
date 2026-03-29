@@ -201,7 +201,7 @@
         <button class="event-brand-btn" onclick="openEventsByBrand('一點甜')">🍰 一點甜好康</button>
     </div>
 
-    <button class="share-btn" onclick="shareRecommend()">🚀 分享推薦碼，享好友消費回饋</button>
+    <button class="share-btn" onclick="shareRecommend()">🚀 分享推薦碼</button>
 </div>
 
 <div id="regUI" style="display:none">
@@ -221,7 +221,7 @@
         <input id="regPhone" class="reg-input" placeholder="0900-000-000" maxlength="12">
     </div>
     <div class="reg-item">
-        <div class="reg-label">生日（享生日專屬優惠，註冊後無法修改）</div>
+        <div class="reg-label">生日（無法修改）</div>
         <input type="date" id="regBirthday" class="reg-input">
     </div>
     <button class="reg-btn" onclick="doRegister()">完成註冊</button>
@@ -291,14 +291,13 @@ async function fetchData(showReloadToast = false) {
     const data = await response.json();
     userData = data;
     
-    // ===== 問題1修復：載入中顯示文句池C欄文字 =====
+    // 問題1修復：載入中顯示文句池C欄文字（在收到資料後立即顯示）
     if(userData.loadingTexts && userData.loadingTexts.length > 0) {
       const randomIndex = Math.floor(Math.random() * userData.loadingTexts.length);
       document.getElementById('loading-text').innerText = userData.loadingTexts[randomIndex];
     } else {
       document.getElementById('loading-text').innerText = '✨ 為您準備驚喜中 ✨';
     }
-    // ===========================================
     
     if(!userData.isMember) {
       document.getElementById('loading').style.display = 'none';
@@ -329,7 +328,7 @@ async function fetchData(showReloadToast = false) {
   }
 }
 
-// ===== 問題3修復：個人資料點擊有反應 =====
+// 問題3修復：個人資料（補齊完整邏輯）
 function openProfile(){
   if(!userData || !userData.profile) {
     showToast('無法讀取個人資料');
@@ -346,7 +345,6 @@ function openProfile(){
     </div>`;
   openModal('👤 個人資料', content);
 }
-// ===================================
 
 function openReferral(){
   if(!userData) { showToast('無法讀取推薦資料'); return; }
@@ -357,10 +355,10 @@ function openReferral(){
 function openHistory(){
   if(!userData) { showToast('無法讀取點數明細'); return; }
   let rows = userData.history?.length ? userData.history.map(h=>`<tr><td>${escapeHtml(h.date)}</td><td style="color:green">${h.gain}</td><td style="color:#06C755">${h.share||0}</td><td style="color:red">${h.spend||0}</td></tr>`).join('') : '<tr><td colspan="4">尚無點數紀錄</td></tr>';
-  openModal('📜 點數明細', `<table style="width:100%"><thead><tr><th>日期</th><th>本人獲取點</th><th>朋友回饋點</th><th>折抵</th></tr></thead><tbody>${rows}</tbody></table>`);
+  openModal('📜 點數明細', `<table style="width:100%"><thead><tr><th>日期</th><th>本人獲取</th><th>朋友回饋</th><th>折抵</th></tr></thead><tbody>${rows}</tbody></table>`);
 }
 
-// ===== 問題2修復：分享使用 LIFF shareTargetPicker =====
+// 問題2修復：純LIFF卡片分享，不要複製備案
 async function shareRecommend() {
   if(!userId) {
     showToast('請稍後再試');
@@ -368,27 +366,22 @@ async function shareRecommend() {
   }
   const branchName = currentFrom === 'so' ? '一點甜' : '老娘鍋';
   const link = `https://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
-  const shareText = `✨ 發現高雄隱藏版美味 ✨\n${currentFrom === 'so' ? '🍦 一點甜' : '🍲 老娘鍋'} 專屬招待\n這是我專屬的推薦碼\n立即加入會員領取新客招待禮\n消費再享點數回饋！\n\n👉 點我領取：${link}`;
+  const shareText = `✨ 發現${branchName}隱藏版美味 ✨\n${currentFrom === 'so' ? '🍦 一點甜' : '🍲 老娘鍋'} 專屬招待\n這是我專屬的推薦碼\n立即加入會員領取新客招待禮\n消費再享點數回饋！\n\n👉 點我領取：${link}`;
   
   try {
-    if (liff.isApiAvailable('shareTargetPicker')) {
-      await liff.shareTargetPicker([
-        {
-          type: 'text',
-          text: shareText
-        }
-      ]);
-    } else {
-      // 如果 shareTargetPicker 不支援，改用複製連結
-      await navigator.clipboard.writeText(link);
-      showToast('✅ 連結已複製，可貼給好友');
-    }
+    // 直接使用 shareTargetPicker，不做任何複製備案
+    await liff.shareTargetPicker([
+      {
+        type: 'text',
+        text: shareText
+      }
+    ]);
+    // 成功開啟分享視窗，不顯示任何toast
   } catch (err) {
-    console.error('分享錯誤:', err);
+    console.error('shareTargetPicker error:', err);
     showToast('❌ 分享失敗，請稍後再試');
   }
 }
-// ===============================================
 
 async function doRegister(){
   const name = document.getElementById('regName').value.trim();
