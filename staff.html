@@ -122,8 +122,7 @@ async function init() {
     }
 }
 
-async function handleScan() {
-    try {
+try {
         const result = await liff.scanCodeV2();
         if (!result || !result.value) return;
 
@@ -132,15 +131,14 @@ async function handleScan() {
             window.openBrandLoading("老娘正在查詢會員資料...");
         }
 
-        customerId = result.value;
-        const rawID = String(customerId);
+        const rawID = String(result.value); // 統一使用原始掃描值進行判斷
 
-        // 判斷是否為新客招待禮
+        // 判斷是否為新客招待禮 (優先判斷)
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
             // --- 查詢結束：關閉 Loading ---
             if (window.closeBrandLoading) window.closeBrandLoading();
 
-            customerId = "";
+            customerId = ""; // 清空全域變數，避免誤刷
             document.getElementById('member-ui').style.display = 'none';
             document.getElementById('form-ui').classList.add('locked');
 
@@ -153,7 +151,11 @@ async function handleScan() {
             return; 
         }
 
+        // --- 關鍵修正：確保是一般會員 ID 才賦值並查詢 ---
+        customerId = rawID; 
+
         // 向 GAS 發送查詢請求
+        // 注意：這裡確保使用的是剛剛賦值的 customerId
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
         
@@ -172,7 +174,7 @@ async function handleScan() {
             showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
         }
     } catch (err) {
-        // 出錯或取消也要確保 Loading 關閉，才不會卡死畫面
+        // 出錯或取消也要確保 Loading 關閉
         if (window.closeBrandLoading) window.closeBrandLoading();
         console.log("掃描取消或出錯:", err.message);
     }
