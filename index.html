@@ -225,8 +225,8 @@
         <button class="event-brand-btn" onclick="openEventsByBrand('一點甜')">🍰 一點甜好康</button>
     </div>
 
-    <!-- 分享推薦碼 -->
-    <button class="share-btn" onclick="autoCopyShare()">🚀 分享推薦碼</button>
+    <!-- 分享推薦碼（直接開啟LINE分享視窗） -->
+    <button class="share-btn" onclick="shareRecommend()">🚀 分享推薦碼</button>
 </div>
 
 <!-- 註冊頁 -->
@@ -269,12 +269,12 @@
 
 <script>
 // ---------- 全域變數 ----------
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";  // 請確認此為正確的部署網址
-const LIFF_ID = "2009625010-p9sVIUWe";    // 你的 LIFF ID
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
+const LIFF_ID = "2009625010-p9sVIUWe";
 
 let userId = '';
-let userData = null;       // 存放會員完整資料
-let currentFrom = 'om';    // om 或 so
+let userData = null;
+let currentFrom = 'om';
 let referrerParam = '';
 
 // ---------- 輔助函數 ----------
@@ -285,7 +285,6 @@ function showToast(msg){
   setTimeout(()=>{ t.style.display = 'none'; }, 2200);
 }
 
-// 手機格式自動格式化
 function setupPhoneInput() {
   const phoneInput = document.getElementById('regPhone');
   if(phoneInput) {
@@ -298,7 +297,6 @@ function setupPhoneInput() {
   }
 }
 
-// 關閉 Modal
 function closeModal(){ 
   const modalDiv = document.getElementById('modal');
   if(modalDiv) modalDiv.style.display='none'; 
@@ -310,7 +308,6 @@ function closeModal(){
   if(closeBtn) closeBtn.innerText = '關閉';
 }
 
-// 開啟通用彈窗
 function openModal(title, contentHtml, closeText = '關閉') {
   document.getElementById('modalTitle').innerText = title;
   document.getElementById('modalBody').innerHTML = contentHtml;
@@ -318,7 +315,6 @@ function openModal(title, contentHtml, closeText = '關閉') {
   document.getElementById('modal').style.display = 'flex';
 }
 
-// 依品牌顯示優惠活動
 function openEventsByBrand(brand) {
   if(!userData) {
     showToast('請稍後再試');
@@ -341,7 +337,47 @@ function openEventsByBrand(brand) {
   openModal(`${brand} 精選活動`, contentHtml);
 }
 
-// ---------- 主要資料擷取 (修正載入等候詞顯示) ----------
+// ========== 新版分享功能：直接開啟 LINE 分享視窗 ==========
+async function shareRecommend() {
+  if(!userId) {
+    showToast('請稍後再試');
+    return;
+  }
+  
+  const branchName = currentFrom === 'so' ? '一點甜' : '老娘鍋';
+  const link = `https://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
+  
+  // 分享內容
+  const shareText = `✨ 發現高雄隱藏版美味 ✨
+${currentFrom === 'so' ? '🍦 一點甜' : '🍲 老娘鍋'} 專屬招待
+這是我專屬的推薦碼
+立即加入會員領取新客招待禮
+消費再享點數回饋！`;
+  
+  try {
+    // 使用 LIFF 的 shareTargetPicker 開啟原生分享視窗
+    await liff.shareTargetPicker([
+      {
+        type: "text",
+        text: `${shareText}\n\n👉 點我領取：${link}`
+      }
+    ]);
+    
+    // 分享成功後顯示提示（非強制，使用者可能取消）
+    showToast('✅ 已開啟分享視窗');
+  } catch (err) {
+    console.error('分享失敗:', err);
+    // 如果 shareTargetPicker 失敗，改用備用方案：複製連結
+    const fallbackMsg = `✨ 發現${branchName}隱藏版美味 ✨\n${link}`;
+    navigator.clipboard.writeText(fallbackMsg).then(() => {
+      showToast('✅ 連結已複製，可貼給好友');
+    }).catch(() => {
+      showToast('❌ 分享失敗，請手動複製連結');
+    });
+  }
+}
+// ========== 分享功能結束 ==========
+
 async function fetchData(showReloadToast = false) {
   if(!userId) {
     showToast('❌ 尚未登入，請重新開啟畫面');
@@ -349,7 +385,6 @@ async function fetchData(showReloadToast = false) {
   }
   
   try {
-    // 加入時間戳避免快取
     const url = `${GAS_URL}?action=checkID&userId=${encodeURIComponent(userId)}&from=${encodeURIComponent(currentFrom)}&t=${Date.now()}`;
     const response = await fetch(url, { 
       method: 'GET',
@@ -360,31 +395,20 @@ async function fetchData(showReloadToast = false) {
     if(!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     
-    // 若回傳結構異常
     if(!data || typeof data !== 'object') throw new Error('伺服器回應格式錯誤');
     
     userData = data;
     
-    // ========== 問題1修復：顯示載入等候詞（文句池C欄） ==========
-    // 只要有 loadingTexts 就隨機顯示，否則顯示預設文字
+    // 顯示載入等候詞（文句池C欄）
     if(userData.loadingTexts && userData.loadingTexts.length > 0) {
       const randomIdx = Math.floor(Math.random() * userData.loadingTexts.length);
       const loadingTextElem = document.getElementById('loading-text');
       if(loadingTextElem) {
         loadingTextElem.innerText = userData.loadingTexts[randomIdx];
       }
-    } else {
-      // 如果後端沒有回傳，使用預設（但保持載入畫面繼續）
-      const loadingTextElem = document.getElementById('loading-text');
-      if(loadingTextElem && loadingTextElem.innerText === '✨ 載入中，請稍候 ✨') {
-        // 保持預設不覆蓋
-      }
     }
-    // ========== 修復結束 ==========
     
-    // 判斷是否為會員
     if(!userData.isMember) {
-      // 未註冊: 顯示註冊頁
       document.getElementById('loading').style.display = 'none';
       document.getElementById('regUI').style.display = 'block';
       document.getElementById('memberUI').style.display = 'none';
@@ -392,7 +416,6 @@ async function fetchData(showReloadToast = false) {
       document.getElementById('regTitle').innerText = regTitle;
       document.getElementById('regSubtitle').innerHTML = '填寫資料即可累積點數、兌換優惠';
       
-      // 若有推薦人參數則顯示推薦人QR
       if(referrerParam && referrerParam !== '') {
         const refBox = document.getElementById('refQrBox');
         if(refBox) {
@@ -407,16 +430,13 @@ async function fetchData(showReloadToast = false) {
       return;
     }
     
-    // 已註冊會員: 渲染會員畫面
     if(userData.profile) {
       document.getElementById('pointsDisplay').innerText = userData.profile.points ?? 0;
     } else {
       document.getElementById('pointsDisplay').innerText = '0';
     }
-    // 歡迎詞
     const welcomeQuoteText = userData.welcomeQuote || (currentFrom === 'so' ? '🍰 今天來一點甜吧！' : '🍲 老娘鍋暖心招待');
     document.getElementById('welcomeQuote').innerText = welcomeQuoteText;
-    // QR code (會員識別碼)
     const qrCodeImg = document.getElementById('qrcode');
     if(qrCodeImg) {
       qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(userId)}`;
@@ -431,11 +451,9 @@ async function fetchData(showReloadToast = false) {
   } catch(err) {
     console.error('載入會員資料失敗:', err);
     document.getElementById('loading').style.display = 'none';
-    // 顯示錯誤但嘗試顯示註冊介面或錯誤訊息
     document.getElementById('regUI').style.display = 'block';
     document.getElementById('memberUI').style.display = 'none';
     showToast('⚠️ 網路連線異常，請確認網路後重新整理');
-    // 還是給予註冊介面，避免完全死機
     const regTitle = currentFrom === 'so' ? '一點甜 會員註冊' : '老娘鍋 會員註冊';
     document.getElementById('regTitle').innerText = regTitle;
     document.getElementById('regSubtitle').innerHTML = '伺服器連線不穩，請稍後再試';
@@ -444,7 +462,6 @@ async function fetchData(showReloadToast = false) {
   }
 }
 
-// 會員中心四大功能
 function openProfile(){
   if(!userData || !userData.profile) return showToast('無法讀取個人資料');
   const p = userData.profile;
@@ -493,7 +510,7 @@ function openHistory(){
       </tr>
     `).join('');
   } else {
-    rowsHtml = '<tr><td colspan="4">尚無點數紀錄</td></tr>';
+    rowsHtml = '<tr><td colspan="4">尚無點數紀錄<\/td><\/tr>';
   }
   const content = `
     <table style="width:100%;border-collapse:collapse;">
@@ -505,31 +522,6 @@ function openHistory(){
   openModal('📜 點數明細', content);
 }
 
-// 分享推薦碼
-function autoCopyShare(){
-  const branchName = currentFrom === 'so' ? '一點甜' : '老娘鍋';
-  const link = `https://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
-  const shareText = `✨ 發現${branchName}隱藏版美味 ✨
-${currentFrom === 'so' ? '🍦 一點甜' : '🍲 老娘鍋'} 專屬招待
-這是我專屬的推薦碼
-立即加入會員領取新客招待禮
-消費再享點數回饋！
-
-👉 點我領取：${link}
-`;
-  navigator.clipboard.writeText(shareText).then(()=>{
-    const successHtml = `
-      <div class="share-success-card">
-        <h3>推薦碼已自動複製！</h3>
-        <p>趕快請好友領取新客招待禮，他消費你領回饋，別錯過～</p>
-      </div>`;
-    openModal('✅ 分享成功', successHtml, '關閉');
-  }).catch(()=>{
-    showToast('❌ 複製失敗，請手動複製');
-  });
-}
-
-// ========== 問題3修復：註冊功能（增加詳細錯誤訊息） ==========
 async function doRegister(){
   const name = document.getElementById('regName').value.trim();
   let phoneRaw = document.getElementById('regPhone').value.trim();
@@ -538,11 +530,9 @@ async function doRegister(){
   if(!name) return showToast('❌ 請填寫姓名');
   if(!birthday) return showToast('❌ 請選擇生日');
   
-  // 手機格式嚴格檢查 09XX-XXX-XXX
   const phoneRegex = /^09\d{2}-\d{3}-\d{3}$/;
   if(!phoneRegex.test(phoneRaw)) return showToast('❌ 手機格式錯誤，請輸入 09XX-XXX-XXX');
   
-  // 移除連接線轉純數字送給後端
   const phoneNumber = phoneRaw.replace(/-/g, '');
   
   const payload = {
@@ -555,16 +545,12 @@ async function doRegister(){
     from: currentFrom
   };
   
-  // 顯示載入狀態
   const regBtn = document.querySelector('#regUI .reg-btn');
   const originalText = regBtn.innerText;
   regBtn.innerText = '註冊中...';
   regBtn.disabled = true;
   
   try {
-    console.log('發送註冊請求到:', GAS_URL);
-    console.log('請求內容:', payload);
-    
     const response = await fetch(GAS_URL, {
       method: 'POST',
       mode: 'cors',
@@ -573,42 +559,35 @@ async function doRegister(){
       body: JSON.stringify(payload)
     });
     
-    console.log('回應狀態:', response.status);
-    
     if(!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const result = await response.json();
-    console.log('回應內容:', result);
     
     if(result.success){
       showToast('✅ 註冊成功');
-      // 顯示歡迎卡片
       const welcomeHtml = `
         <div class="welcome-card">
           <h2>歡迎加入【老娘的一點心意】🍲🍰</h2>
           <p>不多說，這是老娘留給你的偏心。<br>
           好康、優惠，還有一點甜——只給自己人。<br>
+          <br>
           日子不一定天天完美，<br>
           但一定要有一點甜 💕</p>
         </div>`;
       openModal('🎉 歡迎加入', welcomeHtml, '進入會員中心');
       
-      // 監聽彈窗關閉後重新載入會員資料
       const modalDiv = document.getElementById('modal');
-      const checkModalClose = () => {
+      const observer = new MutationObserver(() => {
         if(modalDiv.style.display === 'none'){
           observer.disconnect();
           fetchData();
         }
-      };
-      const observer = new MutationObserver(checkModalClose);
+      });
       observer.observe(modalDiv, { attributes: true, attributeFilter: ['style'] });
       
-      // 修改關閉按鈕行為
       const closeBtn = document.getElementById('modalCloseBtn');
-      const originalCloseClick = closeBtn.onclick;
       closeBtn.onclick = () => {
         closeModal();
         fetchData();
@@ -624,9 +603,7 @@ async function doRegister(){
     regBtn.disabled = false;
   }
 }
-// ========== 修復結束 ==========
 
-// 簡易防XSS
 function escapeHtml(str) {
   if(!str) return '';
   return str.replace(/[&<>]/g, function(m) {
@@ -634,20 +611,15 @@ function escapeHtml(str) {
     if(m === '<') return '&lt;';
     if(m === '>') return '&gt;';
     return m;
-  }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-    return c;
   });
 }
 
-// LIFF 初始化與主題、參數解析
 async function initLiff() {
-  // 解析 URL 參數
   const urlParams = new URLSearchParams(window.location.search);
   const fromParam = urlParams.get('from') || 'om';
   currentFrom = fromParam;
   referrerParam = urlParams.get('referrer') || '';
   
-  // 主題切換
   if(currentFrom === 'so') {
     document.body.classList.add('theme-sw');
     const loaderDiv = document.getElementById('loader');
@@ -657,7 +629,6 @@ async function initLiff() {
     if(loaderDiv) loaderDiv.className = 'loader-icon om';
   }
   
-  // 設定手機輸入格式化
   setupPhoneInput();
   
   try {
@@ -668,7 +639,6 @@ async function initLiff() {
     }
     const profile = await liff.getProfile();
     userId = profile.userId;
-    // 取得會員資料
     await fetchData(false);
   } catch (err) {
     console.error('LIFF 初始化失敗:', err);
@@ -682,7 +652,6 @@ async function initLiff() {
   }
 }
 
-// 啟動
 initLiff();
 </script>
 </body>
