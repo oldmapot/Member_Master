@@ -111,11 +111,20 @@ async function init() {
         staff = await res.json();
         
         if(staff.success) {
+            // 驗證成功：顯示資料並開放按鈕
             document.getElementById('shop-name').innerText = staff.branch;
             document.getElementById('staff-name').innerText = staff.name;
             document.getElementById('role-text').innerText = staff.role;
+            document.getElementById('scanBtn').disabled = false; // 確保按鈕可用
         } else {
-            alert("權限驗證失敗！");
+            // --- 關鍵修正：驗證失敗，直接鎖死介面 ---
+            document.getElementById('shop-name').innerText = "❌ 無存取權限";
+            document.getElementById('scanBtn').disabled = true;
+            document.getElementById('scanBtn').style.background = "#ccc";
+            document.getElementById('scanBtn').innerText = "權限不足，無法掃描";
+            
+            // 強制彈窗，並在點擊後嘗試關閉視窗
+            showModal("<p style='color:red; font-weight:bold;'>⚠️ 您的ID不適用本功能！<br>請聯絡系統管理員授權。</p>");
         }
     } catch (e) {
         alert("系統啟動失敗: " + e.message);
