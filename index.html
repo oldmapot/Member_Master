@@ -7,8 +7,8 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         /* ===== 品牌全域變數 ===== */
-        .theme-omp { --brand-main: #8b0000; --brand-bg: #fdf5e6; --brand-text: #333; --btn-bg: #8b0000; }
-        .theme-so { --brand-main: #ff69b4; --brand-bg: #FFF9E6; --brand-text: #5D4037; --btn-bg: #ff69b4; }
+        .theme-pot { --brand-main: #8b0000; --brand-bg: #fdf5e6; --brand-text: #333; --btn-bg: #8b0000; }
+        .theme-sweet { --brand-main: #ff69b4; --brand-bg: #FFF9E6; --brand-text: #5D4037; --btn-bg: #ff69b4; }
         
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--brand-bg); margin: 0; padding-bottom: 40px; }
 
@@ -203,7 +203,7 @@
 <!-- 品牌 Loading 遮罩 -->
 <div id="brand-loading-mask">
     <div id="brand-icon-box"></div>
-    <div id="brand-loading-text"></div>
+    <div id="brand-loading-text">載入中...</div>
 </div>
 
 <!-- 會員中心 -->
@@ -220,9 +220,9 @@
             <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
         </div>
         <div class="action-group-right">
-            <button class="action-btn" id="profileBtn">👤 個人資料</button>
-            <button class="action-btn" id="referralBtn">👥 推薦名單</button>
-            <button class="action-btn" id="historyBtn">📜 點數明細</button>
+            <button class="action-btn" onclick="openProfile()">👤 個人資料</button>
+            <button class="action-btn" onclick="openReferral()">👥 推薦名單</button>
+            <button class="action-btn" onclick="openHistory()">📜 點數明細</button>
         </div>
     </div>
 
@@ -232,11 +232,11 @@
     </div>
 
     <div class="events-double">
-        <button class="event-brand-btn" id="omEventsBtn">🍲 老娘精選</button>
-        <button class="event-brand-btn" id="swEventsBtn">🍰 一點甜好康</button>
+        <button class="event-brand-btn" onclick="openEventsByBrand('老娘鍋')">🍲 老娘精選</button>
+        <button class="event-brand-btn" onclick="openEventsByBrand('一點甜')">🍰 一點甜好康</button>
     </div>
 
-    <button class="share-btn" id="shareBtn">🚀 分享推薦碼</button>
+    <button class="share-btn" onclick="shareRecommend()">🚀 分享推薦碼</button>
 </div>
 
 <!-- 註冊頁 -->
@@ -257,33 +257,31 @@
         <input id="regPhone" class="reg-input" placeholder="0900-000-000" maxlength="12">
     </div>
     <div class="reg-item">
-        <div class="reg-label">生日（享生日專屬優惠，註冊後無法修改）</div>
+        <div class="reg-label">生日（無法修改）</div>
         <input type="date" id="regBirthday" class="reg-input">
     </div>
-    <button class="reg-btn" id="registerBtn">完成註冊</button>
+    <button class="reg-btn" onclick="doRegister()">完成註冊</button>
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
         <div class="modal-header" id="modalTitle"></div>
         <div class="modal-body" id="modalBody"></div>
-        <button class="close-btn" id="modalCloseBtn">關閉</button>
+        <button class="close-btn" onclick="closeModal()">關閉</button>
     </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+// ===== 第一階段：立即判斷主題 =====
 (function() {
-    // ===== 判斷主題 =====
     const params = new URLSearchParams(window.location.search);
-    const fromParam = params.get('from');
-    window.currentBrand = fromParam === 'so' ? 'sweet' : 'omp';
-    document.documentElement.className = window.currentBrand === 'so' ? 'theme-so' : 'theme-omp';
-    currentFrom = window.currentBrand;
-    referrerParam = params.get('referrer') || '';
+    window.currentBrand = params.get('from') === 'so' ? 'sweet' : 'pot';
+    document.documentElement.className = (window.currentBrand === 'sweet') ? 'theme-sweet' : 'theme-pot';
 })();
 
+// ===== 全域變數 =====
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
 
@@ -292,6 +290,7 @@ let userData = null;
 let currentFrom = 'pot';
 let referrerParam = '';
 
+// ===== 輔助函數 =====
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -309,52 +308,52 @@ function openModal(title, contentHtml) {
   document.getElementById('modal').style.display = 'flex';
 }
 
-function setLoadingText(text) {
-    const textEl = document.getElementById('brand-loading-text');
-    if (textEl && text) { textEl.innerText = text; }
+function openEventsByBrand(brand) {
+  if(!userData) { showToast('請稍後再試'); return; }
+  let eventsList = brand === '老娘鍋' ? (userData.omEvents || []) : (userData.swEvents || []);
+  let contentHtml = eventsList.length ? eventsList.map(ev => `<div class="event-item">${escapeHtml(ev)}</div>`).join('') : '<div style="padding:40px;text-align:center;color:#999;">✨ 目前暫無活動，敬請期待 ✨</div>';
+  openModal(`${brand === '老娘鍋' ? '🍲' : '🍰'} ${brand} 精選活動`, contentHtml);
 }
 
-const defaultLoadingTexts = {
-    'omp': ['老娘正在準備你的心意...', '火鍋滾了，心意也快好了...', '老娘正在翻帳本，幫你算驚喜...', '湯頭正在滾，心意馬上到...'],
-    'so': ['正在為你的生活，加入一點甜...', '遇見你，就是一點甜...', '捕捉今日份的甜，請稍候片刻...', '心意準備中，等等來點甜的吧！']
-};
-
-async function fetchLoadingTextsOnly() {
-    try {
-        const brandParam = currentFrom === 'sweet' ? 'so' : 'omp';
-        const url = `${GAS_URL}?action=getLoadingTexts&from=${brandParam}&t=${Date.now()}`;
-        const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-        if(response.ok){
-            const data = await response.json();
-            if(data.loadingTexts?.length){
-                const idx = Math.floor(Math.random() * data.loadingTexts.length);
-                setLoadingText(data.loadingTexts[idx]);
-                return;
-            }
-        }
-        const defaults = defaultLoadingTexts[currentFrom] || defaultLoadingTexts['omp'];
-        setLoadingText(defaults[Math.floor(Math.random() * defaults.length)]);
-    } catch(e){
-        const defaults = defaultLoadingTexts[currentFrom] || defaultLoadingTexts['omp'];
-        setLoadingText(defaults[Math.floor(Math.random() * defaults.length)]);
+// ======================
+// 🔥 超快文句池：背景非同步更新，不阻塞載入
+// ======================
+function updateLoadingText(loadingTexts) {
+    const textEl = document.getElementById('brand-loading-text');
+    if (textEl && loadingTexts && loadingTexts.length > 0) {
+        const randomIndex = Math.floor(Math.random() * loadingTexts.length);
+        textEl.innerText = loadingTexts[randomIndex];
     }
 }
 
+// 背景偷偷抓文句池，不會卡畫面
+async function lazyLoadLoadingText() {
+    try {
+        const fromParam = currentFrom === 'sweet' ? 'so' : 'om';
+        const res = await fetch(`${GAS_URL}?action=getLoadingTexts&from=${fromParam}&t=${Date.now()}`);
+        const data = await res.json();
+        updateLoadingText(data.loadingTexts);
+    } catch (e) {
+        console.log('文句池載入略過');
+    }
+}
+
+// ===== 主要資料擷取 =====
 async function fetchData(showReloadToast = false) {
   if(!userId) return;
   try {
-    const url = `${GAS_URL}?action=checkID&userId=${encodeURIComponent(userId)}&from=${currentFrom === 'sweet' ? 'so' : 'omp'}&t=${Date.now()}`;
+    const url = `${GAS_URL}?action=checkID&userId=${encodeURIComponent(userId)}&from=${currentFrom === 'sweet' ? 'so' : 'om'}&t=${Date.now()}`;
     const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
     if(!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     userData = data;
     
-    if(!userData.isMember){
+    if(!userData.isMember) {
       document.getElementById('brand-loading-mask').style.display = 'none';
       document.getElementById('regUI').style.display = 'block';
       document.getElementById('memberUI').style.display = 'none';
-      document.getElementById('regTitle').innerText = currentFrom === 'so' ? '一點甜 會員註冊' : '老娘鍋 會員註冊';
-      if(referrerParam){
+      document.getElementById('regTitle').innerText = currentFrom === 'sweet' ? '一點甜 會員註冊' : '老娘鍋 會員註冊';
+      if(referrerParam) {
         document.getElementById('refQrBox').style.display = 'block';
         document.getElementById('refQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(referrerParam)}`;
       }
@@ -362,32 +361,171 @@ async function fetchData(showReloadToast = false) {
     }
     
     document.getElementById('pointsDisplay').innerText = userData.profile?.points ?? 0;
-    document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || (currentFrom === 'so' ? '🍰 今天來一點甜吧！' : '🍲 老娘鍋暖心招待');
+    document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || (currentFrom === 'sweet' ? '🍰 今天來一點甜吧！' : '🍲 老娘鍋暖心招待');
     document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(userId)}`;
     
+    // 關閉 Loading 遮罩
     const mask = document.getElementById('brand-loading-mask');
-    if(mask){
+    if (mask) {
         mask.style.opacity = '0';
-        setTimeout(()=>mask.style.display='none',400);
+        setTimeout(() => mask.style.display = 'none', 400);
     }
     document.getElementById('memberUI').style.display = 'block';
     document.getElementById('regUI').style.display = 'none';
     if(showReloadToast) showToast('✅ 資料已更新');
-  } catch(err){
+  } catch(err) {
     console.error(err);
-    document.getElementById('brand-loading-mask').style.display='none';
-    document.getElementById('regUI').style.display='block';
-    document.getElementById('memberUI').style.display='none';
+    document.getElementById('brand-loading-mask').style.display = 'none';
+    document.getElementById('regUI').style.display = 'block';
+    document.getElementById('memberUI').style.display = 'none';
     showToast('⚠️ 網路異常，請重新整理');
   }
 }
 
-// ===== 初始化 Loading =====
-fetchLoadingTextsOnly();
+// ===== 個人資料 =====
+function openProfile(){
+  if(!userData || !userData.profile) {
+    showToast('無法讀取個人資料');
+    return;
+  }
+  const p = userData.profile;
+  const content = `
+    <div style="line-height:2.4;font-size:15px">
+      <div><b>姓名：</b>${escapeHtml(p.name || '')}</div>
+      <div><b>手機：</b>${escapeHtml(p.phone || '')}</div>
+      <div><b>生日：</b>${escapeHtml(p.birthday || '')} <span style="color:red">(無法修改)</span></div>
+      <div><b>註冊分店：</b>${escapeHtml(p.branch || (currentFrom === 'sweet' ? '一點甜' : '老娘鍋'))}</div>
+      <div><b>會員等級：</b>${escapeHtml(p.level || '一般會員')}</div>
+    </div>`;
+  openModal('👤 個人資料', content);
+}
 
-// ===== 綁定按鈕事件 =====
-document.getElementById('profileBtn').addEventListener('click', ()=>openModal('個人資料', JSON.stringify(userData?.profile||{},null,2)));
+function openReferral(){
+  if(!userData) { showToast('無法讀取推薦資料'); return; }
+  let list = userData.myReferrals?.length ? userData.myReferrals.map(i=>`<div class="list-row"><span>${escapeHtml(i.name)}</span><span>${escapeHtml(i.date)}</span></div>`).join('') : '<div style="padding:20px;color:#999;text-align:center">尚無推薦的朋友</div>';
+  openModal('👥 推薦名單', `<div style="padding:12px;background:#f9f9f9;border-radius:12px;margin-bottom:16px"><b>我的推薦人：</b> ${userData.myReferrer || '無'}</div><div><b>我推薦的人：</b></div>${list}`);
+}
+
+function openHistory(){
+  if(!userData) { showToast('無法讀取點數明細'); return; }
+  let rows = userData.history?.length ? userData.history.map(h=>`<tr><td>${escapeHtml(h.date)}</td><td style="color:green">${h.gain}</td><td style="color:#06C755">${h.share||0}</td><td style="color:red">${h.spend||0}</td></tr>`).join('') : '<tr><td colspan="4">尚無點數紀錄</td></tr>';
+  openModal('📜 點數明細', `<table style="width:100%"><thead><tr><th>日期</th><th>本人獲取</th><th>朋友回饋</th><th>折抵</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+// ===== LIFF Flex Message 卡片分享 =====
+async function shareRecommend() {
+  if(!userId) {
+    showToast('請稍後再試');
+    return;
+  }
+  const branchName = currentFrom === 'sweet' ? '一點甜' : '老娘鍋';
+  const link = `https://liff.line.me/${LIFF_ID}?from=${currentFrom === 'sweet' ? 'so' : 'om'}&referrer=${userId}`;
+  
+  const flexMessage = {
+    type: "flex",
+    altText: `✨ 發現${branchName}隱藏版美味 ✨`,
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: `✨ 發現${branchName}隱藏版美味 ✨`, weight: "bold", size: "md", align: "center" },
+          { type: "text", text: `${currentFrom === 'sweet' ? '🍦 一點甜' : '🍲 老娘鍋'} 專屬招待`, size: "sm", align: "center", margin: "md" },
+          { type: "text", text: "這是我專屬的推薦碼", size: "sm", align: "center", margin: "md" },
+          { type: "text", text: "立即加入會員領取新客招待禮", size: "sm", align: "center", margin: "md" },
+          { type: "text", text: "消費再享點數回饋！", size: "sm", align: "center", margin: "md" },
+          { type: "button", action: { type: "uri", label: "👉 點我領取 👈", uri: link }, style: "primary", margin: "xl", color: "#06C755" }
+        ]
+      },
+      styles: { body: { backgroundColor: "#ffffff" } }
+    }
+  };
+  
+  try {
+    await liff.shareTargetPicker([flexMessage]);
+  } catch (err) {
+    console.error('shareTargetPicker error:', err);
+    showToast('❌ 分享失敗，請稍後再試');
+  }
+}
+
+// ===== 註冊功能 =====
+async function doRegister(){
+  const name = document.getElementById('regName').value.trim();
+  let phoneRaw = document.getElementById('regPhone').value.trim();
+  const birthday = document.getElementById('regBirthday').value;
+  if(!name) return showToast('❌ 請填寫姓名');
+  if(!birthday) return showToast('❌ 請選擇生日');
+  if(!/^09\d{2}-\d{3}-\d{3}$/.test(phoneRaw)) return showToast('❌ 手機格式錯誤');
+  const payload = { action: 'register', userId, name, phone: phoneRaw.replace(/-/g,''), birthday, referrerId: referrerParam, from: currentFrom === 'sweet' ? 'so' : 'om' };
+  try {
+    const res = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const result = await res.json();
+    if(result.success){
+      showToast('✅ 註冊成功');
+      openModal('🎉 歡迎加入', `<div class="welcome-card"><h2>歡迎加入【老娘的一點心意】🍲🍰</h2><p>不多說，這是老娘留給你的偏心。<br>好康、優惠，還有一點甜——只給自己人。<br>日子不一定天天完美，<br>但一定要有一點甜 💕</p></div>`);
+      const observer = new MutationObserver(() => { if(document.getElementById('modal').style.display === 'none'){ observer.disconnect(); fetchData(); } });
+      observer.observe(document.getElementById('modal'), { attributes: true, attributeFilter: ['style'] });
+      document.querySelector('#modal .close-btn').onclick = () => { closeModal(); fetchData(); };
+    } else { showToast(result.message || '註冊失敗'); }
+  } catch(err) { showToast('❌ 連線失敗'); }
+}
+
+function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+
+function setupPhoneInput() {
+  const phoneInput = document.getElementById('regPhone');
+  if(phoneInput) {
+    phoneInput.addEventListener('input', function(e){
+      let v = e.target.value.replace(/\D/g,'').slice(0,10);
+      if(v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7);
+      else if(v.length > 4) v = v.slice(0,4)+'-'+v.slice(4);
+      e.target.value = v;
+    });
+  }
+}
+
+// ===== 第二階段：載入動畫與品牌設定 =====
+document.addEventListener('DOMContentLoaded', () => {
+    const from = window.currentBrand;
+    const config = {
+        'pot': { icon: 'pot-animation' },
+        'sweet': { icon: 'pudding-animation' }
+    };
+    const active = config[from] || config['pot'];
+    const iconBox = document.getElementById('brand-icon-box');
+    if (iconBox) iconBox.innerHTML = `<div class="${active.icon}"></div>`;
+    currentFrom = from;
+});
+
+// ===== LIFF 初始化（超快版）=====
+async function initLiff() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const fromParam = urlParams.get('from') === 'so' ? 'sweet' : 'pot';
+  currentFrom = fromParam;
+  referrerParam = urlParams.get('referrer') || '';
+  
+  setupPhoneInput();
+
+  // ✅ 重點：這裡不再 await，完全不卡載入速度
+  lazyLoadLoadingText();
+  
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+    userId = profile.userId;
+    await fetchData(false);
+  } catch(err) {
+    console.error(err);
+    document.getElementById('brand-loading-mask').style.display = 'none';
+    document.getElementById('regUI').style.display = 'block';
+    showToast('請在 LINE 中開啟');
+  }
+}
+
+initLiff();
 </script>
-
 </body>
 </html>
