@@ -1,238 +1,382 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>老娘的一點心意</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        :root { --primary: #8b0000; --bg: #fdf5e6; }
-        .theme-sweet { --primary: #ff69b4; --bg: #FFF9E6; }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; padding-bottom: 40px; }
-        
-        /* 1. 載入動畫與文句池 C 欄 */
-        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .pot-animation { width: 60px; height: 35px; background: #333; border-radius: 0 0 25px 25px; position: relative; border: 3px solid #222; }
-        .pot-animation::after { content: '♨'; position: absolute; top: -30px; left: 12px; font-size: 28px; color: #8b0000; animation: steam 1.2s infinite; }
-        .pudding-animation { width: 55px; height: 40px; background: #ffcc00; border-radius: 15px 15px 8px 8px; position: relative; border-top: 10px solid #663300; animation: wobble 0.7s infinite; }
-        @keyframes steam { 0% { opacity:0; transform:translateY(0); } 50% { opacity:1; } 100% { opacity:0; transform:translateY(-20px); } }
-        @keyframes wobble { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>老娘的一點心意</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root { --primary:#8b0000; --bg:#fdf5e6; --card-bg:#fff; --text:#333; --light-text:#666; --success:#06C755; }
+.theme-sw { --primary:#ff69b4; --bg:#FFF9E6; }
+body { font-family:-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg); margin:0; padding-bottom:40px; }
 
-        /* 2. 註冊 UI (含姓名、手機、生日) */
-        #reg-UI { padding: 40px 20px; text-align: center; }
-        .reg-label { display: block; text-align: left; font-size: 13px; color: #888; margin: 10px 0 5px 5px; }
-        .reg-input { width: 100%; padding: 15px; margin-bottom: 5px; border-radius: 15px; border: 2px solid #eee; font-size: 18px; box-sizing: border-box; background: white; }
-        .reg-btn { width: 100%; padding: 18px; background: var(--primary); color: white; border-radius: 15px; font-weight: bold; border: none; font-size: 18px; margin-top: 20px; cursor: pointer; }
+#loading { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:9999; flex-direction:column; gap:20px; }
+.loader-icon { width:60px; height:35px; background:#333; border-radius:0 0 25px 25px; position:relative; border:3px solid #222; }
+.loader-icon.om::after { content:'♨'; position:absolute; top:-30px; left:12px; font-size:28px; color:var(--primary); animation:steam 1.2s infinite; }
+.loader-icon.sw { width:55px; height:40px; background:#ffcc00; border-radius:15px 15px 8px 8px; border-top:10px solid #663300; animation:wobble 0.7s infinite; }
+@keyframes steam { 0%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(-20px)} }
+@keyframes wobble { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
+#loading-text { font-weight:bold; color:var(--primary); font-size:16px; text-align:center; padding:0 20px; }
 
-        /* 3. 會員中心 UI (大標題 32px + 文句池 B 欄) */
-        .header { background: var(--primary); color: white; padding: 45px 20px; text-align: center; border-radius: 0 0 30px 30px; }
-        .main-title { font-size: 32px; font-weight: 900; margin-top: 5px; }
-        #welcome-quote { font-size: 14px; opacity: 0.9; min-height: 20px; }
+.header { background:var(--primary); color:#fff; padding:45px 20px; text-align:center; border-radius:0 0 30px 30px; }
+.welcome-quote { font-size:18px; opacity:0.95; margin-bottom:8px; }
+.main-title { font-size:32px; font-weight:900; }
 
-        .points-card { background: white; margin: -25px 20px 20px; padding: 25px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .points-val { font-size: 42px; font-weight: bold; color: var(--primary); line-height: 1; }
-        .refresh-btn { font-size: 12px; color: #999; background: #f8f8f8; border: 1px solid #eee; padding: 5px 10px; border-radius: 12px; cursor: pointer; margin-top: 10px; }
-        
-        .user-info-right { text-align: right; border-left: 1px solid #eee; padding-left: 15px; flex: 1; }
-        .user-name { font-weight: 900; font-size: 18px; margin-bottom: 4px; color: #333; }
-        .user-level { font-size: 11px; color: white; background: var(--primary); padding: 2px 8px; border-radius: 8px; display: inline-block; }
-        .user-birthday { font-size: 11px; color: #999; margin-top: 5px; }
+.points-card { background:var(--card-bg); margin:-25px 20px 20px; padding:28px 24px; border-radius:24px; box-shadow:0 8px 20px rgba(0,0,0,0.08); display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; }
+.points-left { flex:1; text-align:center; min-width:120px; }
+.points-label { font-size:14px; color:var(--light-text); margin-bottom:6px; }
+.points-value { font-size:48px; font-weight:900; color:var(--primary); line-height:1.1; }
+.refresh-btn { margin-top:12px; padding:8px 16px; border-radius:12px; background:#f7f7f7; border:1px solid #eee; font-size:14px; color:var(--light-text); cursor:pointer; }
 
-        .qr-section { text-align: center; margin: 0 20px 20px; padding: 25px; background: white; border-radius: 20px; }
-        #qrcode { width: 180px; height: 180px; margin-bottom: 12px; }
-        .qr-note { font-size: 14px; color: #666; font-weight: 600; }
+.action-group-right { display:flex; flex-direction:column; gap:10px; width:160px; flex-shrink:0; }
+.action-btn { padding:12px 16px; border-radius:16px; background:#f9f9f9; border:1px solid #eee; font-size:15px; font-weight:bold; text-align:center; cursor:pointer; color:var(--primary); }
 
-        /* 4. 功能按鈕區 */
-        .btn-group { display: flex; gap: 10px; padding: 0 20px; margin-bottom: 12px; }
-        .action-btn { flex: 1; padding: 15px; border-radius: 15px; border: 1.5px solid #ddd; background: white; font-weight: bold; cursor: pointer; font-size: 14px; }
-        .share-btn { background: #06C755; color: white; border: none; padding: 18px; border-radius: 15px; width: calc(100% - 40px); margin: 0 20px; font-weight: bold; font-size: 18px; }
+.qr-section { background:var(--card-bg); margin:0 20px 20px; padding:28px; border-radius:20px; text-align:center; }
+#qrcode { width:180px; height:180px; margin-bottom:12px; border-radius:12px; background:#fff; }
+.qr-note { font-size:14px; color:var(--light-text); font-weight:600; line-height:1.4; }
 
-        /* 5. 彈窗樣式 (表格優化) */
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display: none; z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        .modal-card { background: white; width: 92%; max-width: 400px; border-radius: 25px; overflow: hidden; animation: pop 0.3s; }
-        .modal-header { padding: 18px; font-weight: bold; border-bottom: 1px solid #eee; text-align: center; font-size: 18px; }
-        .modal-body { padding: 15px; max-height: 450px; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: #f8f8f8; padding: 10px; text-align: center; border-bottom: 2px solid #eee; }
-        td { padding: 10px 5px; text-align: center; border-bottom: 1px solid #f0f0f0; }
-        .list-row { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-        @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    </style>
+.events-double { display:flex; gap:15px; margin:0 20px 20px; }
+.event-brand-btn { flex:1; padding:14px; border-radius:16px; background:var(--primary); color:#fff; border:none; font-weight:bold; font-size:16px; cursor:pointer; text-align:center; }
+
+.share-btn { display:block; width:calc(100% - 40px); margin:0 auto; padding:18px; border-radius:20px; background:var(--success); color:#fff; font-weight:bold; font-size:18px; border:none; cursor:pointer; text-align:center; }
+
+#regUI { display:none; padding:40px 24px; }
+.reg-title { color:var(--primary);font-weight:900;text-align:center;font-size:24px;margin-bottom:8px; }
+.reg-subtitle { text-align:center;color:var(--light-text);margin-bottom:30px; }
+.reg-item { margin-top:20px; }
+.reg-label { font-size:13px;color:var(--light-text);margin-bottom:6px; }
+.reg-input { width:100%;padding:16px;border-radius:14px;border:1px solid #ddd;font-size:16px;box-sizing:border-box; }
+.reg-btn { width:100%;padding:18px;background:var(--primary);color:#fff;border:none;border-radius:16px;font-weight:bold;font-size:17px;margin-top:30px;cursor:pointer; }
+
+.ref-qr-box { background:var(--card-bg); padding:20px; border-radius:16px; margin:20px 0; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+.ref-qr-title { font-weight:bold; color:var(--primary); margin-bottom:10px; }
+#refQrImg { width:160px; height:160px; margin:10px 0; }
+.ref-qr-note { font-size:13px; color:var(--light-text); line-height:1.4; }
+
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:3000; }
+.modal-card { background:var(--card-bg);width:92%;max-width:420px;border-radius:28px;overflow:hidden;animation:pop 0.3s ease-out; }
+.modal-header { padding:20px;font-weight:bold;border-bottom:1px solid #eee;font-size:20px;text-align:center; }
+.modal-body { padding:20px;max-height:65vh;overflow-y:auto; }
+.close-btn { width:100%;padding:18px;background:#f5f5f5;border:none;font-weight:bold;color:#555;cursor:pointer;font-size:16px; }
+@keyframes pop { from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1} }
+
+.event-item { padding:16px; border-bottom:1px solid #f0f0f0; font-size:15px; line-height:1.5; color:#333; }
+.event-item:last-child { border-bottom:none; }
+.event-item::before { content:"🎁 "; }
+
+.welcome-card { background:#ead01d; color:#333; padding:30px 24px; border-radius:24px; text-align:center; }
+.welcome-card h2 { font-size:24px; margin:0 0 16px; }
+.welcome-card p { font-size:15px; line-height:1.8; margin:0; }
+
+.toast { position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:12px 20px;border-radius:12px;z-index:9999;display:none;font-size:14px; }
+
+table { width:100%;border-collapse:collapse;font-size:13px; }
+th { background:#f8f8f8;padding:10px;border-bottom:2px solid #eee; }
+td { padding:10px 6px;border-bottom:1px solid #f0f0f0;text-align:center; }
+.list-row { padding:12px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between; }
+
+@media (max-width:550px) {
+.points-card { flex-direction:column; }
+.action-group-right { width:100%; flex-direction:row; justify-content:center; }
+.action-btn { flex:1; white-space:nowrap; }
+}
+</style>
 </head>
 <body>
 
 <div id="loading">
-    <div style="text-align: center;">
-        <div id="loader-icon"></div>
-        <div id="loading-text" style="margin-top:20px; font-weight:bold; color:var(--primary);">正在取出心意...</div>
-    </div>
+<div id="loader" class="loader-icon om"></div>
+<div id="loading-text"></div>
 </div>
 
-<div id="reg-UI" style="display:none;">
-    <h2 id="reg-title" style="font-weight:900; color:var(--primary); margin-bottom:5px;"></h2>
-    <p id="reg-subtitle" style="color:#666; font-size:14px; margin-bottom:20px;"></p>
-    <label class="reg-label">真實姓名</label>
-    <input type="text" id="userName" class="reg-input" placeholder="請填寫姓名">
-    <label class="reg-label">手機號碼</label>
-    <input type="tel" id="userPhone" class="reg-input" placeholder="09XX-XXX-XXX" maxlength="12">
-    <label class="reg-label">生日 (註冊後不可修改)</label>
-    <input type="date" id="userBirthday" class="reg-input">
-    <button class="reg-btn" onclick="handleRegister()">完成註冊並開啟心意</button>
+<div id="memberUI" style="display:none">
+<div class="header">
+<div class="welcome-quote" id="welcomeQuote"></div>
+<div class="main-title">老娘的一點心意</div>
 </div>
 
-<div id="memberUI" style="display:none;">
-    <div class="header">
-        <div id="welcome-quote"></div>
-        <div class="main-title">老娘的一點心意</div>
-    </div>
-    
-    <div class="points-card">
-        <div>
-            <div style="font-size: 12px; color:#666;">可用點數資產</div>
-            <div id="points-display" class="points-val">--</div>
-            <button class="refresh-btn" onclick="fetchData()">🔄 手動更新</button>
-        </div>
-        <div class="user-info-right">
-            <div id="user-name" class="user-name">--</div>
-            <div id="user-level" class="user-level">--</div>
-            <div id="user-birthday-display" class="user-birthday">--</div>
-        </div>
-    </div>
-
-    <div class="qr-section">
-        <img id="qrcode" src="">
-        <div class="qr-note">結帳時請出示此碼</div>
-    </div>
-
-    <div class="btn-group">
-        <button class="action-btn" onclick="showPopup('potEvents')">🔥 老娘精選</button>
-        <button class="action-btn" onclick="showPopup('sweetEvents')">🍰 一點甜好康</button>
-    </div>
-    <div class="btn-group">
-        <button class="action-btn" onclick="showPopup('history')">📜 點數明細</button>
-        <button class="action-btn" onclick="showPopup('referrals')">👥 推薦綁定</button>
-    </div>
-
-    <button class="share-btn" onclick="showShareCard()">🚀 分享推薦碼領回饋</button>
+<div class="points-card">
+<div class="points-left">
+<div class="points-label">可用點數資產</div>
+<div class="points-value" id="pointsDisplay">--</div>
+<button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
+</div>
+<div class="action-group-right">
+<button class="action-btn" onclick="openProfile()">👤 個人資料</button>
+<button class="action-btn" onclick="openReferral()">👥 推薦名單</button>
+<button class="action-btn" onclick="openHistory()">📜 點數明細</button>
+</div>
 </div>
 
-<div class="modal-overlay" id="commonModal" onclick="this.style.display='none'">
-    <div class="modal-card" onclick="event.stopPropagation()">
-        <div class="modal-header" id="modalTitle"></div>
-        <div class="modal-body" id="modalBody"></div>
-        <button style="width:100%; padding:18px; border:none; background:#f5f5f5; font-weight:900; color:#666;" onclick="document.getElementById('commonModal').style.display='none'">我知道了</button>
-    </div>
+<div class="qr-section">
+<img id="qrcode" src="" alt="會員QR碼">
+<div class="qr-note">結帳時請出示此碼，結帳後離櫃恕不再累積點數</div>
 </div>
+
+<div class="events-double">
+<button class="event-brand-btn" onclick="openEventsByBrand('老娘鍋')">🍲 老娘精選</button>
+<button class="event-brand-btn" onclick="openEventsByBrand('一點甜')">🍰 一點甜好康</button>
+</div>
+
+<button class="share-btn" onclick="shareRecommend()">🚀 分享推薦碼</button>
+</div>
+
+<div id="regUI" style="display:none">
+<h2 class="reg-title" id="regTitle">會員註冊</h2>
+<p class="reg-subtitle" id="regSubtitle">填寫資料即可累積點數、兌換優惠</p>
+<div id="refQrBox" class="ref-qr-box" style="display:none">
+<div class="ref-qr-title">推薦人專屬QR</div>
+<img id="refQrImg" alt="推薦人QR">
+<div class="ref-qr-note">請店員掃此碼領取「新客招待禮」<br>同時自動綁定推薦關係</div>
+</div>
+<div class="reg-item">
+<div class="reg-label">姓名</div>
+<input id="regName" class="reg-input" placeholder="請輸入姓名">
+</div>
+<div class="reg-item">
+<div class="reg-label">手機（格式：09XX-XXX-XXX）</div>
+<input id="regPhone" class="reg-input" placeholder="0900-000-000" maxlength="12">
+</div>
+<div class="reg-item">
+<div class="reg-label">生日（無法修改）</div>
+<input type="date" id="regBirthday" class="reg-input">
+</div>
+<button class="reg-btn" onclick="doRegister()">完成註冊</button>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="closeModal()">
+<div class="modal-card" onclick="event.stopPropagation()">
+<div class="modal-header" id="modalTitle"></div>
+<div class="modal-body" id="modalBody"></div>
+<button class="close-btn" onclick="closeModal()">關閉</button>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-    const GAS_URL = "您的_GAS_網址"; 
-    const LIFF_ID = "您的_LIFF_ID";
-    const urlParams = new URLSearchParams(window.location.search);
-    const fromSweet = urlParams.get('from') === 'sweet';
-    const referrer = urlParams.get('referrer') || "";
-    let myUserId = "";
-    let userData = {};
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
+const LIFF_ID = "2009625010-p9sVIUWe";
 
-    // 手機格式化 09XX-XXX-XXX
-    document.getElementById('userPhone').addEventListener('input', function(e) {
-        let v = e.target.value.replace(/\D/g, '').slice(0,10);
-        if (v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7);
-        else if (v.length > 4) v = v.slice(0,4)+'-'+v.slice(4);
-        e.target.value = v;
+let userId = '';
+let userData = null;
+let currentFrom = 'om';
+let referrerParam = '';
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(()=>{ t.style.display = 'none'; }, 2200);
+}
+
+function setupPhoneInput() {
+  const phoneInput = document.getElementById('regPhone');
+  if(phoneInput) {
+    phoneInput.addEventListener('input', function(e){
+      let v = e.target.value.replace(/\D/g,'').slice(0,10);
+      if(v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7);
+      else if(v.length > 4) v = v.slice(0,4)+'-'+v.slice(4);
+      e.target.value = v;
     });
+  }
+}
 
-    async function initLIFF() {
-        const icon = document.getElementById('loader-icon');
-        if(fromSweet) { document.body.classList.add('theme-sweet'); icon.className='pudding-animation'; }
-        else { icon.className='pot-animation'; }
-        
-        await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
-        const profile = await liff.getProfile();
-        myUserId = profile.userId;
-        fetchData();
+function closeModal(){ 
+  document.getElementById('modal').style.display='none'; 
+}
+
+function openModal(title, contentHtml) {
+  document.getElementById('modalTitle').innerText = title;
+  document.getElementById('modalBody').innerHTML = contentHtml;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function openEventsByBrand(brand) {
+  if(!userData) { showToast('請稍後再試'); return; }
+  let eventsList = brand === '老娘鍋' ? (userData.omEvents || []) : (userData.swEvents || []);
+  let contentHtml = eventsList.length ? eventsList.map(ev => `<div class="event-item">${escapeHtml(ev)}</div>`).join('') : '<div style="padding:40px;text-align:center;color:#999;">✨ 目前暫無活動，敬請期待 ✨</div>';
+  openModal(`${brand === '老娘鍋' ? '🍲' : '🍰'} ${brand} 精選活動`, contentHtml);
+}
+
+// ==========================
+// 問題 1 ✅ 載入文字（文句池正常顯示）
+// ==========================
+async function fetchData(showReloadToast = false) {
+  if(!userId) return;
+  try {
+    const url = `${GAS_URL}?action=checkID&userId=${encodeURIComponent(userId)}&from=${encodeURIComponent(currentFrom)}&t=${Date.now()}`;
+    const res = await fetch(url, { method:'GET', cache:'no-cache' });
+    const data = await res.json();
+    userData = data;
+
+    let loadingText = "為您準備驚喜中";
+    if (data.loadingTexts && data.loadingTexts.length > 0) {
+      loadingText = data.loadingTexts[Math.floor(Math.random() * data.loadingTexts.length)];
+    }
+    document.getElementById("loading-text").innerText = loadingText;
+
+    if(!userData.isMember) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('regUI').style.display = 'block';
+      document.getElementById('memberUI').style.display = 'none';
+      document.getElementById('regTitle').innerText = currentFrom === 'so' ? '一點甜 會員註冊' : '老娘鍋 會員註冊';
+      if(referrerParam) {
+        document.getElementById('refQrBox').style.display = 'block';
+        document.getElementById('refQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(referrerParam)}`;
+      }
+      return;
     }
 
-    async function fetchData() {
-        const res = await fetch(`${GAS_URL}?action=checkID&userId=${myUserId}&from=${fromSweet?'sweet':'pot'}`);
-        userData = await res.json();
-        
-        if (userData.isMember) {
-            document.getElementById('loading-text').innerText = userData.waitQuote || "正在對齊心意...";
-            document.getElementById('welcome-quote').innerText = userData.welcomeQuote || "";
-            document.getElementById('points-display').innerText = userData.profile.points;
-            document.getElementById('user-name').innerText = userData.profile.name;
-            document.getElementById('user-level').innerText = userData.profile.level;
-            document.getElementById('user-birthday-display').innerText = "🎂 " + (userData.profile.birthday || "未設定");
-            document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${myUserId}`;
-            
-            setTimeout(() => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('memberUI').style.display = 'block';
-                document.getElementById('reg-UI').style.display = 'none';
-            }, 800);
-        } else {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('reg-UI').style.display = 'block';
-            document.getElementById('reg-title').innerText = fromSweet ? "想給您一點甜" : "老娘想認識你";
-            document.getElementById('reg-subtitle').innerText = "填寫資料成為老朋友，專屬驚喜準備中";
+    document.getElementById('pointsDisplay').innerText = userData.profile?.points ?? 0;
+    document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || (currentFrom === 'so' ? '🍰 今天來一點甜吧！' : '🍲 老娘鍋暖心招待');
+    document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(userId)}`;
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('memberUI').style.display = 'block';
+    document.getElementById('regUI').style.display = 'none';
+    if(showReloadToast) showToast('✅ 資料已更新');
+  } catch(err) {
+    console.error(err);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('regUI').style.display = 'block';
+    document.getElementById('memberUI').style.display = 'none';
+    showToast('⚠️ 網路異常，請重新整理');
+  }
+}
+
+// ==========================
+// 問題 3 ✅ 個人資料（點擊一定彈窗）
+// ==========================
+function openProfile() {
+  if (!userData || !userData.profile) {
+    showToast("讀取中…請稍後");
+    return;
+  }
+  const p = userData.profile;
+  const html = `
+<div style="line-height:2.4;font-size:15px;">
+<div><b>姓名：</b>${escapeHtml(p.name || '')}</div>
+<div><b>手機：</b>${escapeHtml(p.phone || '')}</div>
+<div><b>生日：</b>${escapeHtml(p.birthday || '')} <span style="color:red">(無法修改)</span></div>
+<div><b>註冊分店：</b>${currentFrom === 'so' ? '一點甜' : '老娘鍋'}</div>
+<div><b>會員等級：</b>${escapeHtml(p.level || '一般會員')}</div>
+</div>`;
+  openModal("👤 個人資料", html);
+}
+
+function openReferral(){
+  if(!userData) { showToast('無法讀取推薦資料'); return; }
+  let list = userData.myReferrals?.length ? userData.myReferrals.map(i=>`<div class="list-row"><span>${escapeHtml(i.name)}</span><span>${escapeHtml(i.date)}</span></div>`).join('') : '<div style="padding:20px;color:#999;text-align:center">尚無推薦的朋友</div>';
+  openModal('👥 推薦名單', `<div style="padding:12px;background:#f9f9f9;border-radius:12px;margin-bottom:16px"><b>我的推薦人：</b> ${userData.myReferrer || '無'}</div><div><b>我推薦的人：</b></div>${list}`);
+}
+
+function openHistory(){
+  if(!userData) { showToast('無法讀取點數明細'); return; }
+  let rows = userData.history?.length ? userData.history.map(h=>`<tr><td>${escapeHtml(h.date)}</td><td style="color:green">${h.gain}</td><td style="color:#06C755">${h.share||0}</td><td style="color:red">${h.spend||0}</td></tr>`).join('') : '<tr><td colspan="4">尚無點數紀錄</td></tr>';
+  openModal('📜 點數明細', `<table style="width:100%"><thead><tr><th>日期</th><th>本人獲取</th><th>朋友回饋</th><th>折抵</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+// ===== 🔥 完全照你給的「正確 LIFF 卡片分享」寫法 =====
+async function shareRecommend() {
+  if (!userId) {
+    showToast('請稍後再試');
+    return;
+  }
+
+  const isSweet = currentFrom === 'so';
+  const branchName = isSweet ? '一點甜' : '老娘鍋';
+  const link = `https://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
+
+  try {
+    await liff.shareTargetPicker([
+      {
+        type: "flex",
+        altText: `✨ ${branchName} 專屬招待`,
+        contents: {
+          type: "bubble",
+          hero: {
+            type: "image",
+            url: "https://i.imgur.com/123.jpg",
+            size: "full",
+            aspectRatio: "1:1",
+            aspectMode: "cover"
+          },
+          body: {
+            type: "box",
+            layout: "vertical",
+            spacing: "md",
+            contents: [
+              { type: "text", text: "老娘的一點心意", weight: "bold", size: "lg" },
+              { type: "text", text: `${branchName} 專屬推薦招待`, size: "sm", color: "#666666" },
+              { type: "text", text: "這是我專屬的推薦碼\n立即加入會員領取新客禮 🎁", size: "sm", wrap: true }
+            ]
+          },
+          footer: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "button",
+                style: "primary",
+                action: { type: "uri", label: "👉 點我領取", uri: link }
+              }
+            ]
+          }
         }
-    }
+      }
+    ]);
+  } catch (err) {
+    console.error('share error', err);
+    showToast('分享功能僅限LINE內開啟');
+  }
+}
 
-    function showPopup(type) {
-        const title = document.getElementById('modalTitle');
-        const body = document.getElementById('modalBody');
-        let html = "";
+async function doRegister(){
+  const name = document.getElementById('regName').value.trim();
+  let phoneRaw = document.getElementById('regPhone').value.trim();
+  const birthday = document.getElementById('regBirthday').value;
+  if(!name) return showToast('❌ 請填寫姓名');
+  if(!birthday) return showToast('❌ 請選擇生日');
+  if(!/^09\d{2}-\d{3}-\d{3}$/.test(phoneRaw)) return showToast('❌ 手機格式錯誤');
+  const payload = { action: 'register', userId, name, phone: phoneRaw.replace(/-/g,''), birthday, referrerId: referrerParam, from: currentFrom };
+  try {
+    const res = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const result = await res.json();
+    if(result.success){
+      showToast('✅ 註冊成功');
+      openModal('🎉 歡迎加入', `<div class="welcome-card"><h2>歡迎加入【老娘的一點心意】🍲🍰</h2><p>不多說，這是老娘留給你的偏心。<br>好康、優惠，還有一點甜——只給自己人。<br>日子不一定天天完美，<br>但一定要有一點甜 💕</p></div>`);
+      const observer = new MutationObserver(() => { if(document.getElementById('modal').style.display === 'none'){ observer.disconnect(); fetchData(); } });
+      observer.observe(document.getElementById('modal'), { attributes: true, attributeFilter: ['style'] });
+      document.querySelector('#modal .close-btn').onclick = () => { closeModal(); fetchData(); };
+    } else { showToast(result.message || '註冊失敗'); }
+  } catch(err) { showToast('❌ 連線失敗'); }
+}
 
-        if (type === 'potEvents' || type === 'sweetEvents') {
-            title.innerText = (type === 'potEvents') ? "老娘精選活動" : "一點甜好康";
-            const events = (type === 'potEvents') ? userData.potEvents : userData.sweetEvents;
-            html = events && events.length > 0 ? events.map(e => `<div style="padding:15px; border-bottom:1px solid #f0f0f0;">✨ ${e}</div>`).join('') : "目前暫無活動";
-        } 
-        else if (type === 'history') {
-            title.innerText = "點數資產明細";
-            html = `<table><tr><th>日期</th><th>獲取</th><th>折抵</th><th>剩餘</th></tr>`;
-            html += userData.history && userData.history.length > 0 
-                ? userData.history.map(h => `<tr><td>${h.date}</td><td style="color:green">+${h.gain}</td><td style="color:red">-${h.spend}</td><td style="font-weight:bold">${h.balance}</td></tr>`).join('')
-                : `<tr><td colspan="4">尚無紀錄</td></tr>`;
-            html += `</table>`;
-        } 
-        else if (type === 'referrals') {
-            title.innerText = "推薦關係綁定";
-            html = `<div style="margin-bottom:20px; padding:10px; background:#f9f9f9; border-radius:10px; font-size:14px;">`;
-            html += `<b>我的推薦人：</b> ${userData.profile.referrerName || "無 (自主加入)"}</div>`;
-            html += `<p style="font-weight:bold; font-size:14px; margin-bottom:10px;">👥 使用我的推薦碼加入的人：</p>`;
-            html += userData.referrals && userData.referrals.length > 0 
-                ? userData.referrals.map(r => `<div class="list-row"><span>${r.name}</span><span style="color:#999">${r.date}</span></div>`).join('')
-                : `<div style="color:#ccc; text-align:center; padding:20px;">目前還沒有人使用您的推薦碼喔</div>`;
-        }
+function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
 
-        body.innerHTML = html;
-        document.getElementById('commonModal').style.display = 'flex';
-    }
-
-    async function handleRegister() {
-        const name = document.getElementById('userName').value;
-        const phone = document.getElementById('userPhone').value.replace(/-/g,'');
-        const birthday = document.getElementById('userBirthday').value;
-        if(!name || phone.length!==10 || !birthday) return alert("請完整填寫姓名、手機及生日");
-        
-        const res = await fetch(`${GAS_URL}?action=register&userId=${myUserId}&name=${name}&phone=${phone}&birthday=${birthday}&referrer=${referrer}&from=${fromSweet?'sweet':'pot'}`);
-        const r = await res.json();
-        if(r.success) fetchData(); else alert(r.message || "註冊失敗");
-    }
-
-    function showShareCard() {
-        const title = document.getElementById('modalTitle');
-        const body = document.getElementById('modalBody');
-        const link = `https://liff.line.me/${LIFF_ID}?from=${fromSweet?'sweet':'pot'}&referrer=${myUserId}`;
-        title.innerText = "您的專屬推薦連結";
-        body.innerHTML = `<p style="font-size:14px; color:#666;">分享此連結給好友註冊，雙方皆可獲得點數回饋！</p>
-            <div style="background:#f0f0f0; padding:15px; border-radius:12px; border:1px dashed #bbb; word-break:break-all; font-family:monospace; font-size:12px; margin:15px 0;">${link}</div>`;
-        document.getElementById('commonModal').style.display = 'flex';
-    }
-
-    initLIFF();
+async function initLiff() {
+  const urlParams = new URLSearchParams(location.search);
+  currentFrom = urlParams.get('from') || 'om';
+  referrerParam = urlParams.get('referrer') || '';
+  if(currentFrom === 'so') {
+    document.body.classList.add('theme-sw');
+    document.getElementById('loader').className = 'loader sw';
+  }
+  setupPhoneInput();
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    userId = (await liff.getProfile()).userId;
+    await fetchData(false);
+  } catch(err) {
+    console.error(err);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('regUI').style.display = 'block';
+    showToast('請在 LINE 中開啟');
+  }
+}
+initLiff();
 </script>
 </body>
 </html>
