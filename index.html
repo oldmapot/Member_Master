@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>老娘的一點心意</title>
+    <title>老娘的一點心意｜品牌會員中心</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         /* ===== 品牌全域變數 ===== */
@@ -217,7 +217,7 @@
         <div class="points-left">
             <div class="points-label">可用點數資產</div>
             <div class="points-value" id="pointsDisplay">--</div>
-            <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
+            <button class="refresh-btn" onclick="window.fetchData && window.fetchData(true)">🔄 重新整理</button>
         </div>
         <div class="action-group-right">
             <button class="action-btn" id="profileBtn">👤 個人資料</button>
@@ -274,44 +274,37 @@
 <div class="toast" id="toast"></div>
 
 <script>
-(function() {
-    const params = new URLSearchParams(window.location.search);
-    window.currentBrand = params.get('from') === 'so' ? 'sweet' : 'pot';
-    document.documentElement.className = (window.currentBrand === 'sweet') ? 'theme-sweet' : 'theme-pot';
-})();
+// ---------- 全域變數 ----------
+let userId = '';
+let userData = null;
+let currentFrom = 'pot';        // 'pot' 或 'sweet'
+let referrerParam = '';         // 推薦人ID (若有)
+let liffInitialized = false;
+let lineProfile = null;          // 儲存LINE個人檔案
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
 
-let userId = '';
-let userData = null;
-let currentFrom = 'pot';
-let referrerParam = '';
-
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(()=>{ t.style.display = 'none'; }, 2200);
+// 輔助函式
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 2200);
 }
 
-function closeModal(){ 
-  document.getElementById('modal').style.display='none'; 
+function closeModal() {
+    document.getElementById('modal').style.display = 'none';
 }
 
 function openModal(title, contentHtml) {
-  document.getElementById('modalTitle').innerText = title;
-  document.getElementById('modalBody').innerHTML = contentHtml;
-  document.getElementById('modal').style.display = 'flex';
+    document.getElementById('modalTitle').innerText = title;
+    document.getElementById('modalBody').innerHTML = contentHtml;
+    document.getElementById('modal').style.display = 'flex';
 }
 
-function setLoadingText(text) {
-    const textEl = document.getElementById('brand-loading-text');
-    if (textEl && text) {
-        textEl.innerText = text;
-    }
-}
-
+// 動態加載文字 (Loading 花絮)
 const defaultLoadingTexts = {
     'pot': ['老娘正在準備你的心意...', '火鍋滾了，心意也快好了...', '老娘正在翻帳本，幫你算驚喜...', '湯頭正在滾，心意馬上到...'],
     'sweet': ['正在為你的生活，加入一點甜...', '遇見你，就是一點甜...', '捕捉今日份的甜，請稍候片刻...', '心意準備中，等等來點甜的吧！']
@@ -322,22 +315,327 @@ async function fetchLoadingTextsOnly() {
         const brandParam = currentFrom === 'sweet' ? 'so' : 'om';
         const url = `${GAS_URL}?action=getLoadingTexts&from=${brandParam}&t=${Date.now()}`;
         const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-        if(response.ok) {
+        if (response.ok) {
             const data = await response.json();
-            if(data.loadingTexts && data.loadingTexts.length > 0) {
+            if (data.loadingTexts && data.loadingTexts.length > 0) {
                 const randomIndex = Math.floor(Math.random() * data.loadingTexts.length);
-                setLoadingText(data.loadingTexts[randomIndex]);
+                document.getElementById('brand-loading-text').innerText = data.loadingTexts[randomIndex];
                 return;
             }
         }
         const defaults = defaultLoadingTexts[currentFrom] || defaultLoadingTexts['pot'];
-        setLoadingText(defaults[Math.floor(Math.random() * defaults.length)]);
-    } catch(e) {
-        console.log('抓取文句池失敗，使用預設');
+        document.getElementById('brand-loading-text').innerText = defaults[Math.floor(Math.random() * defaults.length)];
+    } catch (e) {
         const defaults = defaultLoadingTexts[currentFrom] || defaultLoadingTexts['pot'];
-        setLoadingText(defaults[Math.floor(Math.random() * defaults.length)]);
+        document.getElementById('brand-loading-text').innerText = defaults[Math.floor(Math.random() * defaults.length)];
     }
 }
+
+// 設定 Loading 動畫 icon
+function setLoadingIconByBrand() {
+    const box = document.getElementById('brand-icon-box');
+    if (!box) return;
+    if (currentFrom === 'sweet') {
+        box.innerHTML = '<div class="pudding-animation"></div>';
+    } else {
+        box.innerHTML = '<div class="pot-animation"></div>';
+    }
+}
+
+// 隱藏 Loading, 顯示主畫面
+function hideLoadingAndShowUI() {
+    const mask = document.getElementById('brand-loading-mask');
+    if (mask) mask.style.opacity = '0';
+    setTimeout(() => {
+        if (mask) mask.style.display = 'none';
+        document.getElementById('memberUI').style.display = 'block';
+    }, 400);
+}
+
+// 顯示註冊畫面
+function showRegisterUI(showReferrerQR = false, referrerUserId = '') {
+    document.getElementById('memberUI').style.display = 'none';
+    document.getElementById('regUI').style.display = 'block';
+    const refQrBox = document.getElementById('refQrBox');
+    if (showReferrerQR && referrerUserId) {
+        refQrBox.style.display = 'block';
+        const qrUrl = `https://quickchart.io/qr?text=ref:${referrerUserId}&size=160&margin=2`;
+        document.getElementById('refQrImg').src = qrUrl;
+    } else {
+        refQrBox.style.display = 'none';
+    }
+}
+
+// 向後端 API 發送請求
+async function callAPI(action, payload = {}) {
+    try {
+        const params = new URLSearchParams({ action, ...payload, from: currentFrom === 'sweet' ? 'so' : 'om' });
+        const url = `${GAS_URL}?${params.toString()}`;
+        const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+        const data = await response.json();
+        return data;
+    } catch (err) {
+        console.error('API call error:', err);
+        return { status: 'error', message: '網路錯誤' };
+    }
+}
+
+// 取得使用者資料 (主要資料同步)
+async function fetchData(showRefreshToast = false) {
+    if (!userId) return;
+    if (showRefreshToast) showToast('同步資料中⋯');
+    const res = await callAPI('getUserData', { userId });
+    if (res && res.status === 'success') {
+        userData = res.data;
+        if (userData) {
+            document.getElementById('pointsDisplay').innerText = userData.points || 0;
+            // 更新個人QR (以userId作為識別)
+            const qrImg = document.getElementById('qrcode');
+            if (qrImg) qrImg.src = `https://quickchart.io/qr?text=member:${userId}&size=180&margin=2`;
+            // 歡迎詞
+            const quoteMap = {
+                pot: '🔥 老娘上菜，暖心暖胃 🔥',
+                sweet: '🍰 今天吃甜，心情飛揚 🍰'
+            };
+            const name = userData.name || (lineProfile ? lineProfile.displayName : '貴賓');
+            document.getElementById('welcomeQuote').innerHTML = `${name} 您好，<br>${quoteMap[currentFrom] || '歡迎光臨'}`;
+            if (showRefreshToast) showToast('點數更新完成');
+        }
+    } else {
+        if (showRefreshToast) showToast('讀取失敗，請稍後再試');
+    }
+}
+
+// 個人資料顯示
+function showProfile() {
+    if (!userData) {
+        openModal('個人資料', '<div style="text-align:center">尚未載入資料，請重新整理</div>');
+        return;
+    }
+    const birthday = userData.birthday || '未填寫';
+    const phone = userData.phone || '未填寫';
+    const name = userData.name || (lineProfile ? lineProfile.displayName : '未填寫');
+    const content = `
+        <div style="padding:8px 0">
+            <div><strong>👤 姓名</strong>：${escapeHtml(name)}</div>
+            <div style="margin-top:12px"><strong>📞 手機</strong>：${escapeHtml(phone)}</div>
+            <div style="margin-top:12px"><strong>🎂 生日</strong>：${escapeHtml(birthday)}</div>
+            <div style="margin-top:12px"><strong>🏷️ 會員編號</strong>：${escapeHtml(userId)}</div>
+            <div style="margin-top:12px"><strong>🍀 推薦碼</strong>：${escapeHtml(userId)}</div>
+        </div>
+    `;
+    openModal('我的個人資料', content);
+}
+
+// 推薦名單
+async function showReferralList() {
+    if (!userId) return;
+    const res = await callAPI('getReferrals', { userId });
+    if (res && res.status === 'success' && res.referrals && res.referrals.length > 0) {
+        let rows = '';
+        res.referrals.forEach(ref => {
+            rows += `<div class="list-row"><span>${escapeHtml(ref.name || '好友')}</span><span>${ref.created_at || '已加入'}</span></div>`;
+        });
+        openModal('推薦名單', `<div style="max-height:300px; overflow-y:auto;">${rows}</div><p style="margin-top:16px;font-size:13px;color:#666;">每推薦一位可得30點！</p>`);
+    } else {
+        openModal('推薦名單', '<div style="text-align:center;padding:20px">目前還沒有推薦的朋友，分享推薦碼給親友吧！</div>');
+    }
+}
+
+// 點數明細
+async function showPointsHistory() {
+    if (!userId) return;
+    const res = await callAPI('getPointsHistory', { userId });
+    if (res && res.status === 'success' && res.history && res.history.length > 0) {
+        let rows = '<table><thead><tr><th>日期</th><th>明細</th><th>變動</th></tr></thead><tbody>';
+        res.history.forEach(item => {
+            rows += `<tr><td>${escapeHtml(item.date || '')}</td><td>${escapeHtml(item.note || '')}</td><td style="color:${item.points > 0 ? 'green' : '#8b0000'}">${item.points > 0 ? `+${item.points}` : item.points}</td></tr>`;
+        });
+        rows += '</tbody></table>';
+        openModal('點數變動紀錄', rows);
+    } else {
+        openModal('點數明細', '<div style="text-align:center;padding:20px">尚無點數異動紀錄</div>');
+    }
+}
+
+// 品牌活動 (老娘精選/一點甜好康)
+async function showBrandEvents(brandType) {
+    const action = brandType === 'pot' ? 'getOmEvents' : 'getSweetEvents';
+    const title = brandType === 'pot' ? '🍲 老娘精選活動' : '🍰 一點甜好康';
+    const res = await callAPI(action);
+    if (res && res.status === 'success' && res.events && res.events.length) {
+        let html = '<div>';
+        res.events.forEach(ev => {
+            html += `<div class="event-item">${escapeHtml(ev.title)}<br><span style="font-size:13px;color:#888;">${escapeHtml(ev.desc || '')}</span></div>`;
+        });
+        html += '</div>';
+        openModal(title, html);
+    } else {
+        openModal(title, '<div class="event-item">近期將推出驚喜活動，敬請期待！</div>');
+    }
+}
+
+// 分享推薦碼 (修正 LIFF share)
+async function shareReferralCode() {
+    if (!userId) {
+        showToast('尚未取得會員編號，請稍後再試');
+        return;
+    }
+    if (!window.liff || !liffInitialized) {
+        showToast('LIFF尚未初始化完成');
+        return;
+    }
+    const brandName = currentFrom === 'sweet' ? '一點甜' : '老娘鍋';
+    const shareUrl = `https://liff.line.me/${LIFF_ID}?from=${currentFrom === 'sweet' ? 'so' : 'om'}&ref=${userId}`;
+    const shareText = `【${brandName}】推薦你加入會員！點擊連結即可獲得新客招待禮，一起累積點數兌換好料！\n${shareUrl}`;
+    try {
+        if (window.liff.isInClient()) {
+            await window.liff.shareTargetPicker([
+                {
+                    type: 'text',
+                    text: shareText
+                }
+            ]);
+            showToast('分享成功！感謝推薦');
+        } else {
+            // 網頁環境使用 Web Share API 或複製連結
+            if (navigator.share) {
+                await navigator.share({
+                    title: '老娘的一點心意',
+                    text: shareText,
+                    url: shareUrl,
+                });
+                showToast('分享成功');
+            } else {
+                await navigator.clipboard.writeText(shareText + ' ' + shareUrl);
+                showToast('連結已複製，可貼給好友');
+            }
+        }
+    } catch (err) {
+        console.error('分享失敗', err);
+        showToast('分享失敗，請手動複製連結');
+        try {
+            await navigator.clipboard.writeText(shareText + ' ' + shareUrl);
+            showToast('已複製推薦連結至剪貼簿');
+        } catch (e) {
+            showToast('無法分享，請稍後重試');
+        }
+    }
+}
+
+// 註冊流程
+async function handleRegister() {
+    const name = document.getElementById('regName').value.trim();
+    let phone = document.getElementById('regPhone').value.trim();
+    const birthday = document.getElementById('regBirthday').value;
+    if (!name) { showToast('請填寫姓名'); return; }
+    if (!phone) { showToast('請填寫手機'); return; }
+    phone = phone.replace(/-/g, '');
+    if (!/^09\d{8}$/.test(phone)) { showToast('手機格式錯誤，請填寫09開頭10碼數字'); return; }
+    if (!birthday) { showToast('請選擇生日'); return; }
+
+    const res = await callAPI('register', {
+        userId,
+        name,
+        phone,
+        birthday,
+        referrer: referrerParam || '',
+        lineDisplayName: lineProfile ? lineProfile.displayName : ''
+    });
+    if (res && res.status === 'success') {
+        showToast('註冊成功！獲得30點迎新禮');
+        await fetchData(false);
+        document.getElementById('regUI').style.display = 'none';
+        document.getElementById('memberUI').style.display = 'block';
+    } else {
+        showToast(res?.message || '註冊失敗，請稍後再試');
+    }
+}
+
+// 檢查會員註冊狀態
+async function checkMembership() {
+    const res = await callAPI('checkUser', { userId });
+    if (res && res.status === 'success' && res.isMember === true) {
+        userData = res.data;
+        await fetchData(false);
+        hideLoadingAndShowUI();
+    } else {
+        // 未註冊: 判斷是否有推薦人參數 ref
+        const urlParams = new URLSearchParams(window.location.search);
+        const refCode = urlParams.get('ref');
+        if (refCode) referrerParam = refCode;
+        // 顯示註冊頁面，若有推薦人則顯示推薦人QR
+        if (refCode) {
+            showRegisterUI(true, refCode);
+        } else {
+            showRegisterUI(false);
+        }
+        const mask = document.getElementById('brand-loading-mask');
+        if (mask) mask.style.opacity = '0';
+        setTimeout(() => { if(mask) mask.style.display = 'none'; }, 400);
+    }
+}
+
+// HTML 跳脫
+function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+// LIFF 初始化主流程
+async function initLiff() {
+    setLoadingIconByBrand();
+    await fetchLoadingTextsOnly();
+    try {
+        await window.liff.init({ liffId: LIFF_ID });
+        liffInitialized = true;
+        if (!window.liff.isLoggedIn()) {
+            await window.liff.login();
+        }
+        const profile = await window.liff.getProfile();
+        lineProfile = profile;
+        userId = profile.userId;
+        // 從 URL 讀取品牌參數與推薦碼
+        const urlParams = new URLSearchParams(window.location.search);
+        const brandFrom = urlParams.get('from');
+        if (brandFrom === 'so') currentFrom = 'sweet';
+        else if (brandFrom === 'om') currentFrom = 'pot';
+        else currentFrom = 'pot';
+        document.documentElement.className = (currentFrom === 'sweet') ? 'theme-sweet' : 'theme-pot';
+        if (urlParams.get('ref')) referrerParam = urlParams.get('ref');
+        await checkMembership();
+    } catch (err) {
+        console.error('LIFF init error', err);
+        document.getElementById('brand-loading-text').innerText = '初始化錯誤，請重新進入';
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    }
+}
+
+// 綁定按鈕事件 (因為按鈕是動態顯示，待 DOM 載入完成後綁定)
+function bindButtons() {
+    const profileBtn = document.getElementById('profileBtn');
+    if (profileBtn) profileBtn.onclick = () => showProfile();
+    const referralBtn = document.getElementById('referralBtn');
+    if (referralBtn) referralBtn.onclick = () => showReferralList();
+    const historyBtn = document.getElementById('historyBtn');
+    if (historyBtn) historyBtn.onclick = () => showPointsHistory();
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) shareBtn.onclick = () => shareReferralCode();
+    const omEvents = document.getElementById('omEventsBtn');
+    if (omEvents) omEvents.onclick = () => showBrandEvents('pot');
+    const swEvents = document.getElementById('swEventsBtn');
+    if (swEvents) swEvents.onclick = () => showBrandEvents('sweet');
+    const registerButton = document.getElementById('registerBtn');
+    if (registerButton) registerButton.onclick = () => handleRegister();
+    const modalClose = document.getElementById('modalCloseBtn');
+    if (modalClose) modalClose.onclick = () => closeModal();
+}
+
+window.fetchData = fetchData;
+
+window.addEventListener('DOMContentLoaded', () => {
+    bindButtons();
+    initLiff();
+});
 </script>
 </body>
 </html>
