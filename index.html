@@ -6,11 +6,11 @@
     <title>老娘的一點心意</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --primary: #8b0000; --bg: #fdf5e6; --card-bg: #fff; --text: #333; --light-text: #666; }
+        :root { --primary: #8b0000; --bg: #fdf5e6; --card-bg: #fff; --text: #333; --light-text: #666; --success: #06C755; }
         .theme-sw { --primary: #ff69b4; --bg: #FFF9E6; }
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-bottom: 40px; }
 
-        /* 載入動畫 + 等候語（C欄） */
+        /* 載入頁（C欄等候語，動態隨機） */
         #loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 20px; }
         .loader-icon { width: 60px; height: 35px; background: #333; border-radius: 0 0 25px 25px; position: relative; border: 3px solid #222; }
         .loader-icon.om::after { content: '♨'; position: absolute; top: -30px; left: 12px; font-size: 28px; color: var(--primary); animation: steam 1.2s infinite; }
@@ -51,7 +51,7 @@
             white-space: nowrap;
         }
 
-        /* 右側功能按鈕區（優化大小） */
+        /* 右側功能按鈕區 */
         .action-group-right {
             display: flex;
             flex-direction: column;
@@ -77,23 +77,20 @@
         #qrcode { width:180px; height:180px; margin-bottom:12px; }
         .qr-note { font-size:14px; color:var(--light-text); font-weight:600; line-height:1.4; }
 
-        /* 優惠活動按鈕區（新增） */
-        .event-buttons {
-            display: flex;
-            gap: 12px;
-            padding: 0 20px 20px;
-        }
+        /* 優惠活動按鈕（同色設計） */
         .event-btn {
-            flex: 1;
+            display: block;
+            width: calc(100% - 40px);
+            margin: 0 auto 20px;
             padding: 14px;
             border-radius: 16px;
+            background: var(--primary);
+            color: #fff;
             border: none;
             font-weight: bold;
-            font-size: 15px;
+            font-size: 16px;
             cursor: pointer;
         }
-        .event-btn.om { background: var(--primary); color: #fff; }
-        .event-btn.sw { background: #ff69b4; color: #fff; }
 
         /* 分享按鈕 */
         .share-btn {
@@ -102,7 +99,7 @@
             margin: 0 auto;
             padding: 18px;
             border-radius: 20px;
-            background: #06C755;
+            background: var(--success);
             color: #fff;
             font-weight: bold;
             font-size: 18px;
@@ -120,7 +117,7 @@
         .reg-input { width:100%;padding:16px;border-radius:14px;border:1px solid #ddd;font-size:16px;box-sizing:border-box; }
         .reg-btn { width:100%;padding:18px;background:var(--primary);color:#fff;border:none;border-radius:16px;font-weight:bold;font-size:17px;margin-top:30px;cursor:pointer; }
 
-        /* 推薦人QR區塊（分享鏈進入顯示） */
+        /* 推薦人QR區塊 */
         .ref-qr-box {
             background: var(--card-bg);
             padding: 20px;
@@ -132,13 +129,37 @@
         #refQrImg { width: 160px; height: 160px; margin: 10px 0; }
         .ref-qr-note { font-size: 13px; color: var(--light-text); line-height: 1.4; }
 
-        /* 彈窗 */
+        /* 彈窗（通用+分享卡+歡迎卡） */
         .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:3000; }
         .modal-card { background:var(--card-bg);width:92%;max-width:420px;border-radius:24px;overflow:hidden;animation:pop 0.3s; }
         .modal-header { padding:18px;font-weight:bold;border-bottom:1px solid #eee;font-size:18px; }
         .modal-body { padding:20px;max-height:70vh;overflow-y:auto; }
         .close-btn { width:100%;padding:18px;background:#f5f5f5;border:none;font-weight:bold;color:#555;cursor:pointer; }
         @keyframes pop { from{transform:scale(0.95);opacity:0}to{transform:scale(1);opacity:1} }
+
+        /* 分享卡片樣式 */
+        .share-card {
+            background: linear-gradient(135deg, var(--primary), #a81c1c);
+            color: #fff;
+            padding: 24px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        .share-card h3 { font-size: 20px; margin:0 0 12px; }
+        .share-card p { font-size: 15px; line-height: 1.6; margin:0 0 16px; }
+        .share-link { background: rgba(255,255,255,0.2); padding:12px; border-radius:12px; font-size:13px; word-break:break-all; margin-bottom:16px; }
+        .copy-btn { width:100%;padding:14px;background:#fff;color:var(--primary);border:none;border-radius:12px;font-weight:bold;font-size:16px;cursor:pointer; }
+
+        /* 歡迎卡片樣式 */
+        .welcome-card {
+            background: linear-gradient(135deg, #8b0000, #ff69b4);
+            color: #fff;
+            padding: 30px 24px;
+            border-radius: 24px;
+            text-align: center;
+        }
+        .welcome-card h2 { font-size: 24px; margin:0 0 16px; }
+        .welcome-card p { font-size: 15px; line-height: 1.8; margin:0; }
 
         /* Toast提示 */
         .toast { position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:12px 20px;border-radius:12px;z-index:9999;display:none;white-space:nowrap;font-size:14px; }
@@ -151,7 +172,7 @@
 </head>
 <body>
 
-<!-- 載入頁（C欄等候語） -->
+<!-- 載入頁（C欄等候語，動態隨機） -->
 <div id="loading">
     <div id="loader" class="loader-icon om"></div>
     <div id="loading-text">正在取出心意...</div>
@@ -161,10 +182,10 @@
 <div id="memberUI" style="display:none">
     <div class="header">
         <div class="welcome-quote" id="welcomeQuote"></div>
-        <div class="main-title">會員中心</div>
+        <div class="main-title">老娘的一點心意</div>
     </div>
 
-    <!-- 點數卡片 + 右側功能區（優化排版） -->
+    <!-- 點數卡片 + 右側功能區 -->
     <div class="points-card">
         <div class="points-left">
             <div class="points-label">可用點數資產</div>
@@ -172,10 +193,9 @@
             <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
         </div>
 
-        <!-- 右側3個功能按鈕 -->
         <div class="action-group-right">
             <button class="action-btn" onclick="openProfile()">👤 個人資料</button>
-            <button class="action-btn" onclick="openReferral()">👥 綁定名單</button>
+            <button class="action-btn" onclick="openReferral()">👥 推薦名單</button>
             <button class="action-btn" onclick="openHistory()">📜 點數明細</button>
         </div>
     </div>
@@ -186,14 +206,11 @@
         <div class="qr-note">結帳時請出示此碼，結帳後離櫃恕不再累積點數</div>
     </div>
 
-    <!-- 優惠活動按鈕（新增） -->
-    <div class="event-buttons">
-        <button class="event-btn om" onclick="openEvents('om')">🔥 老娘精選</button>
-        <button class="event-btn sw" onclick="openEvents('so')">🍰 一點甜好康</button>
-    </div>
+    <!-- 優惠活動按鈕（同色） -->
+    <button class="event-btn" onclick="openEvents()">🔥 優惠活動</button>
 
     <!-- 分享推薦碼 -->
-    <button class="share-btn" onclick="copyShare()">🚀 分享推薦碼</button>
+    <button class="share-btn" onclick="openShareCard()">🚀 分享推薦碼</button>
 </div>
 
 <!-- 註冊頁 -->
@@ -228,7 +245,7 @@
     <div class="modal-card" onclick="event.stopPropagation()">
         <div class="modal-header" id="modalTitle"></div>
         <div class="modal-body" id="modalBody"></div>
-        <button class="close-btn" onclick="closeModal()">關閉</button>
+        <button class="close-btn" onclick="closeModal()" id="modalCloseBtn">關閉</button>
     </div>
 </div>
 
@@ -242,6 +259,7 @@ const from = params.get('from') || 'om';
 const ref = params.get('referrer') || '';
 let userId = '';
 let user = {};
+let loadingTexts = []; // 載入等候語（C欄）
 
 // 品牌主題切換
 if(from === 'so') document.body.classList.add('theme-sw');
@@ -262,7 +280,7 @@ document.getElementById('regPhone').addEventListener('input', e => {
   e.target.value = v;
 });
 
-// 初始化LIFF（優化載入速度）
+// 初始化LIFF
 async function init(){
   const loader = document.getElementById('loader');
   loader.className = from === 'so' ? 'loader-icon sw' : 'loader-icon om';
@@ -273,13 +291,19 @@ async function init(){
   fetchData();
 }
 
-// 取得會員資料（秒開優化版）
+// 取得會員資料（秒開+文句池動態讀取）
 async function fetchData(showToast=false){
   try{
-    // 請求優化：只取必要資料，減少載入時間
     const res = await fetch(GAS+`?action=checkID&userId=${userId}&from=${from}`, {cache: 'no-cache'});
     user = await res.json();
     
+    // 設定載入等候語（C欄）
+    if(user.loadingTexts?.length){
+      loadingTexts = user.loadingTexts;
+      // 隨機顯示等候語
+      document.getElementById('loading-text').textContent = loadingTexts[Math.floor(Math.random()*loadingTexts.length)];
+    }
+
     // 未註冊 → 顯示註冊頁
     if(!user.isMember){
       document.getElementById('loading').style.display='none';
@@ -299,6 +323,8 @@ async function fetchData(showToast=false){
     document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
     document.getElementById('loading').style.display='none';
     document.getElementById('memberUI').style.display='block';
+    // 隱藏註冊頁，避免殘留
+    document.getElementById('regUI').style.display='none';
     if(showToast) toast('✅ 資料已更新');
   }catch(e){ 
     console.error(e);
@@ -306,7 +332,7 @@ async function fetchData(showToast=false){
   }
 }
 
-// 1. 個人資料（生日不可修改）
+// 1. 個人資料
 function openProfile(){
   document.getElementById('modalTitle').innerText = '👤 個人資料';
   document.getElementById('modalBody').innerHTML = `
@@ -320,7 +346,7 @@ function openProfile(){
   document.getElementById('modal').style.display='flex';
 }
 
-// 2. 推薦名單（我的推薦人 + 我推薦的人）
+// 2. 推薦名單
 function openReferral(){
   document.getElementById('modalTitle').innerText = '👥 推薦名單';
   let list = user.myReferrals?.length ? user.myReferrals.map(i=>`
@@ -335,7 +361,7 @@ function openReferral(){
   document.getElementById('modal').style.display='flex';
 }
 
-// 3. 點數明細（指定欄位：日期/獲取/分享/折抵/剩餘）
+// 3. 點數明細
 function openHistory(){
   document.getElementById('modalTitle').innerText = '📜 點數明細';
   let rows = user.history?.length ? user.history.map(h=>`
@@ -360,20 +386,55 @@ function openHistory(){
   document.getElementById('modal').style.display='flex';
 }
 
-// 4. 優惠活動（新增）
-function openEvents(brand){
-  const isOm = brand === 'om';
-  document.getElementById('modalTitle').innerText = isOm ? '🔥 老娘精選' : '🍰 一點甜好康';
-  const events = isOm ? user.omEvents : user.swEvents;
+// 4. 優惠活動（修復讀取+同色按鈕）
+function openEvents(){
+  document.getElementById('modalTitle').innerText = '🔥 優惠活動';
+  const events = from === 'so' ? user.swEvents : user.omEvents;
   document.getElementById('modalBody').innerHTML = events?.length ? 
     events.map(e=>`<div style="padding:14px;border-bottom:1px solid #f0f0f0">✨ ${e}</div>`).join('') : 
     '<div style="padding:20px;color:#999;text-align:center">目前暫無活動</div>';
   document.getElementById('modal').style.display='flex';
 }
 
-function closeModal(){ document.getElementById('modal').style.display='none'; }
+// 5. 分享推薦碼（精美卡片+優化短訊息）
+function openShareCard(){
+  const branchName = from === 'so' ? '一點甜' : '老娘鍋';
+  const link = `https://liff.line.me/${LIFF_ID}?from=${from}&referrer=${userId}`;
+  const shareText = `✨ 發享高雄隱藏版美味 ✨
+${from === 'so' ? '🍦 一點甜' : '🍲 老娘鍋'} 專屬招待
+這是我專屬的推薦碼
+立即加入會員領取新客招待禮
+消費再享點數回饋！
 
-// 註冊功能
+👉 點我領取：${link}`;
+
+  document.getElementById('modalTitle').innerText = '🚀 分享推薦碼';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="share-card">
+      <h3>${branchName} 專屬推薦</h3>
+      <p>立即分享給好友，領取新客招待禮！</p>
+      <div class="share-link">${link}</div>
+      <button class="copy-btn" onclick="copyShareText(\`${shareText.replace(/`/g,'\\`')}\`)">一鍵複製分享</button>
+    </div>`;
+  document.getElementById('modal').style.display='flex';
+}
+
+// 複製分享文字
+function copyShareText(text){
+  navigator.clipboard.writeText(text).then(()=>{
+    toast('✅ 分享文字已複製！');
+    closeModal();
+  });
+}
+
+// 關閉彈窗
+function closeModal(){ 
+  document.getElementById('modal').style.display='none'; 
+  document.getElementById('modalTitle').innerText = '';
+  document.getElementById('modalBody').innerHTML = '';
+}
+
+// 註冊功能（修復分店+歡迎卡）
 async function doRegister(){
   const name = document.getElementById('regName').value.trim();
   const phone = document.getElementById('regPhone').value.replace(/\D/g,'');
@@ -385,13 +446,28 @@ async function doRegister(){
     body:JSON.stringify({action:'register',userId,name,phone,birthday:birth,referrerId:ref,from})
   });
   const r = await res.json();
-  r.success ? (toast('✅ 註冊成功'),fetchData()) : toast(r.message);
-}
-
-// 複製分享推薦碼
-function copyShare(){
-  const link = `https://liff.line.me/${LIFF_ID}?from=${from}&referrer=${userId}`;
-  navigator.clipboard.writeText(link).then(()=>toast('✅ 您專屬的推薦碼已複製，趕緊分享給好友吧，好友吃鍋你累積回饋'));
+  if(r.success){
+    toast('✅ 註冊成功！');
+    // 顯示歡迎卡
+    document.getElementById('modalTitle').innerText = '🎉 歡迎加入';
+    document.getElementById('modalBody').innerHTML = `
+      <div class="welcome-card">
+        <h2>歡迎加入【老娘的一點心意】🍲🍰</h2>
+        <p>不多說，這是老娘留給你的偏心。<br>
+        好康、優惠，還有一點甜——只給自己人。<br>
+        日子不一定天天完美，<br>
+        但一定要有一點甜 💕</p>
+      </div>`;
+    document.getElementById('modalCloseBtn').innerText = '進入會員中心';
+    document.getElementById('modal').style.display='flex';
+    // 註冊成功後隱藏註冊頁，顯示會員中心
+    setTimeout(()=>{
+      document.getElementById('regUI').style.display='none';
+      fetchData();
+    },100);
+  }else{
+    toast(r.message);
+  }
 }
 
 init();
