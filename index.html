@@ -1,106 +1,179 @@
-<!-- 只放 JS，HTML 不動 -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>老娘的一點心意</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+body { font-family: sans-serif; margin:0; background:#fdf5e6; }
+
+#brand-loading-mask {
+    position: fixed; inset:0;
+    display:flex; flex-direction:column;
+    justify-content:center; align-items:center;
+    background:#fdf5e6;
+}
+
+#brand-loading-text { margin-top:15px; font-weight:bold; }
+
+.header {
+    background:#8b0000;
+    color:#fff;
+    padding:30px;
+    text-align:center;
+}
+
+.points-card {
+    background:#fff;
+    margin:20px;
+    padding:20px;
+    border-radius:16px;
+}
+
+.action-btn {
+    display:block;
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border:none;
+    border-radius:12px;
+    background:#eee;
+}
+
+.modal-overlay {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.5);
+    display:none;
+    justify-content:center;
+    align-items:center;
+}
+
+.modal-card {
+    background:#fff;
+    padding:20px;
+    border-radius:12px;
+    width:90%;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- Loading -->
+<div id="brand-loading-mask">
+    <div id="brand-loading-text"></div>
+</div>
+
+<!-- 會員 -->
+<div id="memberUI" style="display:none">
+    <div class="header">會員中心</div>
+
+    <div class="points-card">
+        點數：<span id="pointsDisplay">--</span>
+
+        <button class="action-btn" id="profileBtn">個人資料</button>
+        <button class="action-btn" id="shareBtn">分享</button>
+    </div>
+</div>
+
+<!-- 註冊 -->
+<div id="regUI" style="display:none">
+    <h2>註冊</h2>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+    <div class="modal-card">
+        <div id="modalBody"></div>
+        <button onclick="closeModal()">關閉</button>
+    </div>
+</div>
 
 <script>
-// ===== 第一階段：主題 =====
-(function() {
-    const params = new URLSearchParams(window.location.search);
-    window.currentBrand = params.get('from') === 'so' ? 'sweet' : 'pot';
-    document.documentElement.className =
-        (window.currentBrand === 'sweet') ? 'theme-sweet' : 'theme-pot';
-})();
 
-// ===== 全域 =====
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
+// ===== 設定 =====
 const LIFF_ID = "2009625010-p9sVIUWe";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 
 let userId = '';
 let userData = null;
-let currentFrom = 'pot';
-let referrerParam = '';
-let isBound = false;
 
 // ===== Loading 預設（先顯示）=====
-const defaultLoadingTexts = {
-    pot: [
-        '老娘正在準備你的心意...',
-        '火鍋滾了，心意也快好了...',
-        '湯頭正在滾，等等就上桌...',
-    ],
-    sweet: [
-        '正在為你的生活，加入一點甜...',
-        '甜點師正在偷偷加料...',
-        '今天的甜，正在準備中...',
-    ]
-};
+const defaultTexts = [
+    '老娘正在準備你的心意...',
+    '火鍋滾了，等等...',
+    '甜點正在製作中...',
+];
 
-function setLoadingText(text) {
-    const el = document.getElementById('brand-loading-text');
-    if (el) el.innerText = text;
+function setLoadingText(text){
+    document.getElementById('brand-loading-text').innerText = text;
 }
 
-// ⭐ 一進來就先顯示預設（關鍵）
-(function initLoadingText(){
-    const list = defaultLoadingTexts[window.currentBrand];
-    const rand = list[Math.floor(Math.random() * list.length)];
-    setLoadingText(rand);
-})();
+// ⭐ 一進來就先顯示
+setLoadingText(defaultTexts[Math.floor(Math.random()*defaultTexts.length)]);
 
-// ===== 後端文句池 =====
-async function fetchLoadingTextsOnly() {
-    try {
-        const brandParam = currentFrom === 'sweet' ? 'so' : 'om';
-        const url = `${GAS_URL}?action=getLoadingTexts&from=${brandParam}&t=${Date.now()}`;
-
-        const res = await fetch(url);
+// ===== 抓文句池 =====
+async function fetchLoadingTexts(){
+    try{
+        const res = await fetch(GAS_URL + '?action=getLoadingTexts');
         const data = await res.json();
 
-        if (data.loadingTexts?.length) {
+        if(data.loadingTexts?.length){
             const rand = data.loadingTexts[Math.floor(Math.random()*data.loadingTexts.length)];
             setLoadingText(rand);
         }
-    } catch(e) {
-        console.log('文句池失敗，已用預設');
-    }
-}
-
-// ===== 綁定（只綁一次）=====
-function bindButtons() {
-    if (isBound) return;
-    isBound = true;
-
-    document.getElementById('profileBtn').onclick = openProfile;
-    document.getElementById('referralBtn').onclick = openReferral;
-    document.getElementById('historyBtn').onclick = openHistory;
-    document.getElementById('omEventsBtn').onclick = () => openEventsByBrand('老娘鍋');
-    document.getElementById('swEventsBtn').onclick = () => openEventsByBrand('一點甜');
-    document.getElementById('shareBtn').onclick = shareRecommend;
-    document.getElementById('registerBtn').onclick = doRegister;
-    document.getElementById('modalCloseBtn').onclick = closeModal;
-}
-
-// ===== Toast =====
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(()=>t.style.display='none',2000);
+    }catch(e){}
 }
 
 // ===== Modal =====
-function closeModal(){ document.getElementById('modal').style.display='none'; }
-function openModal(title, html){
-  document.getElementById('modalTitle').innerText = title;
-  document.getElementById('modalBody').innerHTML = html;
-  document.getElementById('modal').style.display='flex';
+function openModal(html){
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modal').style.display = 'flex';
+}
+function closeModal(){
+    document.getElementById('modal').style.display = 'none';
+}
+
+// ===== 個人資料（修好）=====
+function openProfile(){
+    if(!userData || !userData.profile){
+        alert('資料還沒載入');
+        return;
+    }
+
+    const p = userData.profile;
+
+    openModal(`
+        <div>姓名：${p.name}</div>
+        <div>手機：${p.phone}</div>
+        <div>生日：${p.birthday}</div>
+    `);
+}
+
+// ===== 分享（修好）=====
+async function share(){
+
+    if(!liff.isInClient()){
+        alert('請在LINE內使用');
+        return;
+    }
+
+    const link = `https://liff.line.me/${LIFF_ID}?ref=${userId}`;
+
+    await liff.shareTargetPicker([{
+        type:'text',
+        text:'推薦給你 👉 ' + link
+    }]);
 }
 
 // ===== 會員資料 =====
 async function fetchData(){
-  if(!userId) return;
-
-  try{
-    const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom==='sweet'?'so':'om'}`;
-    const res = await fetch(url);
+    const res = await fetch(GAS_URL + '?action=checkID&userId=' + userId);
     userData = await res.json();
 
     if(!userData.isMember){
@@ -113,80 +186,32 @@ async function fetchData(){
 
     document.getElementById('brand-loading-mask').style.display='none';
     document.getElementById('memberUI').style.display='block';
-
-  }catch(e){
-    showToast('載入失敗');
-  }
-}
-
-// ===== 個人資料（修好）=====
-function openProfile(){
-  if(!userData || !userData.profile){
-    showToast('資料未載入');
-    return;
-  }
-
-  const p = userData.profile;
-
-  openModal('👤 個人資料', `
-    <div style="line-height:2">
-      <div>姓名：${p.name}</div>
-      <div>手機：${p.phone}</div>
-      <div>生日：${p.birthday}</div>
-      <div>等級：${p.level || '一般會員'}</div>
-    </div>
-  `);
-}
-
-// ===== 分享（修好）=====
-async function shareRecommend(){
-
-  if (!liff.isInClient()) {
-    showToast('請在LINE內使用分享');
-    return;
-  }
-
-  const link = `https://liff.line.me/${LIFF_ID}?from=${currentFrom==='sweet'?'so':'om'}&referrer=${userId}`;
-
-  try{
-    await liff.shareTargetPicker([{
-      type: "text",
-      text: `送你一個好康👉 ${link}`
-    }]);
-  }catch(e){
-    showToast('分享失敗');
-  }
-}
-
-// ===== 註冊 =====
-async function doRegister(){
-  showToast('註冊略');
 }
 
 // ===== 初始化 =====
-async function initLiff(){
+async function init(){
 
-  bindButtons();
-  await fetchLoadingTextsOnly();
+    document.getElementById('profileBtn').onclick = openProfile;
+    document.getElementById('shareBtn').onclick = share;
 
-  try{
+    await fetchLoadingTexts();
+
     await liff.init({ liffId: LIFF_ID });
 
-    if (!liff.isLoggedIn()){
-      liff.login();
-      return;
+    if(!liff.isLoggedIn()){
+        liff.login();
+        return;
     }
 
     const profile = await liff.getProfile();
     userId = profile.userId;
 
     await fetchData();
-
-  }catch(e){
-    showToast('請在LINE開啟');
-  }
 }
 
-document.addEventListener('DOMContentLoaded', initLiff);
+init();
 
 </script>
+
+</body>
+</html>
