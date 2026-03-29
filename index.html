@@ -4,69 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>老娘的一點心意</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
     <style>
-        /* ===== 品牌全域變數 ===== */
-        .theme-pot { --brand-main: #8b0000; --brand-bg: #fdf5e6; --brand-text: #333; }
-        .theme-sweet { --brand-main: #ff69b4; --brand-bg: #FFF9E6; --brand-text: #5D4037; }
-        
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--brand-bg); margin: 0; padding-bottom: 40px; color: var(--brand-text); }
-
-        /* ===== Loading 遮罩 ===== */
-        #brand-loading-mask {
-            position: fixed; inset: 0; z-index: 9999;
-            background-color: var(--brand-bg);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        #brand-loading-text { font-size: 1rem; font-weight: bold; margin-top: 1.5rem; text-align: center; padding: 0 20px; }
-
-        .pot-animation { width: 50px; height: 35px; background: var(--brand-main); border-radius: 0 0 12px 12px; position: relative; animation: pot-jump 0.5s infinite alternate ease-in-out; }
-        .pudding-animation { width: 45px; height: 40px; background: #FFD166; border-radius: 8px 8px 4px 4px; box-shadow: 0 6px #B07D62 inset; animation: pudding-wobble 0.6s infinite ease-in-out; }
-        @keyframes pot-jump { to { transform: translateY(-15px); } }
-        @keyframes pudding-wobble { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
-
-        /* ===== 會員中心 ===== */
-        .header { background: var(--brand-main); color: #fff; padding: 45px 20px; text-align: center; border-radius: 0 0 30px 30px; }
-        .main-title { font-size: 30px; font-weight: 900; }
-        .points-card { background: #fff; margin: -25px 20px 20px; padding: 25px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
-        .points-value { font-size: 45px; font-weight: 900; color: var(--brand-main); }
-        
-        .action-group-right { display: flex; flex-direction: column; gap: 8px; width: 120px; }
-        .action-btn { padding: 10px; border-radius: 12px; background: #ecced0; border: none; font-weight: bold; cursor: pointer; color: #333; font-size: 14px; }
-
-        .qr-section { background: #fff; margin: 0 20px 20px; padding: 25px; border-radius: 20px; text-align: center; }
-        #qrcode { width: 180px; height: 180px; margin-bottom: 10px; }
-
-        .share-btn { display: block; width: calc(100% - 40px); margin: 0 auto; padding: 16px; border-radius: 15px; background: #06C755; color: #fff; font-weight: bold; border: none; cursor: pointer; }
-
-        /* ===== 註冊介面 ===== */
-        #regUI { display: none; padding: 30px 20px; }
-        .reg-input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-top: 10px; box-sizing: border-box; }
-        .reg-btn { width: 100%; padding: 16px; background: var(--brand-main); color: #fff; border: none; border-radius: 15px; font-weight: bold; margin-top: 20px; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-card { background: #fff; width: 90%; max-width: 400px; border-radius: 25px; overflow: hidden; }
-        .modal-body { padding: 20px; line-height: 1.6; }
-        .share-success-card { background: #d89c7a; color: #fff; padding: 25px; border-radius: 15px; text-align: center; }
-        .toast { position: fixed; left: 50%; bottom: 50px; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 10px; display: none; }
+        :root { --primary: #8b0000; --bg: #fdf5e6; --card-bg: #fff; --text: #333; --light-text: #666; --success: #06C755; }
+        .theme-sw { --primary: #ff69b4; --bg: #FFF9E6; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-bottom: 40px; color: var(--text); }
+        #loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 20px; }
+        .loader-icon { width: 60px; height: 35px; background: #333; border-radius: 0 0 25px 25px; position: relative; border: 3px solid #222; }
+        .loader-icon.om::after { content: '♨'; position: absolute; top: -30px; left: 12px; font-size: 28px; color: var(--primary); animation: steam 1.2s infinite; }
+        .loader-icon.sw { width: 55px; height: 40px; background: #ffcc00; border-radius: 15px 15px 8px 8px; border-top: 10px solid #663300; animation: wobble 0.7s infinite; }
+        @keyframes steam { 0%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(-20px)} }
+        @keyframes wobble { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
+        #loading-text { font-weight: bold; color: var(--primary); font-size: 16px; }
+        .header { background: var(--primary); color: #fff; padding: 45px 20px; text-align: center; border-radius: 0 0 30px 30px; }
+        .welcome-quote { font-size: 18px; opacity: 0.95; margin-bottom: 8px; }
+        .main-title { font-size: 32px; font-weight: 900; }
+        .points-card { background: var(--card-bg); margin: -25px 20px 20px; padding: 28px 24px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+        .points-left { flex: 1; text-align: center; }
+        .points-value { font-size: 48px; font-weight: 900; color: var(--primary); line-height: 1.1; }
+        .refresh-btn { margin-top: 12px; padding: 8px 16px; border-radius: 12px; background: #f7f7f7; border: 1px solid #eee; font-size: 14px; color: var(--light-text); cursor: pointer; }
+        .action-group-right { display: flex; flex-direction: column; gap: 10px; width: 140px; }
+        .action-btn { padding: 12px; border-radius: 16px; background: #f9f9f9; border: 1px solid #eee; font-size: 15px; font-weight: bold; color: var(--primary); cursor: pointer; }
+        .qr-section { background: var(--card-bg); margin:0 20px 20px; padding:28px; border-radius:20px; text-align:center; }
+        #qrcode { width:180px; height:180px; margin-bottom:12px; }
+        .event-btn { display: block; width: calc(100% - 40px); margin: 0 auto 20px; padding: 14px; border-radius: 16px; background: var(--primary); color: #fff; font-weight: bold; font-size: 16px; border:none; }
+        .share-btn { display: block; width: calc(100% - 40px); margin: 0 auto; padding: 18px; border-radius: 20px; background: var(--success); color: #fff; font-weight: bold; font-size: 18px; border:none; }
+        #regUI { display:none; padding:40px 24px; }
+        .reg-input { width:100%; padding:16px; border-radius:14px; border:1px solid #ddd; font-size:16px; box-sizing:border-box; margin-top:10px; }
+        .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; }
+        .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:3000; }
+        .modal-card { background:var(--card-bg);width:92%;max-width:420px;border-radius:24px;overflow:hidden; }
+        .modal-body { padding:20px; max-height: 60vh; overflow-y: auto; }
+        .welcome-card { background: linear-gradient(135deg, #8b0000, #ff69b4); color: #fff; padding: 30px 24px; border-radius: 24px; text-align: center; }
+        .toast { position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:12px 20px;border-radius:12px;z-index:9999;display:none; }
     </style>
 </head>
 <body>
 
-<div id="brand-loading-mask">
-    <div id="brand-icon-box"></div>
-    <div id="brand-loading-text">載入中....</div>
+<div id="loading">
+    <div id="loader" class="loader-icon om"></div>
+    <div id="loading-text">✨ 載入中，請稍候 ✨</div>
 </div>
 
 <div id="memberUI" style="display:none">
     <div class="header">
-        <div id="welcomeQuote" style="margin-bottom:5px; opacity:0.9;"></div>
+        <div class="welcome-quote" id="welcomeQuote"></div>
         <div class="main-title">老娘的一點心意</div>
     </div>
     <div class="points-card">
-        <div>
-            <div style="font-size:13px; color:#666;">可用點數</div>
+        <div class="points-left">
+            <div style="font-size:14px; color:#666;">可用點數資產</div>
             <div class="points-value" id="pointsDisplay">--</div>
+            <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
         </div>
         <div class="action-group-right">
             <button class="action-btn" onclick="openProfile()">👤 個人資料</button>
@@ -76,14 +65,18 @@
     </div>
     <div class="qr-section">
         <img id="qrcode" src="">
-        <div style="font-weight:bold; color:#666;">結帳請出示此碼</div>
+        <div style="font-size:14px; color:#666; font-weight:600;">結帳時請出示此碼</div>
     </div>
-    <button class="share-btn" onclick="shareRecommend()">🚀 分享推薦碼</button>
+    <button class="event-btn" onclick="openEvents()">🔥 優惠活動</button>
+    <button class="share-btn" onclick="autoCopyShare()">🚀 分享推薦碼</button>
 </div>
 
 <div id="regUI">
-    <h2 style="text-align:center;" id="regTitleText">新會員註冊</h2>
-    <div id="referrerInfo" style="text-align:center; color:#8b0000; font-weight:bold; margin-bottom:10px; display:none;"></div>
+    <h2 style="text-align:center; color:var(--primary);">會員註冊</h2>
+    <div id="refQrBox" style="text-align:center; margin-bottom:20px; display:none;">
+        <div style="font-weight:bold; color:var(--primary);">推薦人專屬 QR</div>
+        <img id="refQrImg" style="width:160px; height:160px; margin:10px 0;">
+    </div>
     <input id="regName" class="reg-input" placeholder="姓名">
     <input id="regPhone" class="reg-input" placeholder="手機 09XX-XXX-XXX" maxlength="12">
     <input type="date" id="regBirthday" class="reg-input">
@@ -92,130 +85,124 @@
 
 <div class="modal-overlay" id="modal" onclick="closeModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
-        <div class="modal-body" id="modalBody"></div>
-        <button style="width:100%; padding:15px; border:none; background:#eee;" onclick="closeModal()">關閉</button>
+        <div id="modalBody" class="modal-body"></div>
+        <button style="width:100%; padding:18px; border:none; background:#eee;" onclick="closeModal()">關閉</button>
     </div>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
 let userId = '', userData = null, currentFrom = 'om', referrerParam = '';
 
-const TEXTS = {
-    om: ["老娘正在翻帳本，幫你算驚喜...", "老娘正在準備你的心意...", "火鍋滾了，心意也快好了...", "湯頭正在滾，心意馬上到..."],
-    so: ["正在為你的生活，加入一點甜...", "遇見你，就是一點甜...", "捕捉今日份的甜，請稍候片刻...", "心意準備中，等等來點甜的吧！"]
-};
+function showToast(msg){
+    const t = document.getElementById('toast');
+    t.innerText = msg; t.style.display = 'block';
+    setTimeout(()=>{ t.style.display = 'none'; }, 2000);
+}
 
-// 手機自動格式化監聽
-document.getElementById('regPhone').addEventListener('input', function(e) {
-    let v = e.target.value.replace(/\D/g, '').slice(0, 10);
-    if (v.length > 7) v = v.slice(0, 4) + '-' + v.slice(4, 7) + '-' + v.slice(7);
-    else if (v.length > 4) v = v.slice(0, 4) + '-' + v.slice(4);
+document.getElementById('regPhone').addEventListener('input', (e) => {
+    let v = e.target.value.replace(/\D/g,'').slice(0,10);
+    if(v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7);
+    else if(v.length > 4) v = v.slice(0,4)+'-'+v.slice(4);
     e.target.value = v;
 });
 
-async function init() {
+async function initLiff() {
     const params = new URLSearchParams(window.location.search);
-    currentFrom = params.get('from') === 'so' ? 'so' : 'om';
+    currentFrom = params.get('from') || 'om';
     referrerParam = params.get('referrer') || '';
-    
-    document.documentElement.className = currentFrom === 'so' ? 'theme-sweet' : 'theme-pot';
-    const pool = TEXTS[currentFrom];
-    document.getElementById('brand-loading-text').innerText = pool[Math.floor(Math.random()*pool.length)];
-    document.getElementById('brand-icon-box').innerHTML = `<div class="${currentFrom==='so'?'pudding-animation':'pot-animation'}"></div>`;
-
+    if(currentFrom === 'so') {
+        document.body.classList.add('theme-sw');
+        document.getElementById('loader').className = 'loader-icon sw';
+    }
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
+        if(!liff.isLoggedIn()) { liff.login(); return; }
         const p = await liff.getProfile();
         userId = p.userId;
         fetchData();
-    } catch(e) { console.error(e); }
+    } catch(e) { showToast('LIFF 初始化失敗'); }
 }
 
-async function fetchData() {
-    const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}`);
-    userData = await res.json();
-    document.getElementById('brand-loading-mask').style.display = 'none';
-
-    if (!userData.isMember) {
-        document.getElementById('regUI').style.display = 'block';
-        if (referrerParam) {
-            const refDiv = document.getElementById('referrerInfo');
-            refDiv.innerText = "您是由好友推薦而來，完成註冊享好禮！";
-            refDiv.style.display = 'block';
+async function fetchData(isReload = false) {
+    try {
+        const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&t=${Date.now()}`);
+        userData = await res.json();
+        document.getElementById('loading').style.display = 'none';
+        if(!userData.isMember) {
+            document.getElementById('regUI').style.display = 'block';
+            if(referrerParam) {
+                document.getElementById('refQrBox').style.display = 'block';
+                document.getElementById('refQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${referrerParam}`;
+            }
+        } else {
+            document.getElementById('memberUI').style.display = 'block';
+            document.getElementById('regUI').style.display = 'none';
+            document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
+            document.getElementById('welcomeQuote').innerText = userData.welcomeQuote;
+            document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
+            if(isReload) showToast('✅ 資料已更新');
         }
-    } else {
-        showMemberUI();
-    }
-}
-
-function showMemberUI() {
-    document.getElementById('regUI').style.display = 'none';
-    document.getElementById('memberUI').style.display = 'block';
-    document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
-    document.getElementById('welcomeQuote').innerText = userData.welcomeQuote;
-    document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
-}
-
-function openProfile() {
-    if(!userData || !userData.profile) return;
-    const p = userData.profile;
-    const html = `
-        <div style="text-align:center; margin-bottom:15px;"><h3>👤 個人資料</h3></div>
-        <p><b>姓名：</b>${p.name}</p>
-        <p><b>手機：</b>${p.phone}</p>
-        <p><b>生日：</b>${p.birthday}</p>
-        <p><b>等級：</b>${p.level}</p>
-    `;
-    openModal(html);
-}
-
-function openReferral() {
-    const list = userData.myReferrals.map(r => `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;"><span>${r.name}</span><span>${r.date}</span></div>`).join('') || '尚無推薦記錄';
-    openModal(`<h3>👥 推薦名單</h3><p>推薦人：${userData.myReferrer || "無"}</p>${list}`);
-}
-
-function openHistory() {
-    const list = userData.history.map(h => `<div style="font-size:12px; border-bottom:1px solid #eee; padding:5px 0;">${h.date} 獲取:${h.gain} / 抵用:${h.spend}</div>`).join('') || '尚無明細';
-    openModal(`<h3>📜 點數明細</h3>${list}`);
+    } catch(e) { showToast('連線失敗，請重新整理'); }
 }
 
 async function doRegister() {
     const name = document.getElementById('regName').value.trim();
     const phone = document.getElementById('regPhone').value.trim();
     const birthday = document.getElementById('regBirthday').value;
+    if(!name || phone.length !== 12 || !birthday) return showToast('請填寫完整資訊');
 
-    if(!name || phone.length !== 12 || !birthday) return alert('請填寫完整資訊');
-
-    // 使用 GET 請求發送註冊資料，確保與後端 action=register 邏輯一致
-    const url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone.replace(/-/g,'')}&birthday=${birthday}&referrer=${referrerParam}&from=${currentFrom}`;
+    // 關鍵修正：改用 GET 請求發送註冊，避開 CORS POST 問題
+    const url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone.replace(/-/g,'')}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`;
     
     try {
         const res = await fetch(url);
         const result = await res.json();
-        if(result.success) { 
-            alert('註冊成功！'); 
-            location.reload(); 
-        } else {
-            alert('註冊失敗：' + result.message);
-        }
-    } catch(e) {
-        alert('連線失敗，請稍後再試');
-    }
+        if(result.success) {
+            openModal(`
+                <div class="welcome-card">
+                    <h2>歡迎加入老娘的一點心意🍲🍰</h2>
+                    <p>這是老娘留給你的偏心。<br>日子不一定天天完美，但一定要有一點甜 💕</p>
+                </div>
+            `);
+            // 彈窗關閉後刷新
+            setTimeout(() => { location.reload(); }, 3000);
+        } else { showToast(result.message); }
+    } catch(e) { showToast('註冊連線失敗'); }
 }
 
-function shareRecommend() {
-    const shareUrl = `https://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
-    const el = document.createElement('textarea');
-    el.value = shareUrl; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
-    openModal(`<div class="share-success-card"><h3>✅ 複製成功</h3><p>專屬連結已複製，分享給好友註冊即可獲得推薦點數！</p></div>`);
+function openProfile() {
+    const p = userData.profile;
+    openModal(`<h3>👤 個人資料</h3><p>姓名：${p.name}</p><p>手機：${p.phone}</p><p>生日：${p.birthday}</p><p>等級：${p.level}</p>`);
+}
+
+function openReferral() {
+    const list = userData.myReferrals.map(r => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;"><span>${r.name}</span><span>${r.date}</span></div>`).join('') || '尚無推薦記錄';
+    openModal(`<h3>👥 推薦名單</h3><p>推薦人：${userData.myReferrer || "無"}</p>${list}`);
+}
+
+function openHistory() {
+    const list = userData.history.map(h => `<div style="font-size:12px;border-bottom:1px solid #eee;padding:5px 0;">${h.date} 獲取:${h.gain} / 抵用:${h.spend}</div>`).join('') || '尚無點數明細';
+    openModal(`<h3>📜 點數明細</h3>${list}`);
+}
+
+function openEvents() {
+    const events = (currentFrom === 'so' ? userData.swEvents : userData.omEvents) || [];
+    const list = events.map(e => `<div style="padding:10px;border-bottom:1px solid #eee;">✨ ${e}</div>`).join('') || '目前暫無活動';
+    openModal(`<h3>🔥 優惠活動</h3>${list}`);
+}
+
+function autoCopyShare() {
+    const branch = currentFrom === 'so' ? '一點甜' : '老娘鍋';
+    const text = `✨ 發現${branch}隱藏版美味 ✨\n立即加入領取新客禮：\nhttps://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
+    navigator.clipboard.writeText(text).then(() => { showToast('✅ 推薦連結已複製'); });
 }
 
 function openModal(html) { document.getElementById('modalBody').innerHTML = html; document.getElementById('modal').style.display = 'flex'; }
 function closeModal() { document.getElementById('modal').style.display = 'none'; }
-init();
+initLiff();
 </script>
 </body>
 </html>
