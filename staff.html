@@ -21,7 +21,6 @@
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
 
-        /* 新增：自定義彈窗樣式 */
         #customModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: center; }
         .modal-btn { background: #00b900; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; margin-top: 20px; cursor: pointer; width: 100%; }
@@ -44,7 +43,7 @@
         </div>
     </div>
 
-    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描</button>
+    <button class="btn btn-scan" id="scanBtn" disabled onclick="handleScan()">📷 啟動相機掃描</button>
 
     <div class="member-info" id="member-ui">
         顧客：<b id="cus-name">-</b> | 現有資產：<b id="cus-pts" style="color:red;">0</b> 點
@@ -90,7 +89,7 @@ const LIFF_ID = "2009625641-AYIKoXbw";
 
 let config = {}, customerId = "", currentPoints = 0, staff = {};
 
-// 彈窗控制
+// 彈窗
 function showModal(html) {
     document.getElementById('modalText').innerHTML = html;
     document.getElementById('customModal').style.display = 'flex';
@@ -99,10 +98,12 @@ function closeModal() {
     document.getElementById('customModal').style.display = 'none';
 }
 
+// 初始化 LIFF + 驗證店員
 async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
+        
         const urlParams = new URLSearchParams(window.location.search);
         const key = urlParams.get('k');
         const profile = await liff.getProfile();
@@ -111,19 +112,17 @@ async function init() {
         staff = await res.json();
         
         if(staff.success) {
-            // 驗證成功：顯示資料並開放按鈕
             document.getElementById('shop-name').innerText = staff.branch;
             document.getElementById('staff-name').innerText = staff.name;
             document.getElementById('role-text').innerText = staff.role;
-            document.getElementById('scanBtn').disabled = false; // 確保按鈕可用
+            
+            // ✅ 解鎖相機按鈕
+            document.getElementById('scanBtn').disabled = false;
         } else {
-            // --- 關鍵修正：驗證失敗，直接鎖死介面 ---
             document.getElementById('shop-name').innerText = "❌ 無存取權限";
             document.getElementById('scanBtn').disabled = true;
             document.getElementById('scanBtn').style.background = "#ccc";
             document.getElementById('scanBtn').innerText = "權限不足，無法掃描";
-            
-            // 強制彈窗，並在點擊後嘗試關閉視窗
             showModal("<p style='color:red; font-weight:bold;'>⚠️ 您的ID不適用本功能！<br>請聯絡系統管理員授權。</p>");
         }
     } catch (e) {
@@ -131,46 +130,38 @@ async function init() {
     }
 }
 
-try {
+// ✅【最重要】相機按鈕點擊事件（你原本缺少這個！）
+async function handleScan() {
+    try {
+        if (!liff.isApiAvailable('SCAN_CODE')) {
+            alert("⚠️ 您的 LINE 版本不支援相機掃描，請更新 LINE！");
+            return;
+        }
+
         const result = await liff.scanCodeV2();
         if (!result || !result.value) return;
 
-        // --- 1. 開始查詢：開啟品牌 Loading ---
-        if (window.openBrandLoading) {
-            window.openBrandLoading("老娘正在查詢會員資料...");
-        }
+        const rawID = String(result.value);
 
-        const rawID = String(result.value); // 統一使用原始掃描值進行判斷
-
-        // 判斷是否為新客招待禮 (優先判斷)
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
-            // --- 查詢結束：關閉 Loading ---
-            if (window.closeBrandLoading) window.closeBrandLoading();
-
-            customerId = ""; // 清空全域變數，避免誤刷
+            customerId = "";
             document.getElementById('member-ui').style.display = 'none';
             document.getElementById('form-ui').classList.add('locked');
-
             showModal(`
                 <h3 style="color:#e91e63; margin-top:0;">🎁 新客招待禮確認</h3>
                 <hr>
                 <p><b>招待內容：</b>小菜一份 或 霜淇淋一支</p>
                 <p style="font-size:14px; color:#666;">⚠️ 這是新客專用碼，請引導顧客完成註冊後再掃會員碼集點。</p>
             `);
-            return; 
+            return;
         }
 
-        // --- 關鍵修正：確保是一般會員 ID 才賦值並查詢 ---
-        customerId = rawID; 
+        customerId = rawID;
 
-        // 向 GAS 發送查詢請求
-        // 注意：這裡確保使用的是剛剛賦值的 customerId
+        // 查詢會員
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
-        
-        // --- 2. 資料回傳：不論成功失敗都關閉 Loading ---
-        if (window.closeBrandLoading) window.closeBrandLoading();
-        
+
         if(data.isMember) {
             document.getElementById('member-ui').style.display = 'block';
             document.getElementById('form-ui').classList.remove('locked');
@@ -182,13 +173,13 @@ try {
         } else {
             showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
         }
+
     } catch (err) {
-        // 出錯或取消也要確保 Loading 關閉
-        if (window.closeBrandLoading) window.closeBrandLoading();
         console.log("掃描取消或出錯:", err.message);
     }
 }
 
+// 切換模式
 function toggleMode() {
     const isTicket = document.getElementById('ticketMode').checked;
     document.getElementById('normal-fields').style.display = isTicket ? 'none' : 'block';
@@ -196,6 +187,7 @@ function toggleMode() {
     doCalc();
 }
 
+// 即時計算
 function doCalc() {
     if (!config.earnRate) return;
     const isTicket = document.getElementById('ticketMode').checked;
@@ -225,6 +217,7 @@ function doCalc() {
     document.getElementById('after-pts').innerText = (currentPoints - redeem + newPts);
 }
 
+// 提交
 async function submitData() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
@@ -261,6 +254,7 @@ async function submitData() {
     }
 }
 
+// 啟動
 init();
 </script>
 </body>
