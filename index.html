@@ -39,13 +39,10 @@
 
         .share-btn { display: block; width: calc(100% - 40px); margin: 0 auto; padding: 16px; border-radius: 15px; background: #06C755; color: #fff; font-weight: bold; border: none; cursor: pointer; }
 
-        /* ===== 註冊與分享者介面 ===== */
-        #regUI, #referrerQRUI { display: none; padding: 30px 20px; }
+        /* ===== 註冊介面 ===== */
+        #regUI { display: none; padding: 30px 20px; }
         .reg-input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-top: 10px; box-sizing: border-box; }
         .reg-btn { width: 100%; padding: 16px; background: var(--brand-main); color: #fff; border: none; border-radius: 15px; font-weight: bold; margin-top: 20px; }
-        
-        /* 推薦者專屬卡片 */
-        .ref-card { background: #fff; padding: 20px; border-radius: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; }
         .modal-card { background: #fff; width: 90%; max-width: 400px; border-radius: 25px; overflow: hidden; }
@@ -59,16 +56,6 @@
 <div id="brand-loading-mask">
     <div id="brand-icon-box"></div>
     <div id="brand-loading-text">載入中....</div>
-</div>
-
-<div id="referrerQRUI">
-    <div class="ref-card">
-        <h3 id="refTitle">好友推薦驚喜</h3>
-        <p>請出示此 QR Code 給店員掃描<br>確認推薦人資訊</p>
-        <img id="refQRCodeImg" style="width:200px; height:200px;">
-        <p style="font-size: 12px; color: #999; margin-top: 10px;">推薦者 ID: <span id="refIdText"></span></p>
-        <button class="reg-btn" onclick="showRegForm()">我是新朋友，前往註冊</button>
-    </div>
 </div>
 
 <div id="memberUI" style="display:none">
@@ -95,7 +82,8 @@
 </div>
 
 <div id="regUI">
-    <h2 style="text-align:center;" id="regTitleText">會員註冊</h2>
+    <h2 style="text-align:center;" id="regTitleText">新會員註冊</h2>
+    <div id="referrerInfo" style="text-align:center; color:#8b0000; font-weight:bold; margin-bottom:10px; display:none;"></div>
     <input id="regName" class="reg-input" placeholder="姓名">
     <input id="regPhone" class="reg-input" placeholder="手機 09XX-XXX-XXX" maxlength="12">
     <input type="date" id="regBirthday" class="reg-input">
@@ -108,25 +96,30 @@
         <button style="width:100%; padding:15px; border:none; background:#eee;" onclick="closeModal()">關閉</button>
     </div>
 </div>
-<div class="toast" id="toast"></div>
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
 let userId = '', userData = null, currentFrom = 'om', referrerParam = '';
 
-// ===== 載入文字隨機邏輯 =====
 const TEXTS = {
     om: ["老娘正在翻帳本，幫你算驚喜...", "老娘正在準備你的心意...", "火鍋滾了，心意也快好了...", "湯頭正在滾，心意馬上到..."],
-    so: ["正在為你的生活，加入一點甜...", "遇見你，就是一點甜...", "捕捉今日份的甜，請稍候片片...", "心意準備中，等等來點甜的吧！"]
+    so: ["正在為你的生活，加入一點甜...", "遇見你，就是一點甜...", "捕捉今日份的甜，請稍候片刻...", "心意準備中，等等來點甜的吧！"]
 };
+
+// 手機自動格式化監聽
+document.getElementById('regPhone').addEventListener('input', function(e) {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 10);
+    if (v.length > 7) v = v.slice(0, 4) + '-' + v.slice(4, 7) + '-' + v.slice(7);
+    else if (v.length > 4) v = v.slice(0, 4) + '-' + v.slice(4);
+    e.target.value = v;
+});
 
 async function init() {
     const params = new URLSearchParams(window.location.search);
     currentFrom = params.get('from') === 'so' ? 'so' : 'om';
     referrerParam = params.get('referrer') || '';
     
-    // 樣式切換
     document.documentElement.className = currentFrom === 'so' ? 'theme-sweet' : 'theme-pot';
     const pool = TEXTS[currentFrom];
     document.getElementById('brand-loading-text').innerText = pool[Math.floor(Math.random()*pool.length)];
@@ -147,23 +140,15 @@ async function fetchData() {
     document.getElementById('brand-loading-mask').style.display = 'none';
 
     if (!userData.isMember) {
-        // 如果是新客且有推薦人
+        document.getElementById('regUI').style.display = 'block';
         if (referrerParam) {
-            document.getElementById('referrerQRUI').style.display = 'block';
-            document.getElementById('refQRCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${referrerParam}`;
-            document.getElementById('refIdText').innerText = referrerParam;
-            document.getElementById('refTitle').innerText = currentFrom === 'so' ? '一點甜好友推薦' : '老娘鍋好友推薦';
-        } else {
-            document.getElementById('regUI').style.display = 'block';
+            const refDiv = document.getElementById('referrerInfo');
+            refDiv.innerText = "您是由好友推薦而來，完成註冊享好禮！";
+            refDiv.style.display = 'block';
         }
     } else {
         showMemberUI();
     }
-}
-
-function showRegForm() {
-    document.getElementById('referrerQRUI').style.display = 'none';
-    document.getElementById('regUI').style.display = 'block';
 }
 
 function showMemberUI() {
@@ -174,7 +159,6 @@ function showMemberUI() {
     document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
 }
 
-// 修正：個人資料點擊沒反應的問題
 function openProfile() {
     if(!userData || !userData.profile) return;
     const p = userData.profile;
@@ -190,7 +174,7 @@ function openProfile() {
 
 function openReferral() {
     const list = userData.myReferrals.map(r => `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;"><span>${r.name}</span><span>${r.date}</span></div>`).join('') || '尚無推薦記錄';
-    openModal(`<h3>👥 推薦名單</h3><p>推薦人：${userData.myReferrer}</p>${list}`);
+    openModal(`<h3>👥 推薦名單</h3><p>推薦人：${userData.myReferrer || "無"}</p>${list}`);
 }
 
 function openHistory() {
@@ -199,22 +183,27 @@ function openHistory() {
 }
 
 async function doRegister() {
-    const name = document.getElementById('regName').value;
-    const phone = document.getElementById('regPhone').value;
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
     const birthday = document.getElementById('regBirthday').value;
-    if(!name || !phone || !birthday) return alert('請填寫完整');
 
-    const res = await fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-            action: 'register',
-            userId, name, phone, birthday,
-            referrerId: referrerParam, // 確保推薦人ID被送出
-            from: currentFrom
-        })
-    });
-    const result = await res.json();
-    if(result.success) { alert('註冊成功！'); location.reload(); }
+    if(!name || phone.length !== 12 || !birthday) return alert('請填寫完整資訊');
+
+    // 使用 GET 請求發送註冊資料，確保與後端 action=register 邏輯一致
+    const url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone.replace(/-/g,'')}&birthday=${birthday}&referrer=${referrerParam}&from=${currentFrom}`;
+    
+    try {
+        const res = await fetch(url);
+        const result = await res.json();
+        if(result.success) { 
+            alert('註冊成功！'); 
+            location.reload(); 
+        } else {
+            alert('註冊失敗：' + result.message);
+        }
+    } catch(e) {
+        alert('連線失敗，請稍後再試');
+    }
 }
 
 function shareRecommend() {
