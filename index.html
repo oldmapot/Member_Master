@@ -118,7 +118,7 @@
 
 <div id="regUI">
     <div id="regGiftArea" class="reg-qr-tip" style="display:none;">
-        <div style="color:var(--primary); font-weight:bold; margin-bottom:10px;">🎁 您的專屬新客招待禮</div>
+        <div id="giftTitle" style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size: 18px;"></div>
         <img id="regGiftQR" src="" style="width:160px; height:160px; margin-bottom:8px;">
         <div style="font-size:12px; color:#8b0000;">請先出示此碼給店員掃描領取招待<br>領完後記得完成下方註冊喔！</div>
     </div>
@@ -184,6 +184,7 @@ async function initLiff() {
     } catch(e) { showToast('LIFF 初始化失敗'); }
 }
 
+// --- 只修改 fetchData 裡面的這段邏輯 ---
 async function fetchData(isReload = false) {
     try {
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&t=${Date.now()}`);
@@ -196,12 +197,17 @@ async function fetchData(isReload = false) {
                 document.getElementById('referrerInfo').style.display = 'block';
                 document.getElementById('referrerInfo').innerText = `推薦人序號：${referrerParam}`;
                 
-                // --- 修正：新會員註冊前顯示推薦禮 QR Code ---
+                // --- 修正：顯示「你的好友 XX 送你的專屬好禮」 ---
                 document.getElementById('regGiftArea').style.display = 'block';
+                // 如果後端有傳回推薦人姓名就顯示，否則顯示「好友」
+                const referrerName = userData.myReferrer || "好友";
+                document.getElementById('giftTitle').innerText = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
+                
                 const giftData = `GIFT_BY_${referrerParam}`;
                 document.getElementById('regGiftQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${giftData}`;
             }
         } else {
+            // ... 以下進入會員介面邏輯 (維持不變) ...
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
             document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
