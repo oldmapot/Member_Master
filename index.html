@@ -74,7 +74,6 @@
     <h2 id="reg-title" style="font-weight:900; color:var(--primary); margin-bottom:5px;"></h2>
     <p id="reg-subtitle" style="color:#666; font-size:14px; margin-bottom:20px;"></p>
 
-    <!-- 朋友分享連結 → 自動出現推薦人QR -->
     <div id="refQrBox" class="ref-qr-box" style="display:none;">
         <div class="ref-qr-title">推薦人專屬QR</div>
         <img id="refQrImg">
@@ -143,13 +142,15 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec"; 
     const LIFF_ID = "2009625010-p9sVIUWe";
     const urlParams = new URLSearchParams(window.location.search);
-    const brand = urlParams.get('from') || "om";
+    const brand = urlParams.get('from') || "om"; // so=一點甜, om=老娘鍋
     const referrerUID = urlParams.get('referrer') || "";
     let myUserId = "";
     let userData = {};
 
-    if(brand === "sw") document.body.classList.add('theme-sw');
+    // 品牌主題切換：so=一點甜（粉色主題），om=老娘鍋（紅色主題）
+    if(brand === "so") document.body.classList.add('theme-sw');
 
+    // 手機號碼格式化：09XX-XXX-XXX
     document.getElementById('userPhone').addEventListener('input', function(e) {
         let v = e.target.value.replace(/\D/g, '').slice(0,10);
         if (v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7);
@@ -157,6 +158,7 @@
         e.target.value = v;
     });
 
+    // Toast 提示（取代alert）
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.innerText = msg;
@@ -164,9 +166,10 @@
         setTimeout(()=>t.style.display='none', 2000);
     }
 
+    // 初始化 LIFF
     async function initLIFF() {
         const icon = document.getElementById('loader-icon');
-        icon.className = brand === "sw" ? "sw-animation" : "om-animation";
+        icon.className = brand === "so" ? "sw-animation" : "om-animation";
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const p = await liff.getProfile();
@@ -174,12 +177,13 @@
         fetchData();
     }
 
+    // 取得會員資料（優化載入速度）
     async function fetchData() {
         try {
             const res = await fetch(`${GAS_URL}?action=checkID&userId=${myUserId}&from=${brand}`);
             userData = await res.json();
 
-            // 已註冊 → 瞬間開啟，不延遲
+            // 已註冊：瞬間開啟會員中心
             if (userData.isMember) {
                 document.getElementById('points-display').innerText = userData.profile.points;
                 document.getElementById('user-name').innerText = userData.profile.name;
@@ -193,13 +197,13 @@
                 return;
             }
 
-            // 未註冊
+            // 未註冊：顯示註冊頁
             document.getElementById('loading').style.display = 'none';
             document.getElementById('reg-UI').style.display = 'block';
-            document.getElementById('reg-title').innerText = brand === "sw" ? "一點甜 會員註冊" : "老娘鍋 會員註冊";
+            document.getElementById('reg-title').innerText = brand === "so" ? "一點甜 會員註冊" : "老娘鍋 會員註冊";
             document.getElementById('reg-subtitle').innerText = "填寫資料即可累積點數、兌換優惠";
 
-            // 有推薦人 → 顯示QR
+            // 有推薦人：顯示推薦人QR碼
             if (referrerUID) {
                 document.getElementById('refQrBox').style.display = 'block';
                 document.getElementById('refQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${referrerUID}`;
@@ -209,6 +213,7 @@
         }
     }
 
+    // 通用彈窗邏輯
     function showPopup(type) {
         const t = document.getElementById('modalTitle');
         const b = document.getElementById('modalBody');
@@ -217,11 +222,21 @@
         else if(type==='swEvents'){ t.innerText="🍰 一點甜好康"; t.style.color="#ff69b4"; html = userData.swEvents?.length?userData.swEvents.map(e=>`<div style='padding:15px; border-bottom:1px solid #f0f0f0'>✨ ${e}</div>`).join(''):"暫無活動"; }
         else if(type==='history'){ t.innerText="📜 點數明細"; t.style.color="#333"; html=`<table><tr><th>日期</th><th>獲取</th><th>折抵</th><th>剩餘</th></tr>${userData.history?.length?userData.history.map(h=>`<tr><td>${h.date}</td><td style="color:green">+${h.gain}</td><td style="color:red">-${h.spend||0}</td><td>${h.balance}</td></tr>`).join(''):`<tr><td colspan="4">無紀錄</td></tr>`}</table>`; }
         else if(type==='referrals'){ t.innerText="👥 推薦名單"; t.style.color="#333"; html=`<div style='padding:12px; background:#f9f9f9; border-radius:10px; margin-bottom:15px'><b>我的推薦人：</b> ${userData.myReferrer||"無"}</div><b>我推薦的人：</b>${userData.myReferrals?.length?userData.myReferrals.map(r=>`<div class='list-row'><span>${r.name}</span><span>${r.date}</span></div>`).join(''):`<div style='padding:20px; color:#ccc'>無</div>`}`; }
-        else if(type==='profile'){ t.innerText="👤 個人資料"; t.style.color="#333"; html=`<div style='line-height:2.2'><div><b>姓名：</b>${userData.profile.name}</div><div><b>手機：</b>${userData.profile.phone}</div><div><b>生日：</b>${userData.profile.birthday} <span style="color:red">(無法修改)</span></div><div><b>等級：</b>${userData.profile.level}</div></div>`; }
+        else if(type==='profile'){ 
+            t.innerText="👤 個人資料"; t.style.color="#333"; 
+            html=`<div style='line-height:2.2'>
+            <div><b>姓名：</b>${userData.profile.name}</div>
+            <div><b>手機：</b>${userData.profile.phone}</div>
+            <div><b>生日：</b>${userData.profile.birthday} <span style="color:red">(無法修改)</span></div>
+            <div><b>註冊分店：</b>${userData.profile.branch}</div>
+            <div><b>會員等級：</b>${userData.profile.level}</div>
+            </div>`; 
+        }
         b.innerHTML = html;
         document.getElementById('commonModal').style.display = 'flex';
     }
 
+    // 註冊功能
     async function handleRegister() {
         const name = document.getElementById('userName').value.trim();
         const phone = document.getElementById('userPhone').value.replace(/-/g,'');
@@ -236,6 +251,7 @@
         r.success ? (showToast("註冊成功！"), fetchData()) : showToast(r.message);
     }
 
+    // 複製分享推薦碼
     function copyShareLink() {
         const link = `https://liff.line.me/${LIFF_ID}?from=${brand}&referrer=${myUserId}`;
         navigator.clipboard.writeText(link).then(()=>{
