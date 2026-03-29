@@ -114,11 +114,7 @@ function liffReady() {
 async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { 
-            liff.login(); 
-            return; 
-        }
-        
+        if (!liff.isLoggedIn()) { liff.login(); return; }
         const urlParams = new URLSearchParams(window.location.search);
         const key = urlParams.get('k');
         const profile = await liff.getProfile();
@@ -130,46 +126,27 @@ async function init() {
             document.getElementById('shop-name').innerText = staff.branch;
             document.getElementById('staff-name').innerText = staff.name;
             document.getElementById('role-text').innerText = staff.role;
-            document.getElementById('scanBtn').disabled = false; // 解鎖相機按鈕
+            document.getElementById('scanBtn').disabled = false;
         } else {
             document.getElementById('shop-name').innerText = "❌ 無存取權限";
             document.getElementById('scanBtn').disabled = true;
             document.getElementById('scanBtn').style.background = "#ccc";
             document.getElementById('scanBtn').innerText = "權限不足，無法掃描";
-            showModal("<p style='color:red; font-weight:bold;'>⚠️ 您的ID不適用本功能！<br>請聯絡系統管理員授權。</p>");
+            showModal("<p style='color:red; font-weight:bold;'>⚠️ 您的帳號不在店員白名單內！<br>請聯絡系統管理員授權。</p>");
         }
     } catch (e) {
         alert("系統啟動失敗: " + e.message);
-        console.error("init error:", e);
     }
 }
 
-// 相機掃描功能（完整實作，解決按鈕無反應）
 async function handleScan() {
-    if (isScanning) return;
-    isScanning = true;
-    const scanBtn = document.getElementById('scanBtn');
-    scanBtn.disabled = true;
-    scanBtn.innerText = "掃描中...";
-
     try {
-        // 檢查掃碼 API 是否可用
-        if (!liff.isApiAvailable('scanCodeV2')) {
-            showModal("<p style='color:red;'>⚠️ 您的 LINE 版本不支援掃描功能，請更新 LINE！</p>");
-            return;
-        }
-
         const result = await liff.scanCodeV2();
-        if (!result || !result.value) {
-            showModal("<p>⚠️ 未偵測到有效條碼，掃描已取消</p>");
-            return;
-        }
+        if (!result || !result.value) return;
 
-        const rawID = String(result.value).trim();
-        console.log("掃描結果:", rawID);
+        const rawID = String(result.value);
 
-        // 新客招待禮判斷
-        if (rawID.toUpperCase().includes("GIFT_BY_")) {
+        if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
             customerId = "";
             document.getElementById('member-ui').style.display = 'none';
             document.getElementById('form-ui').classList.add('locked');
@@ -182,38 +159,24 @@ async function handleScan() {
             return;
         }
 
-        // 一般會員查詢
         customerId = rawID;
-        const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`, {
-            redirect: "follow"
-        });
+
+        const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
 
         if(data.isMember) {
             document.getElementById('member-ui').style.display = 'block';
             document.getElementById('form-ui').classList.remove('locked');
-            document.getElementById('cus-name').innerText = data.userName || "顧客";
-            document.getElementById('cus-pts').innerText = data.points || 0;
-            currentPoints = Number(data.points) || 0;
-            config = data.config || {};
+            document.getElementById('cus-name').innerText = data.userName;
+            document.getElementById('cus-pts').innerText = data.points;
+            currentPoints = Number(data.points);
+            config = data.config; 
             doCalc();
         } else {
             showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
         }
-
     } catch (err) {
-        console.error("掃描錯誤:", err);
-        if (err.message.includes("permission")) {
-            showModal("<p style='color:red;'>⚠️ 相機權限被拒絕，請在手機設定開啟 LINE 相機權限</p>");
-        } else if (err.message.includes("canceled")) {
-            showModal("<p>掃描已取消</p>");
-        } else {
-            showModal(`<p style='color:red;'>⚠️ 掃描失敗：${err.message}</p>`);
-        }
-    } finally {
-        isScanning = false;
-        scanBtn.disabled = false;
-        scanBtn.innerText = "📷 啟動相機掃描";
+        console.log("掃描取消或出錯:", err.message);
     }
 }
 
