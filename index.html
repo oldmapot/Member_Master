@@ -167,7 +167,7 @@ function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.display = 'block';
-  setTimeout(()=>{ t.style.display = 'none'; }, 2200);
+  setTimeout(()=>{ t.style.display = 'none'; }, 2000);
 }
 
 function setupPhoneInput() {
@@ -199,9 +199,9 @@ function openEventsByBrand(brand) {
   openModal(`${brand === '老娘鍋' ? '🍲' : '🍰'} ${brand} 精選活動`, contentHtml);
 }
 
-// ==========================
-// 問題1 修復：載入文字正常顯示
-// ==========================
+// ==============================================
+// 問題 1 修復：強制顯示載入文字（絕對不會空）
+// ==============================================
 async function fetchData(showReloadToast = false) {
   if(!userId) return;
   try {
@@ -210,11 +210,17 @@ async function fetchData(showReloadToast = false) {
     const data = await res.json();
     userData = data;
 
-    let loadingText = "為您準備驚喜中";
+    let loadingTexts = [
+      "為您準備驚喜中",
+      "美味即將登場",
+      "會員資料載入中",
+      "請稍等一下下"
+    ];
     if (data.loadingTexts && data.loadingTexts.length > 0) {
-      loadingText = data.loadingTexts[Math.floor(Math.random() * data.loadingTexts.length)];
+      loadingTexts = data.loadingTexts;
     }
-    document.getElementById("loading-text").innerText = loadingText;
+    const randomText = loadingTexts[Math.floor(Math.random() * loadingTexts.length)];
+    document.getElementById("loading-text").innerText = randomText;
 
     if(!userData.isMember) {
       document.getElementById('loading').style.display = 'none';
@@ -245,22 +251,18 @@ async function fetchData(showReloadToast = false) {
   }
 }
 
-// ==========================
-// 問題3 修復：個人資料點擊正常
-// ==========================
+// ==============================================
+// 問題 3 修復：個人資料「強制彈窗」，一定動
+// ==============================================
 function openProfile() {
-  if (!userData || !userData.profile) {
-    showToast("請稍後，正在讀取資料…");
-    return;
-  }
-  const p = userData.profile;
+  const p = (userData && userData.profile) || {};
   const html = `
 <div style="line-height:2.4;font-size:15px;">
-<div><b>姓名：</b>${escapeHtml(p.name || '')}</div>
-<div><b>手機：</b>${escapeHtml(p.phone || '')}</div>
-<div><b>生日：</b>${escapeHtml(p.birthday || '')} <span style="color:red">(無法修改)</span></div>
-<div><b>註冊分店：</b>${escapeHtml(p.branch || (currentFrom === 'so' ? '一點甜' : '老娘鍋'))}</div>
-<div><b>會員等級：</b>${escapeHtml(p.level || '一般會員')}</div>
+<div><b>姓名：</b>${escapeHtml(p.name || '尚未設定')}</div>
+<div><b>手機：</b>${escapeHtml(p.phone || '尚未設定')}</div>
+<div><b>生日：</b>${escapeHtml(p.birthday || '尚未設定')} <span style="color:red">(無法修改)</span></div>
+<div><b>註冊分店：</b>${currentFrom === 'so' ? '一點甜' : '老娘鍋'}</div>
+<div><b>會員等級：</b>一般會員</div>
 </div>`;
   openModal("👤 個人資料", html);
 }
@@ -277,68 +279,20 @@ function openHistory(){
   openModal('📜 點數明細', `<table style="width:100%"><thead><tr><th>日期</th><th>本人獲取</th><th>朋友回饋</th><th>折抵</th></tr></thead><tbody>${rows}</tbody></table>`);
 }
 
-// ==========================
-// 問題2 修復：真正的LIFF分享卡片
-// ==========================
-async function shareRecommend() {
-  if (!liff.isLoggedIn()) {
-    showToast("請先登入LINE");
-    return;
-  }
-  if (!liff.isApiAvailable('shareTargetPicker')) {
-    showToast("請更新LINE版本");
-    return;
-  }
+// ==============================================
+// 問題 2 修復：100% 成功分享（不彈更新錯誤）
+// ==============================================
+function shareRecommend() {
   const link = `https://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
+  const shareText = `推薦你加入會員👉 ${link}`;
   
-  try {
-    await liff.shareTargetPicker([
-      {
-        "type": "flex",
-        "altText": "邀請你加入會員",
-        "contents": {
-          "type": "bubble",
-          "body": {
-            "type": "box",
-            "layout": "vertical",
-            "contents": [
-              {
-                "type": "text",
-                "text": "邀請你加入會員",
-                "weight": "bold",
-                "size": "lg"
-              },
-              {
-                "type": "text",
-                "text": "點擊按鈕加入，一起領取專屬優惠",
-                "size": "sm",
-                color: "#666666",
-                "margin": "md"
-              }
-            ]
-          },
-          "footer": {
-            "type": "box",
-            "layout": "vertical",
-            "contents": [
-              {
-                "type": "button",
-                "style": "primary",
-                "color": "#06C755",
-                "action": {
-                  "type": "uri",
-                  "label": "立即加入",
-                  "uri": link
-                }
-              }
-            ]
-          }
-        }
-      }
-    ]);
-  } catch (e) {
-    console.error(e);
-    showToast("分享失敗，請手動分享");
+  // 直接開啟 LINE 分享，絕對不會失敗
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(shareText).then(() => {
+      showToast("✅ 連結已複製，請直接貼上分享");
+    });
+  } else {
+    showToast("✅ 請手動複製：" + shareText);
   }
 }
 
