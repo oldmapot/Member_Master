@@ -1,9 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老娘領地-店員端系統</title>
+    <!-- ✅ 關鍵修復：確保 SDK 載入完成再執行 JS -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" onload="liffReady()"></script>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; padding: 15px; background: #f4f7f6; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        .header { text-align: center; border-bottom: 2px solid #eee; margin-bottom: 15px; padding-bottom: 10px; }
+        .role-badge { background: #333; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+        .btn-scan { background: #00b900; color: white; }
+        .btn-submit { background: #1a73e8; color: white; margin-top: 10px; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .locked { opacity: 0.4; pointer-events: none; }
+        .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
+        .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
+
+        /* 自定義彈窗樣式 */
+        #customModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: center; }
+        .modal-btn { background: #00b900; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; margin-top: 20px; cursor: pointer; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="customModal">
+    <div class="modal-content">
+        <div id="modalText" style="line-height: 1.6; text-align: left; font-size: 16px;"></div>
+        <button class="modal-btn" onclick="closeModal()">我了解了</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="header">
+        <h2 style="margin:0;"><span id="shop-name">系統初始化...</span></h2>
+        <div style="font-size:14px; color:#666; margin-top:5px;">
+            夥伴：<span id="staff-name">-</span> <span id="role-text" class="role-badge">-</span>
+        </div>
+    </div>
+
+    <button class="btn btn-scan" id="scanBtn" disabled onclick="handleScan()">📷 啟動相機掃描</button>
+
+    <div class="member-info" id="member-ui">
+        顧客：<b id="cus-name">-</b> | 現有資產：<b id="cus-pts" style="color:red;">0</b> 點
+    </div>
+
+    <div id="form-ui" class="locked">
+        <label style="background:#fff3e0; padding:10px; display:block; border-radius:8px; margin-bottom:15px; cursor:pointer; border:1px solid #ff9800;">
+            <input type="checkbox" id="ticketMode" onchange="toggleMode()" style="width:auto;"> <b>勾選：購買餐券模式 (無股東分紅)</b>
+        </label>
+
+        <div id="normal-fields">
+            <div class="input-group">
+                <label>1. 本日消費總額</label>
+                <input type="number" id="totalSpend" oninput="doCalc()" placeholder="輸入消費金額">
+            </div>
+            <div class="input-group">
+                <label>2. 使用餐券金額</label>
+                <input type="number" id="ticketSpend" oninput="doCalc()" placeholder="輸入餐券支付額">
+            </div>
+            <div class="input-group">
+                <label>3. 折抵點數 (上限：<span id="max-hint" style="color:blue;">0</span> 點)</label>
+                <input type="number" id="redeemAmount" oninput="doCalc()" placeholder="欲折抵點數">
+            </div>
+        </div>
+
+        <div id="ticket-fields" style="display:none; border:2px solid #1a73e8; padding:10px; border-radius:8px; margin-bottom:15px;">
+            <label>購買餐券金額</label>
+            <input type="number" id="buyTicket" oninput="doCalc()" placeholder="輸入購買金額">
+        </div>
+
+        <div class="info-box">
+            本次預計發放點數：<b id="new-pts" style="color:#1a73e8;">0</b> 點<br>
+            結帳後總資產：<b id="after-pts">0</b> 點
+        </div>
+
+        <button class="btn btn-submit" id="submitBtn" onclick="submitData()">確認過卡 (發送股東/消費通知)</button>
+    </div>
+</div>
+
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxrlYGoxOuTUJ9y9YQreRRNpSYly2c7yGuOw0ppPmfJJL7xLo6RLZDBF2htCaHwnB6Y/exec"; 
 const LIFF_ID = "2009625641-AYIKoXbw"; 
 
 let config = {}, customerId = "", currentPoints = 0, staff = {};
-let isScanning = false; // 防止重複點擊
+let isScanning = false;
 
 // 彈窗控制
 function showModal(html) {
@@ -14,10 +101,24 @@ function closeModal() {
     document.getElementById('customModal').style.display = 'none';
 }
 
+// ✅ 關鍵修復：SDK 載入完成後才初始化
+function liffReady() {
+    if (typeof liff === 'undefined') {
+        showModal("<p style='color:red;'>❌ LIFF SDK 載入失敗，請重新開啟頁面</p>");
+        return;
+    }
+    init(); // SDK 載入完成才執行 init
+}
+
+// 初始化 LIFF + 驗證店員
 async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
+        if (!liff.isLoggedIn()) { 
+            liff.login(); 
+            return; 
+        }
+        
         const urlParams = new URLSearchParams(window.location.search);
         const key = urlParams.get('k');
         const profile = await liff.getProfile();
@@ -29,13 +130,13 @@ async function init() {
             document.getElementById('shop-name').innerText = staff.branch;
             document.getElementById('staff-name').innerText = staff.name;
             document.getElementById('role-text').innerText = staff.role;
-            document.getElementById('scanBtn').disabled = false;
+            document.getElementById('scanBtn').disabled = false; // 解鎖相機按鈕
         } else {
             document.getElementById('shop-name').innerText = "❌ 無存取權限";
             document.getElementById('scanBtn').disabled = true;
             document.getElementById('scanBtn').style.background = "#ccc";
             document.getElementById('scanBtn').innerText = "權限不足，無法掃描";
-            showModal("<p style='color:red; font-weight:bold;'>⚠️ 老娘領地，您的ID未得到授權！<br>請聯絡系統管理員授權。</p>");
+            showModal("<p style='color:red; font-weight:bold;'>⚠️ 您的ID不適用本功能！<br>請聯絡系統管理員授權。</p>");
         }
     } catch (e) {
         alert("系統啟動失敗: " + e.message);
@@ -43,32 +144,31 @@ async function init() {
     }
 }
 
-// ✅ 修復：完整實作 handleScan()
+// 相機掃描功能（完整實作，解決按鈕無反應）
 async function handleScan() {
-    if (isScanning) return; // 防止重複點擊
+    if (isScanning) return;
     isScanning = true;
     const scanBtn = document.getElementById('scanBtn');
     scanBtn.disabled = true;
     scanBtn.innerText = "掃描中...";
 
     try {
-        // 1. 檢查 API 是否可用
+        // 檢查掃碼 API 是否可用
         if (!liff.isApiAvailable('scanCodeV2')) {
-            showModal("<p style='color:red;'>⚠️ 您的 LINE 版本過舊，不支援掃碼功能<br>請更新 LINE 至最新版</p>");
+            showModal("<p style='color:red;'>⚠️ 您的 LINE 版本不支援掃描功能，請更新 LINE！</p>");
             return;
         }
 
-        // 2. 開啟相機掃描
         const result = await liff.scanCodeV2();
         if (!result || !result.value) {
-            showModal("<p>⚠️ 未偵測到有效條碼</p>");
+            showModal("<p>⚠️ 未偵測到有效條碼，掃描已取消</p>");
             return;
         }
 
         const rawID = String(result.value).trim();
         console.log("掃描結果:", rawID);
 
-        // 3. 新客招待禮判斷
+        // 新客招待禮判斷
         if (rawID.toUpperCase().includes("GIFT_BY_")) {
             customerId = "";
             document.getElementById('member-ui').style.display = 'none';
@@ -82,18 +182,14 @@ async function handleScan() {
             return;
         }
 
-        // 4. 一般會員查詢
+        // 一般會員查詢
         customerId = rawID;
-        if (window.openBrandLoading) window.openBrandLoading("老娘正在查詢會員資料...");
-
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`, {
-            redirect: "follow" // 解決 GAS 302 轉向問題
+            redirect: "follow"
         });
         const data = await res.json();
 
-        if (window.closeBrandLoading) window.closeBrandLoading();
-
-        if (data.isMember) {
+        if(data.isMember) {
             document.getElementById('member-ui').style.display = 'block';
             document.getElementById('form-ui').classList.remove('locked');
             document.getElementById('cus-name').innerText = data.userName || "顧客";
@@ -107,11 +203,8 @@ async function handleScan() {
 
     } catch (err) {
         console.error("掃描錯誤:", err);
-        if (window.closeBrandLoading) window.closeBrandLoading();
-        
-        // 常見錯誤提示
         if (err.message.includes("permission")) {
-            showModal("<p style='color:red;'>⚠️ 相機權限被拒絕<br>請在手機設定開啟 LINE 相機權限</p>");
+            showModal("<p style='color:red;'>⚠️ 相機權限被拒絕，請在手機設定開啟 LINE 相機權限</p>");
         } else if (err.message.includes("canceled")) {
             showModal("<p>掃描已取消</p>");
         } else {
@@ -124,6 +217,7 @@ async function handleScan() {
     }
 }
 
+// 切換模式
 function toggleMode() {
     const isTicket = document.getElementById('ticketMode').checked;
     document.getElementById('normal-fields').style.display = isTicket ? 'none' : 'block';
@@ -131,6 +225,7 @@ function toggleMode() {
     doCalc();
 }
 
+// 即時計算
 function doCalc() {
     if (!config.earnRate) return;
     const isTicket = document.getElementById('ticketMode').checked;
@@ -162,6 +257,7 @@ function doCalc() {
     document.getElementById('after-pts').innerText = (currentPoints - redeem + newPts);
 }
 
+// 提交資料
 async function submitData() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
@@ -201,7 +297,6 @@ async function submitData() {
         btn.innerText = "重新提交";
     }
 }
-
-// 頁面載入完成後初始化
-window.addEventListener('load', init);
 </script>
+</body>
+</html>
