@@ -57,6 +57,7 @@
         #regUI { display:none; padding:40px 24px; }
         .reg-input { width:100%; padding:16px; border-radius:14px; border:1px solid #ddd; font-size:16px; box-sizing:border-box; margin-top:10px; }
         .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; }
+        .reg-qr-tip { background:#fff; padding:20px; border-radius:16px; text-align:center; margin-bottom:20px; border:2px dashed var(--primary); }
 
         /* 彈出式 Modal */
         .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:3000; }
@@ -116,11 +117,17 @@
 </div>
 
 <div id="regUI">
+    <div id="regGiftArea" class="reg-qr-tip" style="display:none;">
+        <div style="color:var(--primary); font-weight:bold; margin-bottom:10px;">🎁 您的專屬新客招待禮</div>
+        <img id="regGiftQR" src="" style="width:160px; height:160px; margin-bottom:8px;">
+        <div style="font-size:12px; color:#8b0000;">請先出示此碼給店員掃描領取招待<br>領完後記得完成下方註冊喔！</div>
+    </div>
+
     <h2 style="text-align:center; color:var(--primary);" id="regTitleText">新會員註冊</h2>
     <div id="referrerInfo" style="text-align:center; color:#8b0000; font-weight:bold; margin-bottom:10px; display:none;"></div>
     <input id="regName" class="reg-input" placeholder="姓名">
     <input id="regPhone" class="reg-input" placeholder="手機 09XX-XXX-XXX" maxlength="12">
-    <input type="date" id="regBirthday" class="reg-input"placeholder="生日(享生日專屬優惠，註冊後不可修改)">
+    <input type="date" id="regBirthday" class="reg-input" placeholder="生日(享生日專屬優惠，註冊後不可修改)">
     <button class="reg-btn" onclick="doRegister()">完成註冊</button>
 </div>
 
@@ -133,7 +140,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// --- 1. 自定義隨機文案陣列 ---
 const TEXTS = {
     om: ["老娘正在翻帳本，幫你算驚喜...", "老娘正在準備你的心意...", "火鍋滾了，心意也快好了...", "湯頭正在滾，心意馬上到..."],
     so: ["正在為你的生活，加入一點甜...", "遇見你，就是一點甜...", "捕捉今日份的甜，請稍候片刻...", "心意準備中，等等來點甜的吧！"]
@@ -149,7 +155,6 @@ function showToast(msg){
     setTimeout(()=>{ t.style.display = 'none'; }, 2000);
 }
 
-// 手機格式化 09XX-XXX-XXX
 document.getElementById('regPhone').addEventListener('input', function(e) {
     let v = e.target.value.replace(/\D/g, '').slice(0, 10);
     if (v.length > 7) v = v.slice(0, 4) + '-' + v.slice(4, 7) + '-' + v.slice(7);
@@ -162,7 +167,6 @@ async function initLiff() {
     currentFrom = params.get('from') || 'om';
     referrerParam = params.get('referrer') || '';
     
-    // 【核心】立刻套用隨機加載文字
     const pool = TEXTS[currentFrom] || TEXTS.om;
     document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
 
@@ -185,11 +189,17 @@ async function fetchData(isReload = false) {
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&t=${Date.now()}`);
         userData = await res.json();
         document.getElementById('loading').style.display = 'none';
+        
         if(!userData.isMember) {
             document.getElementById('regUI').style.display = 'block';
             if(referrerParam) {
                 document.getElementById('referrerInfo').style.display = 'block';
                 document.getElementById('referrerInfo').innerText = `推薦人序號：${referrerParam}`;
+                
+                // --- 修正：新會員註冊前顯示推薦禮 QR Code ---
+                document.getElementById('regGiftArea').style.display = 'block';
+                const giftData = `GIFT_BY_${referrerParam}`;
+                document.getElementById('regGiftQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${giftData}`;
             }
         } else {
             document.getElementById('memberUI').style.display = 'block';
@@ -213,7 +223,6 @@ async function doRegister() {
         const res = await fetch(url);
         const result = await res.json();
         if(result.success) {
-            // --- 2. 註冊成功「偏心」卡片 ---
             openModal(`
                 <div class="welcome-card">
                     <h2>歡迎加入老娘的一點心意🍲🍰</h2>
@@ -225,7 +234,6 @@ async function doRegister() {
     } catch(e) { showToast('註冊失敗'); }
 }
 
-// 推薦名單
 function openReferral() {
     let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3>
     <div style="margin-bottom:15px; padding-bottom:12px; border-bottom:2px solid #eee;">
@@ -245,7 +253,6 @@ function openReferral() {
     openModal(html);
 }
 
-// --- 3. 點數明細 (B/J/L/H/O) 表格 + 過期提醒 ---
 function openHistory() {
     let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3>
     <table class="history-table">
@@ -277,7 +284,6 @@ function openHistory() {
     openModal(html);
 }
 
-// --- 4. 分享推薦碼漂亮卡片 (置中、自動複製) ---
 function autoCopyShare() {
     const branch = currentFrom === 'so' ? '一點甜' : '老娘鍋';
     const text = `✨ 發現${branch}隱藏版美味 ✨\n立即加入領取新客禮：\nhttps://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
@@ -312,7 +318,6 @@ function openProfile() {
 function openModal(html) { document.getElementById('modalBody').innerHTML = html; document.getElementById('modal').style.display = 'flex'; }
 function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
-// 啟動！
 initLiff();
 </script>
 </body>
