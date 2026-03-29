@@ -21,10 +21,16 @@
         button { width: 100%; padding: 15px; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; margin-top: 10px; }
         button:disabled { background: #ccc; }
 
-        #loading { display: none; text-align: center; color: var(--primary); font-weight: bold; }
+        /* Loading 區塊優化 */
+        #loading { display: none; text-align: center; padding: 20px; }
+        .loading-icon { font-size: 50px; margin-bottom: 10px; animation: rotate 2s linear infinite; display: inline-block; }
+        @keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #loading-text { font-weight: bold; color: var(--primary); min-height: 1.5em; }
     </style>
 </head>
-<body class="theme-pot"> <div class="container">
+<body class="theme-pot">
+
+<div class="container">
     <h2 id="title">加入老娘鍋會員</h2>
     
     <div id="regForm">
@@ -34,24 +40,44 @@
         </div>
         <div class="form-group">
             <label>手機號碼</label>
-            <input type="tel" id="phone" placeholder="09XX-XXX-XXX">
+            <input type="tel" id="phone" placeholder="09XX-XXX-XXX" maxlength="12">
         </div>
         <div class="form-group">
             <label>生日</label>
-            <input type="date" id="birthday">
+            <input type="date" id="birthday" value="2000-01-01">
         </div>
         <button id="submitBtn" onclick="register()">立即註冊領取招待禮</button>
     </div>
 
-    <div id="loading">處理中，請稍候...</div>
+    <div id="loading">
+        <div class="loading-icon" id="loading-icon">🍲</div>
+        <div id="loading-text">正在生火中...</div>
+    </div>
 </div>
 
 <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec"; // ⚠️ 請貼上你的 GAS 部署網址
+    const GAS_URL = "你的_GAS_URL"; // ⚠️ 記得替換！
     const LIFF_ID = "2009625010-p9sVIUWe";
     let myId = "";
 
-    // 1. 初始化並處理主題
+    // 文句池設定
+    // --- 二個品牌的專屬文句池，會隨機出現 ---
+    const quotes = {
+        pot: [
+            "老娘正在準備你的心意...", 
+            "別催，老娘正在幫你算點數...", 
+            "心意準備中，等等來點甜的吧！", 
+            "火鍋滾了，心意也快好了..."
+        ],
+        sweet: [
+            "正在為你的生活，加入一點甜...", 
+            "生活七八分苦？今天必須一點甜。", 
+            "捕捉今日份的甜，請稍候片刻...", 
+            "遇見你，就是一點甜..."
+        ]
+    };
+
+    // 1. 初始化
     async function init() {
         const params = new URLSearchParams(window.location.search);
         const from = params.get('from') || 'pot';
@@ -59,14 +85,24 @@
         if (from === 'sweet') {
             document.body.className = 'theme-sweet';
             document.getElementById('title').innerText = '加入一點甜會員';
+            document.getElementById('loading-icon').innerText = '🍦';
+            document.getElementById('loading-text').innerText = '正在攪拌甜蜜...';
         }
+
+        // 手機號碼輸入自動補連字號
+        document.getElementById('phone').addEventListener('input', function(e) {
+            let val = e.target.value.replace(/\D/g, ''); // 只留數字
+            if (val.length > 3 && val.length <= 6) val = val.slice(0, 3) + '-' + val.slice(3);
+            if (val.length > 6) val = val.slice(0, 3) + '-' + val.slice(3, 6) + '-' + val.slice(6, 10);
+            e.target.value = val;
+        });
 
         try {
             await liff.init({ liffId: LIFF_ID });
             if (!liff.isLoggedIn()) { liff.login(); return; }
             const profile = await liff.getProfile();
             myId = profile.userId;
-        } catch (e) { alert("LIFF 初始化失敗"); }
+        } catch (e) { console.error(e); }
     }
 
     // 2. 註冊邏輯
@@ -75,37 +111,46 @@
         const phone = document.getElementById('phone').value;
         const birthday = document.getElementById('birthday').value;
         const params = new URLSearchParams(window.location.search);
+        const from = params.get('from') || 'pot';
         const rid = params.get('referrerId') || "";
 
-        if (!name || !phone || !birthday) { alert("請填寫完整資料喔！"); return; }
+        // 強制檢查格式：09XX-XXX-XXX
+        const phoneRegex = /^09\d{2}-\d{3}-\d{3}$/;
+        if (!name || !birthday || !phoneRegex.test(phone)) {
+            alert("請填寫正確資料！手機格式需為 09XX-XXX-XXX");
+            return;
+        }
 
+        // 啟動 Loading 效果
         document.getElementById('regForm').style.display = 'none';
         document.getElementById('loading').style.display = 'block';
+        
+        // 隨機切換文字
+        const pool = quotes[from];
+        const timer = setInterval(() => {
+            document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
+        }, 1500);
 
         try {
             const res = await fetch(GAS_URL, {
                 method: "POST",
                 body: JSON.stringify({
-                    action: "register",
-                    userId: myId,
-                    name: name,
-                    phone: phone,
-                    birthday: birthday,
-                    referrerId: rid
+                    action: "register", userId: myId, name: name, phone: phone, birthday: birthday, referrerId: rid
                 })
             });
             const result = await res.json();
+            clearInterval(timer);
             if (result.success) {
-                alert("註冊成功！歡迎加入！");
-                // 註冊完跳回會員中心，帶回原本的主題參數
-                window.location.href = "index.html?from=" + (params.get('from') || 'pot');
+                alert("註冊成功！歡迎光臨！");
+                window.location.href = "index.html?from=" + from;
             } else {
-                alert("註冊失敗：" + result.message);
+                alert("錯誤：" + result.message);
                 document.getElementById('regForm').style.display = 'block';
                 document.getElementById('loading').style.display = 'none';
             }
         } catch (e) {
-            alert("系統錯誤，請稍後再試");
+            clearInterval(timer);
+            alert("系統繁忙，請稍後再試");
         }
     }
 
