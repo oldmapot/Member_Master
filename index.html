@@ -123,12 +123,20 @@
         <div style="font-size:12px; color:#8b0000;">請先出示此碼給店員掃描領取招待<br>領完後記得完成下方註冊喔！</div>
     </div>
 
-    <h2 style="text-align:center; color:var(--primary);" id="regTitleText">新會員註冊</h2>
-    <div id="referrerInfo" style="text-align:center; color:#8b0000; font-weight:bold; margin-bottom:10px; display:none;"></div>
+    <h2 style="text-align:center; color:var(--primary); margin-bottom: 20px;" id="regTitleText">新會員註冊</h2>
+    
     <input id="regName" class="reg-input" placeholder="姓名">
     <input id="regPhone" class="reg-input" placeholder="手機 09XX-XXX-XXX" maxlength="12">
-    <input type="date" id="regBirthday" class="reg-input" placeholder="生日(享生日專屬優惠，註冊後不可修改)">
-    <button class="reg-btn" onclick="doRegister()">完成註冊</button>
+    
+    <div style="margin-top: 20px; padding: 0 5px;">
+        <label style="display:block; font-weight:bold; color:var(--primary); margin-bottom: 5px;">🎂 生日</label>
+        <input type="date" id="regBirthday" class="reg-input" style="margin-top:0;">
+        <div style="font-size:12px; color:#ab545a; margin-top: 8px; line-height: 1.4; background: #fff1f1; padding: 10px; border-radius: 10px; border: 1px solid #ffebeb;">
+            ⚠️ 註記：享生日專屬優惠，註冊後不可修改。
+        </div>
+    </div>
+
+    <button class="reg-btn" onclick="doRegister()" style="margin-top: 25px;">完成註冊</button>
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeModal()">
@@ -184,7 +192,6 @@ async function initLiff() {
     } catch(e) { showToast('LIFF 初始化失敗'); }
 }
 
-// --- 只修改 fetchData 裡面的這段邏輯 ---
 async function fetchData(isReload = false) {
     try {
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&t=${Date.now()}`);
@@ -194,20 +201,18 @@ async function fetchData(isReload = false) {
         if(!userData.isMember) {
             document.getElementById('regUI').style.display = 'block';
             if(referrerParam) {
-                document.getElementById('referrerInfo').style.display = 'block';
-                document.getElementById('referrerInfo').innerText = `推薦人序號：${referrerParam}`;
-                
-                // --- 修正：顯示「你的好友 XX 送你的專屬好禮」 ---
+                // --- 核心修正：抓取名字並顯示在標題，不顯示 ID ---
                 document.getElementById('regGiftArea').style.display = 'block';
-                // 如果後端有傳回推薦人姓名就顯示，否則顯示「好友」
-                const referrerName = userData.myReferrer || "好友";
+                
+                // 如果後端有抓到推薦人姓名就顯示，沒有則顯示「神祕好友」
+                const referrerName = userData.myReferrer && userData.myReferrer !== "無" ? userData.myReferrer : "神祕好友";
                 document.getElementById('giftTitle').innerText = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
                 
                 const giftData = `GIFT_BY_${referrerParam}`;
                 document.getElementById('regGiftQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${giftData}`;
             }
         } else {
-            // ... 以下進入會員介面邏輯 (維持不變) ...
+            // 會員介面保持不變
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
             document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
