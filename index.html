@@ -21,10 +21,11 @@
         }
         #brand-loading-text {
             color: var(--brand-text);
-            font-size: 1.1rem; font-weight: bold; margin-top: 1.5rem; letter-spacing: 1px;
+            font-size: 1rem; font-weight: bold; margin-top: 1.5rem; letter-spacing: 0.5px;
+            padding: 0 20px; text-align: center; line-height: 1.5;
         }
 
-        /* ===== 老娘鍋動畫：跳動小鍋 ===== */
+        /* ===== 動畫樣式 ===== */
         .pot-animation {
             width: 50px; height: 35px; background: var(--brand-main);
             border-radius: 0 0 12px 12px; position: relative;
@@ -38,7 +39,6 @@
         .pot-animation::after { right: -8px; }
         @keyframes pot-jump { to { transform: translateY(-15px); } }
 
-        /* ===== 一點甜動畫：晃動布丁 ===== */
         .pudding-animation {
             width: 45px; height: 40px; background: #FFD166;
             border-radius: 8px 8px 4px 4px; position: relative;
@@ -56,48 +56,21 @@
         .main-title { font-size: 32px; font-weight: 900; }
 
         .points-card {
-            background: #fff;
-            margin: -25px 20px 20px;
-            padding: 28px 24px;
-            border-radius: 24px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
+            background: #fff; margin: -25px 20px 20px; padding: 28px 24px;
+            border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;
         }
         .points-left { flex: 1; text-align: center; min-width: 120px; }
         .points-label { font-size: 14px; color: #666; margin-bottom: 6px; }
         .points-value { font-size: 48px; font-weight: 900; color: var(--brand-main); line-height: 1.1; }
-        .refresh-btn {
-            margin-top: 12px;
-            padding: 8px 16px;
-            border-radius: 12px;
-            background: #f7f7f7;
-            border: 1px solid #eee;
-            font-size: 14px;
-            color: #666;
-            cursor: pointer;
-        }
+        .refresh-btn { margin-top: 12px; padding: 8px 16px; border-radius: 12px; background: #f7f7f7; border: 1px solid #eee; font-size: 14px; color: #666; cursor: pointer; }
 
-        .action-group-right {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            width: 160px;
-            flex-shrink: 0;
-        }
+        .action-group-right { display: flex; flex-direction: column; gap: 10px; width: 160px; flex-shrink: 0; }
         .action-btn {
-            padding: 12px 16px;
-            border-radius: 16px;
-            background: #f9f9f9;
-            border: 1px solid #eee;
-            font-size: 15px;
-            font-weight: bold;
-            text-align: center;
-            cursor: pointer;
-            color: var(--brand-main);
+            padding: 12px 16px; border-radius: 16px;
+            background: #ecced0; border: none; /* 修改顏色為 #ecced0 */
+            font-size: 15px; font-weight: bold; text-align: center;
+            cursor: pointer; color: #333; /* 文字改為深色更清晰 */
         }
 
         .qr-section { background: #fff; margin:0 20px 20px; padding:28px; border-radius:20px; text-align:center; }
@@ -138,11 +111,11 @@
         @keyframes pop { from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1} }
 
         .share-success-card {
-            background: linear-gradient(135deg, #06C755 0%, #05a346 100%);
+            background: #d89c7a; /* 修改顏色為 #d89c7a */
             color: #fff; padding: 30px 20px; border-radius: 20px; text-align: center;
         }
-        .share-success-card h3 { margin: 0 0 15px; font-size: 22px; }
-        .share-success-card p { font-size: 15px; opacity: 0.9; line-height: 1.6; margin-bottom: 0; }
+        .share-success-card h3 { margin: 0 0 15px; font-size: 22px; font-weight: bold; }
+        .share-success-card p { font-size: 15px; opacity: 0.95; line-height: 1.6; margin-bottom: 0; }
 
         .toast { position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:12px 20px;border-radius:12px;z-index:9999;display:none;font-size:14px; }
 
@@ -194,7 +167,7 @@
         <button class="event-brand-btn" onclick="openEventsByBrand('一點甜')">🍰 一點甜好康</button>
     </div>
 
-    <button class="share-btn" onclick="shareRecommend()">🚀 分享推薦碼，享好友消費回饋</button>
+    <button class="share-btn" onclick="shareRecommend()">🚀 分享推薦碼</button>
 </div>
 
 <div id="regUI" style="display:none">
@@ -209,7 +182,7 @@
         <input id="regPhone" class="reg-input" placeholder="0900-000-000" maxlength="12">
     </div>
     <div class="reg-item">
-        <div class="reg-label">生日（享生日專屬優惠，註冊後無法修改）</div>
+        <div class="reg-label">生日（無法修改）</div>
         <input type="date" id="regBirthday" class="reg-input">
     </div>
     <button class="reg-btn" onclick="doRegister()">完成註冊</button>
@@ -226,11 +199,36 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ===== 全域與初始化判斷 =====
+// ===== 1. 隨機載入文字設定 =====
+const LOADING_TEXTS = {
+    pot: [
+        "老娘正在翻帳本，幫你算驚喜...",
+        "老娘正在準備你的心意...",
+        "火鍋滾了，心意也快好了...",
+        "湯頭正在滾，心意馬上到..."
+    ],
+    sweet: [
+        "正在為你的生活，加入一點甜...",
+        "遇見你，就是一點甜...",
+        "捕捉今日份的甜，請稍候片刻...",
+        "心意準備中，等等來點甜的吧！"
+    ]
+};
+
+function setRandomLoadingText(brand) {
+    const textEl = document.getElementById('brand-loading-text');
+    const texts = LOADING_TEXTS[brand] || LOADING_TEXTS.pot;
+    const randomText = texts[Math.floor(Math.random() * texts.length)];
+    if(textEl) textEl.innerText = randomText;
+}
+
+// ===== 初始化判斷 =====
 (function() {
     const params = new URLSearchParams(window.location.search);
     window.currentBrand = params.get('from') === 'so' ? 'sweet' : 'pot';
     document.documentElement.className = (window.currentBrand === 'sweet') ? 'theme-sweet' : 'theme-pot';
+    // 立即設定隨機文字
+    setRandomLoadingText(window.currentBrand);
 })();
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
@@ -240,7 +238,7 @@ let userData = null;
 let currentFrom = 'pot';
 let referrerParam = '';
 
-// ===== 基礎 UI 函式 =====
+// ===== UI 基礎功能 =====
 function showToast(msg){
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -261,7 +259,7 @@ function openEventsByBrand(brand) {
     openModal(`${brand} 精選活動`, contentHtml);
 }
 
-// ===== 資料抓取 =====
+// ===== 核心資料抓取 =====
 async function fetchData(showReloadToast = false) {
     if(!userId) return;
     try {
@@ -277,10 +275,12 @@ async function fetchData(showReloadToast = false) {
             return;
         }
 
+        // 更新點數與歡迎語
         document.getElementById('pointsDisplay').innerText = userData.profile?.points ?? 0;
-        document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || (currentFrom === 'sweet' ? '🍰 今天來一點甜吧！' : '🍲 老娘鍋暖心招待');
+        document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || (currentFrom === 'sweet' ? '🍰 今天來一點甜吧！' : '鍋熱了，心意也到了 🍲');
         document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(userId)}`;
         
+        // 關閉 Loading
         const mask = document.getElementById('brand-loading-mask');
         mask.style.opacity = '0';
         setTimeout(() => mask.style.display = 'none', 400);
@@ -289,14 +289,15 @@ async function fetchData(showReloadToast = false) {
         if(showReloadToast) showToast('✅ 資料已更新');
     } catch(err) {
         console.error(err);
-        showToast('連線異常，請重整頁面');
+        showToast('系統繁忙，請重整頁面');
     }
 }
 
-// ===== 功能區 =====
+// ===== 2. 個人資料修復與彈窗內容 =====
 function openProfile(){
+    // 確保有資料，若無則嘗試重新抓取
     if(!userData || !userData.profile) {
-        showToast('讀取中，請稍候...');
+        showToast('正在獲取資料，請稍候...');
         fetchData();
         return;
     }
@@ -320,10 +321,10 @@ function openReferral(){
 function openHistory(){
     if(!userData) return;
     let rows = userData.history?.length ? userData.history.map(h=>`<tr><td>${escapeHtml(h.date)}</td><td>${h.gain}</td><td>${h.spend||0}</td></tr>`).join('') : '<tr><td colspan="3">尚無紀錄</td></tr>';
-    openModal('📜 點數明細', `<table><thead><tr><th>日期</th><th>本人獲取點</th><th>好友回饋點</th><th>折抵</th></tr></thead><tbody>${rows}</tbody></table>`);
+    openModal('📜 點數明細', `<table><thead><tr><th>日期</th><th>獲取</th><th>折抵</th></tr></thead><tbody>${rows}</tbody></table>`);
 }
 
-// ===== 分享功能：複製連結 + 漂亮卡片 =====
+// ===== 3. 分享功能：複製連結 + #d89c7a 卡片 =====
 function shareRecommend() {
     if(!userId) return showToast('資料載入中');
     const branchName = currentFrom === 'sweet' ? '一點甜' : '老娘鍋';
@@ -337,21 +338,21 @@ function shareRecommend() {
     document.execCommand('copy');
     document.body.removeChild(el);
 
-    // 彈出漂亮卡片
+    // 彈出提示卡片
     const content = `
         <div class="share-success-card">
             <h3>✅ 複製成功！</h3>
-            <p>推薦連結已存入您的剪貼簿。<br>趕緊發送給好友，<br>一起領取${branchName}招待禮吧！🎁</p>
+            <p>您的專屬推薦連結已複製，<br>趕緊貼給好友並分享，<br>一起領取${branchName}的心意吧！🎁</p>
         </div>`;
     openModal('分享推薦碼', content);
 }
 
-// ===== 註冊與輸入優化 =====
+// ===== 註冊邏輯 =====
 async function doRegister(){
     const name = document.getElementById('regName').value.trim();
     let phoneRaw = document.getElementById('regPhone').value.trim();
     const birthday = document.getElementById('regBirthday').value;
-    if(!name || !birthday || !/^09\d{2}-\d{3}-\d{3}$/.test(phoneRaw)) return showToast('❌ 請檢查輸入資料');
+    if(!name || !birthday || !/^09\d{2}-\d{3}-\d{3}$/.test(phoneRaw)) return showToast('❌ 請填寫完整且正確的資料');
 
     const payload = { action:'register', userId, name, phone:phoneRaw.replace(/-/g,''), birthday, referrerId:referrerParam, from:currentFrom==='sweet'?'so':'om' };
     try {
@@ -381,7 +382,7 @@ async function initLiff() {
     currentFrom = urlParams.get('from') === 'so' ? 'sweet' : 'pot';
     referrerParam = urlParams.get('referrer') || '';
     
-    // 載入品牌動畫
+    // 設置品牌對應動畫
     const iconBox = document.getElementById('brand-icon-box');
     iconBox.innerHTML = `<div class="${currentFrom === 'sweet' ? 'pudding-animation' : 'pot-animation'}"></div>`;
     
@@ -396,7 +397,7 @@ async function initLiff() {
     } catch(err) {
         console.error(err);
         document.getElementById('brand-loading-mask').style.display = 'none';
-        showToast('請在 LINE 中開啟');
+        showToast('請於 LINE 應用程式開啟');
     }
 }
 
