@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>老娘領地-店員端系統</title>
-    <!-- ✅ 關鍵修復：確保 SDK 載入完成再執行 JS -->
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" onload="liffReady()"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; padding: 15px; background: #f4f7f6; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
@@ -22,7 +21,7 @@
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
 
-        /* 自定義彈窗樣式 */
+        /* 新增：自定義彈窗樣式 */
         #customModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: center; }
         .modal-btn { background: #00b900; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; margin-top: 20px; cursor: pointer; width: 100%; }
@@ -45,7 +44,7 @@
         </div>
     </div>
 
-    <button class="btn btn-scan" id="scanBtn" disabled onclick="handleScan()">📷 啟動相機掃描</button>
+    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描</button>
 
     <div class="member-info" id="member-ui">
         顧客：<b id="cus-name">-</b> | 現有資產：<b id="cus-pts" style="color:red;">0</b> 點
@@ -90,7 +89,6 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbxrlYGoxOuTUJ9y9YQreRRN
 const LIFF_ID = "2009625641-AYIKoXbw"; 
 
 let config = {}, customerId = "", currentPoints = 0, staff = {};
-let isScanning = false;
 
 // 彈窗控制
 function showModal(html) {
@@ -101,16 +99,6 @@ function closeModal() {
     document.getElementById('customModal').style.display = 'none';
 }
 
-// ✅ 關鍵修復：SDK 載入完成後才初始化
-function liffReady() {
-    if (typeof liff === 'undefined') {
-        showModal("<p style='color:red;'>❌ LIFF SDK 載入失敗，請重新開啟頁面</p>");
-        return;
-    }
-    init(); // SDK 載入完成才執行 init
-}
-
-// 初始化 LIFF + 驗證店員
 async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
@@ -126,13 +114,8 @@ async function init() {
             document.getElementById('shop-name').innerText = staff.branch;
             document.getElementById('staff-name').innerText = staff.name;
             document.getElementById('role-text').innerText = staff.role;
-            document.getElementById('scanBtn').disabled = false;
         } else {
-            document.getElementById('shop-name').innerText = "❌ 無存取權限";
-            document.getElementById('scanBtn').disabled = true;
-            document.getElementById('scanBtn').style.background = "#ccc";
-            document.getElementById('scanBtn').innerText = "權限不足，無法掃描";
-            showModal("<p style='color:red; font-weight:bold;'>⚠️ 您的帳號不在店員白名單內！<br>請聯絡系統管理員授權。</p>");
+            alert("權限驗證失敗！");
         }
     } catch (e) {
         alert("系統啟動失敗: " + e.message);
@@ -144,26 +127,39 @@ async function handleScan() {
         const result = await liff.scanCodeV2();
         if (!result || !result.value) return;
 
-        const rawID = String(result.value);
+        // --- 1. 開始查詢：開啟品牌 Loading ---
+        if (window.openBrandLoading) {
+            window.openBrandLoading("老娘正在查詢會員資料...");
+        }
 
+        customerId = result.value;
+        const rawID = String(customerId);
+
+        // 判斷是否為新客招待禮
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
+            // --- 查詢結束：關閉 Loading ---
+            if (window.closeBrandLoading) window.closeBrandLoading();
+
             customerId = "";
             document.getElementById('member-ui').style.display = 'none';
             document.getElementById('form-ui').classList.add('locked');
+
             showModal(`
                 <h3 style="color:#e91e63; margin-top:0;">🎁 新客招待禮確認</h3>
                 <hr>
                 <p><b>招待內容：</b>小菜一份 或 霜淇淋一支</p>
                 <p style="font-size:14px; color:#666;">⚠️ 這是新客專用碼，請引導顧客完成註冊後再掃會員碼集點。</p>
             `);
-            return;
+            return; 
         }
 
-        customerId = rawID;
-
+        // 向 GAS 發送查詢請求
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
-
+        
+        // --- 2. 資料回傳：不論成功失敗都關閉 Loading ---
+        if (window.closeBrandLoading) window.closeBrandLoading();
+        
         if(data.isMember) {
             document.getElementById('member-ui').style.display = 'block';
             document.getElementById('form-ui').classList.remove('locked');
@@ -176,11 +172,12 @@ async function handleScan() {
             showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
         }
     } catch (err) {
+        // 出錯或取消也要確保 Loading 關閉，才不會卡死畫面
+        if (window.closeBrandLoading) window.closeBrandLoading();
         console.log("掃描取消或出錯:", err.message);
     }
 }
 
-// 切換模式
 function toggleMode() {
     const isTicket = document.getElementById('ticketMode').checked;
     document.getElementById('normal-fields').style.display = isTicket ? 'none' : 'block';
@@ -188,7 +185,6 @@ function toggleMode() {
     doCalc();
 }
 
-// 即時計算
 function doCalc() {
     if (!config.earnRate) return;
     const isTicket = document.getElementById('ticketMode').checked;
@@ -197,15 +193,13 @@ function doCalc() {
     
     if (isTicket) {
         const tBuy = Number(document.getElementById('buyTicket').value) || 0;
-        newPts = Math.floor(tBuy * (config.ticketRate || 0));
+        newPts = Math.floor(tBuy * config.ticketRate);
     } else {
         const total = Number(document.getElementById('totalSpend').value) || 0;
         const tPay = Number(document.getElementById('ticketSpend').value) || 0;
-        const settleBase = Math.max(0, total - tPay);
+        const settleBase = total - tPay;
         
-        const maxRedeem = (settleBase >= (config.minSpend || 0)) 
-            ? Math.min(currentPoints, Math.floor(settleBase * (config.maxRate || 0))) 
-            : 0;
+        const maxRedeem = (settleBase >= config.minSpend) ? Math.min(currentPoints, Math.floor(settleBase * config.maxRate)) : 0;
         document.getElementById('max-hint').innerText = maxRedeem;
         
         redeem = Number(document.getElementById('redeemAmount').value) || 0;
@@ -213,14 +207,13 @@ function doCalc() {
             redeem = maxRedeem;
             document.getElementById('redeemAmount').value = maxRedeem;
         }
-        newPts = Math.floor((settleBase - redeem) * (config.earnRate || 0));
+        newPts = Math.floor((settleBase - redeem) * config.earnRate);
     }
     
     document.getElementById('new-pts').innerText = newPts;
     document.getElementById('after-pts').innerText = (currentPoints - redeem + newPts);
 }
 
-// 提交資料
 async function submitData() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
@@ -237,17 +230,13 @@ async function submitData() {
         ticketSpend: Number(document.getElementById('ticketSpend').value) || 0,
         redeemAmount: Number(document.getElementById('redeemAmount').value) || 0,
         buyTicket: Number(document.getElementById('buyTicket').value) || 0,
-        earnRate: config.earnRate || 0,
-        ticketRate: config.ticketRate || 0,
-        refRate: config.refRate || 0
+        earnRate: config.earnRate,
+        ticketRate: config.ticketRate,
+        refRate: config.refRate
     };
 
     try {
-        const res = await fetch(GAS_URL, { 
-            method: "POST", 
-            body: JSON.stringify(payload),
-            redirect: "follow"
-        });
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
         if (res.ok) {
             alert("結帳與股東分紅發放完成！");
             liff.closeWindow();
@@ -260,6 +249,8 @@ async function submitData() {
         btn.innerText = "重新提交";
     }
 }
+
+init();
 </script>
 </body>
 </html>
