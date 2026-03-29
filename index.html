@@ -41,6 +41,7 @@
         
         button { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .btn-share { background: var(--line-green); color: white; margin-top: 15px; }
+        .btn-secondary { background: #f0f0f0; color: #333; margin-top: 10px; }
 
         /* 漂亮卡片 Modal 樣式 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
@@ -50,7 +51,22 @@
         .close-btn { background: var(--main-red); color: white; margin-top: 20px; }
         .theme-sweet .close-btn { background: #FFB7D5; color: #333; }
 
-        #ui-member, #ui-guest { display: none; }
+        /* 註冊表單樣式 */
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        .form-group input:focus { outline: none; border-color: var(--main-red); }
+        .btn-register { background: var(--main-red); color: white; margin-top: 10px; }
+        .theme-sweet .btn-register { background: #FFB7D5; color: #333; }
+
+        /* 點數明細列表 */
+        .history-list { max-height: 300px; overflow-y: auto; text-align: left; }
+        .history-item { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px; }
+        .history-date { color: #888; }
+        .history-gain { color: #06C755; }
+        .history-spend { color: #e74c3c; }
+
+        #ui-member, #ui-guest, #ui-register { display: none; }
     </style>
 </head>
 <body>
@@ -63,6 +79,7 @@
     <div class="card">
         <h2 id="brand-title">老娘鍋 x 一點甜</h2>
         
+        <!-- 會員主畫面 -->
         <div id="ui-member">
             <p id="userNameDisplay" class="center" style="font-weight:bold;"></p>
             <div class="qr-box">
@@ -77,14 +94,36 @@
                 <h1 id="userPoints">0 點</h1>
             </div>
             
+            <button class="btn-secondary" onclick="showPointsHistory()">📜 點數明細</button>
             <button class="btn-share" onclick="handleShare()">推薦好友領招待禮</button>
         </div>
 
+        <!-- 未註冊畫面 -->
         <div id="ui-guest" class="center">
-            <p>正在載入註冊資訊...</p>
+            <p>您尚未註冊會員</p>
+            <button class="btn-register" onclick="showRegisterForm()">立即註冊</button>
+        </div>
+
+        <!-- 註冊表單畫面 -->
+        <div id="ui-register">
+            <div class="form-group">
+                <label>姓名</label>
+                <input type="text" id="regName" placeholder="請輸入真實姓名">
+            </div>
+            <div class="form-group">
+                <label>手機號碼</label>
+                <input type="tel" id="regPhone" placeholder="09XX-XXX-XXX" maxlength="12">
+            </div>
+            <div class="form-group">
+                <label>生日</label>
+                <input type="date" id="regBirthday">
+            </div>
+            <button class="btn-register" onclick="doRegister()">完成註冊</button>
+            <button class="refresh-btn" style="margin-top:10px;" onclick="backToGuest()">返回</button>
         </div>
     </div>
 
+    <!-- Modal 彈窗（共用） -->
     <div id="customModal" class="modal">
         <div class="modal-content">
             <div id="modalTitle" class="modal-header"></div>
@@ -97,8 +136,23 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
     const LIFF_ID = "2009625010-p9sVIUWe";
     let myId = "";
+    let currentUserData = null;
+
+    // 手機格式自動格式化
+    function setupPhoneInput() {
+        const phoneInput = document.getElementById('regPhone');
+        if(phoneInput) {
+            phoneInput.addEventListener('input', function(e){
+                let v = e.target.value.replace(/\D/g,'').slice(0,10);
+                if(v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7);
+                else if(v.length > 4) v = v.slice(0,4)+'-'+v.slice(4);
+                e.target.value = v;
+            });
+        }
+    }
 
     async function init() {
+        setupPhoneInput();
         try {
             await liff.init({ liffId: LIFF_ID });
             if (!liff.isLoggedIn()) { liff.login(); return; }
@@ -121,64 +175,179 @@
 
     async function checkMember() {
         try {
-            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}`);
+            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}&from=${window.currentBrand === 'sweet' ? 'so' : 'om'}`);
             const data = await res.json();
+            currentUserData = data;
+            
             if (data.isMember) {
                 document.getElementById('ui-member').style.display = 'block';
-                document.getElementById('userNameDisplay').innerText = `歡迎，${data.userName} 會員`;
-                document.getElementById('userPoints').innerText = `${data.points} pt`;
+                document.getElementById('ui-guest').style.display = 'none';
+                document.getElementById('ui-register').style.display = 'none';
+                document.getElementById('userNameDisplay').innerHTML = `歡迎，${data.userName || data.profile?.name || '會員'}`;
+                document.getElementById('userPoints').innerHTML = `${data.points || data.profile?.points || 0} 點`;
                 document.getElementById('memberQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${myId}`;
             } else {
-                document.getElementById('ui-guest').innerHTML = "<p>您尚未註冊會員喔！</p>";
+                document.getElementById('ui-member').style.display = 'none';
                 document.getElementById('ui-guest').style.display = 'block';
+                document.getElementById('ui-register').style.display = 'none';
             }
+        } catch(e) {
+            console.error(e);
+            document.getElementById('ui-member').style.display = 'none';
+            document.getElementById('ui-guest').style.display = 'block';
+            document.getElementById('ui-register').style.display = 'none';
         } finally {
             if (window.closeBrandLoading) window.closeBrandLoading();
         }
     }
 
+    function showRegisterForm() {
+        document.getElementById('ui-member').style.display = 'none';
+        document.getElementById('ui-guest').style.display = 'none';
+        document.getElementById('ui-register').style.display = 'block';
+    }
+
+    function backToGuest() {
+        document.getElementById('ui-member').style.display = 'none';
+        document.getElementById('ui-guest').style.display = 'block';
+        document.getElementById('ui-register').style.display = 'none';
+    }
+
+    async function doRegister() {
+        const name = document.getElementById('regName').value.trim();
+        let phoneRaw = document.getElementById('regPhone').value.trim();
+        const birthday = document.getElementById('regBirthday').value;
+        
+        if(!name) {
+            openModalMessage('❌ 請填寫姓名');
+            return;
+        }
+        if(!birthday) {
+            openModalMessage('❌ 請選擇生日');
+            return;
+        }
+        if(!/^09\d{2}-\d{3}-\d{3}$/.test(phoneRaw)) {
+            openModalMessage('❌ 手機格式錯誤，請輸入 09XX-XXX-XXX');
+            return;
+        }
+        
+        const phoneNumber = phoneRaw.replace(/-/g, '');
+        const payload = {
+            action: 'register',
+            userId: myId,
+            name: name,
+            phone: phoneNumber,
+            birthday: birthday,
+            referrerId: '',
+            from: window.currentBrand === 'sweet' ? 'so' : 'om'
+        };
+        
+        try {
+            const res = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            
+            if(result.success) {
+                openModalMessage('✅ 註冊成功！', function() {
+                    checkMember();
+                });
+            } else {
+                openModalMessage(result.message || '註冊失敗，請稍後再試');
+            }
+        } catch(err) {
+            console.error(err);
+            openModalMessage('❌ 連線失敗，請檢查網路');
+        }
+    }
+
+    async function showPointsHistory() {
+        if (!currentUserData || !currentUserData.history) {
+            openModalMessage('暫無點數紀錄');
+            return;
+        }
+        
+        let historyHtml = '<div class="history-list">';
+        if (currentUserData.history.length > 0) {
+            currentUserData.history.forEach(item => {
+                let gainHtml = '';
+                let spendHtml = '';
+                if (item.gain > 0) gainHtml = `<span class="history-gain">+${item.gain}點</span>`;
+                if (item.spend > 0) spendHtml = `<span class="history-spend">-${item.spend}點</span>`;
+                historyHtml += `
+                    <div class="history-item">
+                        <span class="history-date">${item.date}</span>
+                        <span>${gainHtml} ${spendHtml}</span>
+                    </div>
+                `;
+            });
+        } else {
+            historyHtml += '<div class="center" style="padding:20px;">尚無點數紀錄</div>';
+        }
+        historyHtml += '</div>';
+        
+        document.getElementById('modalTitle').innerHTML = '📜 點數明細';
+        document.getElementById('modalBody').innerHTML = historyHtml;
+        document.getElementById('customModal').style.display = 'flex';
+    }
+
+    function openModalMessage(message, callback) {
+        document.getElementById('modalTitle').innerHTML = '系統訊息';
+        document.getElementById('modalBody').innerHTML = `<p>${message}</p>`;
+        document.getElementById('customModal').style.display = 'flex';
+        
+        const closeBtn = document.querySelector('#customModal .close-btn');
+        const originalClick = closeBtn.onclick;
+        closeBtn.onclick = () => {
+            closeModal();
+            if (callback) callback();
+            if (originalClick) originalClick();
+        };
+    }
+
     function handleShare() {
-        const shareUrl = `https://oldmapot.github.io/Member_Master/index.html?referrerId=${myId}&from=${window.currentBrand}`;
+        const shareUrl = `https://liff.line.me/${LIFF_ID}?from=${window.currentBrand === 'sweet' ? 'so' : 'om'}&referrer=${myId}`;
         const copyText = `✨ 發現高雄隱藏版美味 ✨\n🍲 老娘鍋 x 一點甜 🍦\n\n送您專屬招待禮，加入領回饋！\n👉 點我領取：${shareUrl}`;
 
+        // 彈出漂亮卡片提示複製成功
+        openModalMessage('✨ 推薦連結已複製！\n快分享給好友領取招待禮吧！');
+
+        // 嘗試用 LIFF 分享
+        if (liff.isApiAvailable('shareTargetPicker')) {
+            const flexMessage = {
+                type: "flex",
+                altText: "🎁 您的好友送您招待禮！",
+                contents: {
+                    type: "bubble",
+                    body: { 
+                        type: "box", 
+                        layout: "vertical", 
+                        contents: [
+                            {type: "text", text: "好友專屬招待禮 🍲", weight: "bold", size: "xl"},
+                            {type: "text", text: "送您招待券，加入再領回饋點數！", wrap: true, size: "xs", margin: "md"}
+                        ]
+                    },
+                    footer: { 
+                        type: "box", 
+                        layout: "vertical", 
+                        contents: [
+                            { type: "button", action: { type: "uri", label: "立即領取", uri: shareUrl }, style: "primary", color: window.currentBrand === 'sweet' ? '#FFB7D5' : '#8b0000' }
+                        ]
+                    }
+                }
+            };
+            liff.shareTargetPicker([flexMessage]).catch(e => console.log(e));
+        }
+        
+        // 複製到剪貼簿
         const el = document.createElement('textarea');
         el.value = copyText;
         document.body.appendChild(el);
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-
-        // 彈出漂亮卡片
-        openModal('copySuccess');
-
-        if (liff.isApiAvailable('shareTargetPicker')) {
-            liff.shareTargetPicker([{
-                "type": "flex",
-                "altText": "🎁 您的好友送您招待禮！",
-                "contents": {
-                    "type": "bubble",
-                    "body": { "type": "box", "layout": "vertical", "contents": [
-                        {"type": "text", "text": "好友專屬招待禮 🍲", "weight": "bold", "size": "xl"},
-                        {"type": "text", "text": "送您招待券，加入再領回饋點數！", "wrap": true, "size": "xs", "margin": "md"}
-                    ]},
-                    "footer": { "type": "box", "layout": "vertical", "contents": [
-                        { "type": "button", "action": { "type": "uri", "label": "立即領取", "uri": shareUrl }, "style": "primary", "color": window.currentBrand === 'sweet' ? '#FFB7D5' : '#8b0000' }
-                    ]}
-                }
-            }]);
-        }
-    }
-
-    function openModal(type) {
-        const modal = document.getElementById('customModal');
-        const title = document.getElementById('modalTitle');
-        const body = document.getElementById('modalBody');
-
-        if (type === 'copySuccess') {
-            title.innerText = "✨ 複製成功";
-            body.innerHTML = `<p>推薦連結已備妥！<br>快傳給好友領取招待禮吧！</p><div style="font-size:40px;margin-top:10px;">🎁</div>`;
-        }
-        modal.style.display = 'flex';
     }
 
     function closeModal() {
