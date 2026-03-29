@@ -19,11 +19,9 @@
         .points-val { font-size: 36px; font-weight: bold; color: var(--primary); }
         .refresh-btn { font-size: 12px; color: #888; text-decoration: underline; cursor: pointer; margin-top: 5px; }
 
-        /* QR Code 區 */
         .qr-section { text-align: center; margin: 20px; padding: 20px; background: white; border-radius: 20px; }
         #qrcode { width: 180px; height: 180px; margin: auto; }
 
-        /* 優惠資訊滾動 */
         .promo-box { margin: 20px; padding: 15px; background: var(--accent); border-radius: 12px; font-size: 14px; font-weight: bold; overflow: hidden; white-space: nowrap; }
         .promo-text { display: inline-block; animation: scrollText 15s linear infinite; }
         @keyframes scrollText { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
@@ -33,14 +31,12 @@
         .drawer.open { right: 0; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 999; }
         
-        /* 選單內的 Tab 設計 */
         .tab-menu { display: flex; border-bottom: 1px solid #eee; margin-bottom: 20px; }
         .tab-link { flex: 1; padding: 10px; text-align: center; font-size: 14px; cursor: pointer; }
         .tab-link.active { border-bottom: 3px solid var(--primary); font-weight: bold; }
         .tab-content { display: none; height: 80vh; overflow-y: auto; }
         .tab-content.active { display: block; }
 
-        /* 表格樣式 */
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         th { background: #f8f8f8; padding: 10px; text-align: left; }
         td { padding: 10px; border-bottom: 1px solid #eee; }
@@ -48,33 +44,64 @@
         .redeem { color: red; }
 
         .share-btn { background: #06C755; color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; }
-        input[readonly] { background: #f9f9f9; border: 1px solid #ddd; }
+        
+        /* 註冊表單樣式 */
+        .reg-container { padding: 40px 20px; text-align: center; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .submit-btn { background: var(--primary); color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; margin-top: 20px; }
+        
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 2000; }
     </style>
 </head>
-<body class="theme-pot">
+<body>
 
-<div class="header">
-    <div class="menu-icon" onclick="toggleDrawer(true)">☰</div>
-    <div id="welcome-quote">正在從寶庫取出心意...</div>
-    <div style="font-size: 18px; font-weight: bold;">會員中心</div>
+<div id="loading">載入中，請稍候...</div>
+
+<div id="memberUI" style="display: none;">
+    <div class="header">
+        <div class="menu-icon" onclick="toggleDrawer(true)">☰</div>
+        <div id="welcome-quote">正在從寶庫取出心意...</div>
+        <div style="font-size: 18px; font-weight: bold;">會員中心</div>
+    </div>
+
+    <div class="points-card">
+        <div>可用資產點數</div>
+        <div class="points-val" id="points-display">--</div>
+        <div class="refresh-btn" onclick="fetchData()">↻ 點擊重新整理</div>
+    </div>
+
+    <div class="qr-section">
+        <img id="qrcode" src="" alt="QRCode">
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">結帳時請出示此碼</p>
+    </div>
+
+    <div class="promo-box">
+        <div class="promo-text" id="event-text">📢 最新活動：載入中...</div>
+    </div>
+
+    <div style="padding: 0 20px;">
+        <button class="share-btn" onclick="shareReferral()">🚀 分享推薦碼給好友</button>
+    </div>
 </div>
 
-<div class="points-card">
-    <div>可用資產點數</div>
-    <div class="points-val" id="points-display">--</div>
-    <div class="refresh-btn" onclick="fetchData()">↻ 點擊重新整理</div>
+<div id="regForm" class="reg-container" style="display: none;">
+    <h2 style="color: var(--primary);">加入會員</h2>
+    <p>填寫資料，開始累積點數</p>
+    <div class="input-group">
+        <label>真實姓名</label>
+        <input type="text" id="reg-name" placeholder="請輸入姓名">
+    </div>
+    <div class="input-group">
+        <label>手機號碼</label>
+        <input type="tel" id="reg-phone" placeholder="請輸入手機">
+    </div>
+    <div class="input-group">
+        <label>出生日期</label>
+        <input type="date" id="reg-bday">
+    </div>
+    <button class="submit-btn" onclick="register()">立即註冊</button>
 </div>
-
-<div class="qr-section">
-    <img id="qrcode" src="" alt="請登入後顯示 QR">
-    <p style="font-size: 12px; color: #666; margin-top: 10px;">結帳時請出示此碼</p>
-</div>
-
-<div class="promo-box" id="promo-container">
-    <div class="promo-text" id="event-text">📢 最新活動：載入中...</div>
-</div>
-
-<button class="share-btn" onclick="shareReferral()">🚀 分享推薦碼給好友</button>
 
 <div class="overlay" id="overlay" onclick="toggleDrawer(false)"></div>
 <div class="drawer" id="drawer">
@@ -84,28 +111,24 @@
         <div class="tab-link" onclick="openTab(event, 'tab-friends')">好友</div>
         <div class="tab-link" onclick="openTab(event, 'tab-logs')">明細</div>
     </div>
-
     <div id="tab-profile" class="tab-content active">
-        <label>姓名</label><input type="text" id="u-name" readonly style="width:100%; padding:8px; margin-bottom:15px;">
-        <label>手機</label><input type="text" id="u-phone" readonly style="width:100%; padding:8px; margin-bottom:15px;">
-        <label>生日 (不可修改)</label><input type="text" id="u-bday" readonly style="width:100%; padding:8px; margin-bottom:15px;">
+        <label>姓名</label><input type="text" id="u-name" readonly style="width:100%; padding:8px; margin-bottom:15px; background:#eee;">
+        <label>手機</label><input type="text" id="u-phone" readonly style="width:100%; padding:8px; margin-bottom:15px; background:#eee;">
+        <label>生日</label><input type="text" id="u-bday" readonly style="width:100%; padding:8px; margin-bottom:15px; background:#eee;">
         <label>等級</label><div id="u-level" style="font-weight:bold; color:var(--primary)">--</div>
     </div>
-
     <div id="tab-friends" class="tab-content">
         <p><b>我的推薦人：</b><span id="my-referrer">--</span></p>
         <hr>
-        <p><b>使用我的推薦碼加入 (${referralCount}人)：</b></p>
+        <p><b>推薦成功名單：</b></p>
         <ul id="referral-list" style="font-size:14px; padding-left:20px;"></ul>
     </div>
-
     <div id="tab-logs" class="tab-content">
         <table>
             <thead><tr><th>日期</th><th>項目</th><th>獲取</th><th>折抵</th></tr></thead>
             <tbody id="log-table-body"></tbody>
         </table>
     </div>
-    
     <button onclick="toggleDrawer(false)" style="margin-top:20px; width:100%; padding:10px;">關閉</button>
 </div>
 
@@ -113,45 +136,48 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec"; 
     const LIFF_ID = "2009625010-p9sVIUWe";
     let myId = "";
+    let currentBranch = "pot";
 
     async function init() {
         const params = new URLSearchParams(window.location.search);
-        const from = params.get('from') || 'pot';
-        if(from === 'sweet') document.body.className = 'theme-sweet';
+        currentBranch = params.get('from') || 'pot';
+        if(currentBranch === 'sweet') document.body.className = 'theme-sweet';
 
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         myId = profile.userId;
         
-        // 設定 QRCode
         document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${myId}`;
-        
-        fetchData(from);
+        fetchData();
     }
 
-    async function fetchData(from) {
+    async function fetchData() {
+        document.getElementById('loading').style.display = 'flex';
         try {
-            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}&from=${from}`);
+            const res = await fetch(`${GAS_URL}?action=checkID&userId=${myId}&from=${currentBranch}`);
             const data = await res.json();
+            
+            document.getElementById('loading').style.display = 'none';
+
             if (data.isMember) {
-                // 更新主介面
+                // 顯示會員中心，隱藏註冊
+                document.getElementById('memberUI').style.display = 'block';
+                document.getElementById('regForm').style.display = 'none';
+
+                // 填入資料
                 document.getElementById('welcome-quote').innerText = data.quote;
                 document.getElementById('points-display').innerText = data.profile.points;
                 document.getElementById('event-text').innerText = data.events.join(' | ') || "目前暫無活動";
-
-                // 更新選單內容
                 document.getElementById('u-name').value = data.profile.name;
                 document.getElementById('u-phone').value = data.profile.phone;
                 document.getElementById('u-bday').value = data.profile.birthday;
                 document.getElementById('u-level').innerText = data.profile.level;
                 document.getElementById('my-referrer').innerText = data.referrer;
                 
-                // 推薦名單
                 const list = document.getElementById('referral-list');
                 list.innerHTML = data.referrals.map(f => `<li>${f.name} (${f.date})</li>`).join('');
                 
-                // 點數明細
                 const logBody = document.getElementById('log-table-body');
                 logBody.innerHTML = data.logs.map(l => `
                     <tr>
@@ -161,24 +187,61 @@
                         <td class="redeem">${l.redeem > 0 ? '-'+l.redeem : ''}</td>
                     </tr>
                 `).join('');
+            } else {
+                // 不是會員，顯示註冊
+                document.getElementById('memberUI').style.display = 'none';
+                document.getElementById('regForm').style.display = 'block';
             }
-        } catch (e) { console.error("資料獲取失敗", e); }
+        } catch (e) { 
+            console.error("資料獲取失敗", e);
+            alert("網路連線異常，請重新嘗試");
+        }
+    }
+
+    async function register() {
+        const name = document.getElementById('reg-name').value;
+        const phone = document.getElementById('reg-phone').value;
+        const bday = document.getElementById('reg-bday').value;
+        const params = new URLSearchParams(window.location.search);
+        const refId = params.get('referrerId') || "";
+
+        if(!name || !phone || !bday) { alert("請填寫完整資料"); return; }
+
+        document.getElementById('loading').style.display = 'flex';
+        try {
+            const res = await fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'register',
+                    userId: myId,
+                    name: name,
+                    phone: phone,
+                    birthday: bday,
+                    referrerId: refId
+                })
+            });
+            const result = await res.json();
+            if(result.success) {
+                alert("註冊成功！歡迎加入");
+                fetchData(); // 重新整理抓取會員資料
+            } else {
+                alert(result.message);
+            }
+        } catch(e) { alert("註冊失敗，請洽店員"); }
+        document.getElementById('loading').style.display = 'none';
     }
 
     function shareReferral() {
-        const shareUrl = `https://liff.line.me/${LIFF_ID}?from=pot&referrerId=${myId}`;
-        // 複製到剪貼簿
+        const shareUrl = `https://liff.line.me/${LIFF_ID}?from=${currentBranch}&referrerId=${myId}`;
         const el = document.createElement('textarea');
         el.value = shareUrl;
         document.body.appendChild(el);
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        
-        alert("✨ 專屬推薦連結已複製！\n快傳給好友，一起賺點數吧！");
+        alert("✨ 專屬推薦連結已複製！");
     }
 
-    // UI 控制
     function toggleDrawer(open) {
         document.getElementById('drawer').className = open ? 'drawer open' : 'drawer';
         document.getElementById('overlay').style.display = open ? 'block' : 'none';
@@ -186,10 +249,10 @@
 
     function openTab(evt, tabName) {
         let contents = document.getElementsByClassName("tab-content");
-        for (let i = 0; i < contents.length; i++) contents[i].className = contents[i].className.replace(" active", "");
+        for (let i = 0; i < contents.length; i++) contents[i].style.display = "none";
         let links = document.getElementsByClassName("tab-link");
         for (let i = 0; i < links.length; i++) links[i].className = links[i].className.replace(" active", "");
-        document.getElementById(tabName).className += " active";
+        document.getElementById(tabName).style.display = "block";
         evt.currentTarget.className += " active";
     }
 
