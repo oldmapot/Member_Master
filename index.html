@@ -4,30 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>老娘的一點心意</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://static.line-sdn.net/liff/edge/2/sdk.js"></script>
     <style>
         :root { --primary: #8b0000; --bg: #fdf5e6; }
         .theme-sweet { --primary: #ff69b4; --bg: #FFF9E6; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; padding-bottom: 40px; }
         
-        /* 1. 載入動畫 (文句池 C 欄) */
-        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .pot-animation { width: 60px; height: 35px; background: #333; border-radius: 0 0 25px 25px; position: relative; border: 3px solid #222; }
+        /* 1. 載入動畫 */
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; }
+        .pot-animation { width: 60px; height: 35px; background: #8b0000; border-radius: 0 0 25px 25px; position: relative; border: 3px solid #5a0000; animation: potJump 0.5s infinite alternate; }
         .pot-animation::after { content: '♨'; position: absolute; top: -30px; left: 12px; font-size: 28px; color: #8b0000; animation: steam 1.2s infinite; }
         .pudding-animation { width: 55px; height: 40px; background: #ffcc00; border-radius: 15px 15px 8px 8px; position: relative; border-top: 10px solid #663300; animation: wobble 0.7s infinite; }
         @keyframes steam { 0% { opacity:0; transform:translateY(0); } 50% { opacity:1; } 100% { opacity:0; transform:translateY(-20px); } }
+        @keyframes potJump { to { transform: translateY(-10px); } }
         @keyframes wobble { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
 
-        /* 2. 註冊 UI (含姓名、手機、生日) */
+        /* 2. 註冊 UI */
         #reg-UI { padding: 40px 20px; text-align: center; }
         .reg-label { display: block; text-align: left; font-size: 13px; color: #888; margin: 10px 0 5px 5px; }
         .reg-input { width: 100%; padding: 15px; margin-bottom: 5px; border-radius: 15px; border: 2px solid #eee; font-size: 18px; box-sizing: border-box; background: white; }
         .reg-btn { width: 100%; padding: 18px; background: var(--primary); color: white; border-radius: 15px; font-weight: bold; border: none; font-size: 18px; margin-top: 20px; cursor: pointer; }
 
-        /* 3. 會員中心 UI (大標題 32px + 文句池 B 欄) */
+        /* 3. 會員中心 UI */
         .header { background: var(--primary); color: white; padding: 45px 20px; text-align: center; border-radius: 0 0 30px 30px; }
         .main-title { font-size: 32px; font-weight: 900; margin-top: 5px; }
-        #welcome-quote { font-size: 14px; opacity: 0.9; min-height: 20px; }
+        #welcome-quote { font-size: 14px; opacity: 0.9; min-height: 20px; margin-bottom: 8px; }
 
         .points-card { background: white; margin: -25px 20px 20px; padding: 25px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .points-val { font-size: 42px; font-weight: bold; color: var(--primary); line-height: 1; }
@@ -44,37 +45,32 @@
 
         /* 4. 功能按鈕區 */
         .btn-group { display: flex; gap: 10px; padding: 0 20px; margin-bottom: 12px; }
-        .action-btn { flex: 1; padding: 15px; border-radius: 15px; border: 1.5px solid #ddd; background: white; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .action-btn { flex: 1; padding: 15px; border-radius: 15px; border: 1.5px solid #ddd; background: white; font-weight: bold; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .action-btn:active { transform: scale(0.98); }
         .share-btn { background: #06C755; color: white; border: none; padding: 18px; border-radius: 15px; width: calc(100% - 40px); margin: 0 20px; font-weight: bold; font-size: 18px; cursor: pointer; }
 
-        /* 5. 通用彈窗樣式 (活動、明細、綁定) */
+        /* 5. Modal 彈窗樣式 */
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display: none; z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        .modal-card { background: white; width: 92%; max-width: 400px; border-radius: 25px; overflow: hidden; animation: pop 0.3s; }
+        .modal-card { background: white; width: 92%; max-width: 400px; border-radius: 25px; overflow: hidden; animation: modalPop 0.3s ease-out; }
         .modal-header { padding: 18px; font-weight: bold; border-bottom: 1px solid #eee; text-align: center; font-size: 18px; }
         .modal-body { padding: 15px; max-height: 450px; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th { background: #f8f8f8; padding: 10px; text-align: center; border-bottom: 2px solid #eee; }
         td { padding: 10px 5px; text-align: center; border-bottom: 1px solid #f0f0f0; }
         .list-row { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .activity-card { padding: 12px; margin-bottom: 10px; background: #fafafa; border-radius: 12px; border-left: 4px solid var(--primary); }
         
-        /* 6. 漂亮分享卡片彈窗專用樣式 */
-        #shareModalBody { text-align: center; padding: 25px; }
-        .share-card-icon { font-size: 50px; margin-bottom: 15px; }
-        .share-link-title { font-size: 18px; font-weight: 900; color: #333; margin-bottom: 10px; }
-        .share-link-note { font-size: 13px; color: #666; margin-bottom: 15px; }
-        .share-link-box { background: #f0f0f0; padding: 15px; border-radius: 12px; border: 1px dashed #bbb; word-break: break-all; font-family: monospace; font-size: 12px; margin-bottom: 10px; text-align: left; }
-        .copy-note { font-size: 11px; color: #999; margin-top: 5px; }
+        /* 6. Toast 提示 */
+        #toast-message { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) scale(0.9); background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 30px; font-size: 14px; z-index: 10000; opacity: 0; transition: all 0.3s; pointer-events: none; backdrop-filter: blur(4px); white-space: nowrap; }
         
-        @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div id="loading">
-    <div style="text-align: center;">
-        <div id="loader-icon"></div>
-        <div id="loading-text" style="margin-top:20px; font-weight:bold; color:var(--primary);">正在取出心意...</div>
-    </div>
+    <div id="loader-icon"></div>
+    <div id="loading-text" style="margin-top:20px; font-weight:bold; color:var(--primary);">正在取出心意...</div>
 </div>
 
 <div id="reg-UI" style="display:none;">
@@ -92,14 +88,14 @@
 <div id="memberUI" style="display:none;">
     <div class="header">
         <div id="welcome-quote"></div>
-        <div class="main-title">會員中心</div>
+        <div class="main-title">老娘的一點心意</div>
     </div>
     
     <div class="points-card">
         <div>
             <div style="font-size: 12px; color:#666;">可用點數資產</div>
             <div id="points-display" class="points-val">--</div>
-            <button class="refresh-btn" onclick="fetchData()">🔄 手動更新</button>
+            <button class="refresh-btn" onclick="fetchData()">🔄 重新整理</button>
         </div>
         <div class="user-info-right">
             <div id="user-name" class="user-name">--</div>
@@ -110,52 +106,44 @@
 
     <div class="qr-section">
         <img id="qrcode" src="">
-        <div class="qr-note">結帳時請出示此碼，結帳後離櫃離店不再補集點</div>
+        <div class="qr-note">結帳時請出示此碼，結帳後離櫃恕不再累積點數</div>
     </div>
 
     <div class="btn-group">
-        <button class="action-btn" onclick="showPopup('potEvents')">🔥 老娘精選</button>
-        <button class="action-btn" onclick="showPopup('sweetEvents')">🍰 一點甜好康</button>
+        <button class="action-btn" onclick="showActivityModal('pot')">🔥 老娘精選</button>
+        <button class="action-btn" onclick="showActivityModal('sweet')">🍰 一點甜好康</button>
     </div>
     <div class="btn-group">
         <button class="action-btn" onclick="showPopup('history')">📜 點數明細</button>
-        <button class="action-btn" onclick="showPopup('referrals')">👥 推薦綁定</button>
+        <button class="action-btn" onclick="showPopup('referrals')">👥 推薦名單</button>
+        <button class="action-btn" onclick="showPopup('profile')">👤 個人資料</button>
     </div>
 
-    <button class="share-btn" onclick="showShareCard()">🚀 分享推薦碼領回饋</button>
+    <button class="share-btn" onclick="copyReferralCode()">🚀 分享推薦碼領回饋</button>
 </div>
 
-<div class="modal-overlay" id="commonModal" onclick="this.style.display='none'">
+<!-- 通用 Modal -->
+<div class="modal-overlay" id="commonModal" onclick="closeModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
         <div class="modal-header" id="modalTitle"></div>
         <div class="modal-body" id="modalBody"></div>
-        <button style="width:100%; padding:18px; border:none; background:#f5f5f5; font-weight:900; color:#666;" onclick="document.getElementById('commonModal').style.display='none'">我知道了</button>
+        <button style="width:100%; padding:18px; border:none; background:#f5f5f5; font-weight:900; color:#666;" onclick="closeModal()">關閉</button>
     </div>
 </div>
 
-<div class="modal-overlay" id="shareModal" onclick="this.style.display='none'">
-    <div class="modal-card" onclick="event.stopPropagation()">
-        <div class="modal-body" id="shareModalBody">
-            <div class="share-card-icon">🚀</div>
-            <div class="share-link-title" style="color:#06C755;">您的專屬推薦連結</div>
-            <p class="share-link-note">分享此連結給好友註冊，雙方皆可獲得點數回饋！</p>
-            <div class="share-link-box" id="shareLinkBox"></div>
-            <p class="copy-note">(長按上方連結即可複製，並傳送給 LINE 好友)</p>
-        </div>
-        <button style="width:100%; padding:18px; border:none; background:#f5f5f5; font-weight:900; color:#666;" onclick="document.getElementById('shareModal').style.display='none'">我知道了</button>
-    </div>
-</div>
+<!-- Toast 提示 -->
+<div id="toast-message"></div>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec"; 
     const LIFF_ID = "2009625010-p9sVIUWe";
     const urlParams = new URLSearchParams(window.location.search);
-    const fromSweet = urlParams.get('from') === 'sweet';
+    const fromSweet = urlParams.get('from') === 'sw';  // sw = 一點甜, om = 老娘鍋
     const referrer = urlParams.get('referrer') || "";
     let myUserId = "";
     let userData = {};
 
-    // 手機格式化 09XX-XXX-XXX
+    // 手機格式化
     document.getElementById('userPhone').addEventListener('input', function(e) {
         let v = e.target.value.replace(/\D/g, '').slice(0,10);
         if (v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7);
@@ -163,10 +151,31 @@
         e.target.value = v;
     });
 
+    // Toast 顯示函數
+    function showToast(message, duration = 2500) {
+        const toast = document.getElementById('toast-message');
+        toast.innerText = message;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) scale(1)';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) scale(0.9)';
+        }, duration);
+    }
+
+    // 關閉 Modal
+    function closeModal() {
+        document.getElementById('commonModal').style.display = 'none';
+    }
+
     async function initLIFF() {
-        const icon = document.getElementById('loader-icon');
-        if(fromSweet) { document.body.classList.add('theme-sweet'); icon.className='pudding-animation'; }
-        else { icon.className='pot-animation'; }
+        const iconDiv = document.getElementById('loader-icon');
+        if(fromSweet) { 
+            document.body.classList.add('theme-sweet'); 
+            iconDiv.className = 'pudding-animation';
+        } else { 
+            iconDiv.className = 'pot-animation';
+        }
         
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
@@ -176,23 +185,26 @@
     }
 
     async function fetchData() {
-        const res = await fetch(`${GAS_URL}?action=checkID&userId=${myUserId}&from=${fromSweet?'sweet':'pot'}`);
+        const brand = fromSweet ? 'sw' : 'om';
+        const res = await fetch(`${GAS_URL}?action=checkID&userId=${myUserId}&from=${brand}`);
         userData = await res.json();
         
         if (userData.isMember) {
-            document.getElementById('loading-text').innerText = userData.waitQuote || "正在對齊心意...";
-            document.getElementById('welcome-quote').innerText = userData.welcomeQuote || "";
+            // 顯示等候語 (C欄)
+            document.getElementById('loading-text').innerText = userData.waitingQuote || "正在準備您的心意...";
+            // 顯示歡迎詞 (B欄)
+            document.getElementById('welcome-quote').innerText = userData.welcomeQuote || "歡迎回來！";
             document.getElementById('points-display').innerText = userData.profile.points;
             document.getElementById('user-name').innerText = userData.profile.name;
-            document.getElementById('user-level').innerText = userData.profile.level;
-            document.getElementById('user-birthday-display').innerText = "🎂 " + (userData.profile.birthday || "未設定");
+            document.getElementById('user-level').innerText = userData.profile.level || "一般會員";
+            document.getElementById('user-birthday-display').innerHTML = "🎂 " + (userData.profile.birthday || "未設定");
             document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${myUserId}`;
             
             setTimeout(() => {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('memberUI').style.display = 'block';
                 document.getElementById('reg-UI').style.display = 'none';
-            }, 800);
+            }, 500);
         } else {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('reg-UI').style.display = 'block';
@@ -201,36 +213,85 @@
         }
     }
 
+    // 優惠活動彈窗（精美卡片版）
+    function showActivityModal(brandType) {
+        const title = document.getElementById('modalTitle');
+        const body = document.getElementById('modalBody');
+        const isPot = (brandType === 'pot');
+        
+        title.innerText = isPot ? "🔥 老娘精選" : "🍰 一點甜好康";
+        title.style.color = isPot ? "#8b0000" : "#ff69b4";
+        
+        const events = isPot ? userData.potEvents : userData.sweetEvents;
+        
+        let html = '';
+        if (events && events.length > 0) {
+            events.forEach(event => {
+                html += `
+                    <div class="activity-card" style="border-left-color: ${isPot ? '#8b0000' : '#ff69b4'}">
+                        ✨ ${event}
+                    </div>
+                `;
+            });
+        } else {
+            html = '<div style="text-align:center; padding:30px; color:#999;">🎁 敬請期待更多優惠活動</div>';
+        }
+        
+        body.innerHTML = html;
+        document.getElementById('commonModal').style.display = 'flex';
+    }
+
     // 通用彈窗邏輯
     function showPopup(type) {
         const title = document.getElementById('modalTitle');
         const body = document.getElementById('modalBody');
         let html = "";
 
-        if (type === 'potEvents' || type === 'sweetEvents') {
-            title.innerText = (type === 'potEvents') ? "🔥 老娘精選活動" : "🍰 一點甜好康";
-            title.style.color = (type === 'potEvents') ? "#8b0000" : "#ff69b4";
-            const events = (type === 'potEvents') ? userData.potEvents : userData.sweetEvents;
-            html = events && events.length > 0 ? events.map(e => `<div style="padding:15px; border-bottom:1px solid #f0f0f0; text-align:left;">✨ ${e}</div>`).join('') : "目前暫無活動";
-        } 
-        else if (type === 'history') {
-            title.innerText = "📜 點數資產明細";
+        if (type === 'history') {
+            title.innerText = "📜 點數明細";
             title.style.color = "#333";
-            html = `<table><tr><th>日期</th><th>獲取</th><th>折抵</th><th>剩餘</th></tr>`;
-            html += userData.history && userData.history.length > 0 
-                ? userData.history.map(h => `<tr><td>${h.date}</td><td style="color:green">+${h.gain}</td><td style="color:red">-${h.spend}</td><td style="font-weight:bold">${h.balance}</td></tr>`).join('')
-                : `<tr><td colspan="4">尚無紀錄</td></tr>`;
+            html = `<table><th>日期</th><th>獲取點數</th><th>折抵點數</th><th>剩餘點數</th>`;
+            if (userData.history && userData.history.length > 0) {
+                userData.history.forEach(h => {
+                    html += `<tr>
+                        <td>${h.date}</td>
+                        <td style="color:green">+${h.gain}</td>
+                        <td style="color:red">-${h.spend}</td>
+                        <td style="font-weight:bold">${h.balance}</td>
+                    </tr>`;
+                });
+            } else {
+                html += `<tr><td colspan="4" style="text-align:center">尚無點數紀錄</td></tr>`;
+            }
             html += `</table>`;
         } 
         else if (type === 'referrals') {
-            title.innerText = "👥 推薦關係綁定";
+            title.innerText = "👥 推薦名單";
             title.style.color = "#333";
-            html = `<div style="margin-bottom:20px; padding:10px; background:#f9f9f9; border-radius:10px; font-size:14px;">`;
-            html += `<b>我的推薦人：</b> ${userData.profile.referrerName || "無 (自主加入)"}</div>`;
-            html += `<p style="font-weight:bold; font-size:14px; margin-bottom:10px; text-align:left;">👥 使用我的推薦碼加入的人：</p>`;
-            html += userData.referrals && userData.referrals.length > 0 
-                ? userData.referrals.map(r => `<div class="list-row"><span>${r.name}</span><span style="color:#999">${r.date}</span></div>`).join('')
-                : `<div style="color:#ccc; text-align:center; padding:20px;">目前還沒有人使用您的推薦碼喔</div>`;
+            html = `<div style="margin-bottom:20px; padding:12px; background:#f9f9f9; border-radius:12px;">
+                        <div style="font-weight:bold; margin-bottom:8px;">📌 我的推薦人</div>
+                        <div>${userData.profile.referrerName || "無推薦人（自主加入）"}</div>
+                    </div>`;
+            html += `<div style="font-weight:bold; margin-bottom:12px;">👥 使用我的推薦碼加入的人</div>`;
+            if (userData.referrals && userData.referrals.length > 0) {
+                userData.referrals.forEach(r => {
+                    html += `<div class="list-row"><span>${r.name}</span><span style="color:#999">${r.date}</span></div>`;
+                });
+            } else {
+                html += `<div style="color:#ccc; text-align:center; padding:20px;">目前還沒有人使用您的推薦碼喔</div>`;
+            }
+        }
+        else if (type === 'profile') {
+            title.innerText = "👤 個人資料";
+            title.style.color = "#333";
+            html = `
+                <div style="padding:10px;">
+                    <div style="margin-bottom:15px;"><strong>姓名</strong><br>${userData.profile.name || "未設定"}</div>
+                    <div style="margin-bottom:15px;"><strong>手機號碼</strong><br>${userData.profile.phone || "未設定"}</div>
+                    <div style="margin-bottom:15px;"><strong>生日</strong><br>${userData.profile.birthday || "未設定"} <span style="color:#ff6b6b; font-size:12px;">(不可修改)</span></div>
+                    <div><strong>會員等級</strong><br>${userData.profile.level || "一般會員"}</div>
+                </div>
+            `;
         }
 
         body.innerHTML = html;
@@ -238,26 +299,45 @@
     }
 
     async function handleRegister() {
-        const name = document.getElementById('userName').value;
-        const phone = document.getElementById('userPhone').value.replace(/-/g,'');
+        const name = document.getElementById('userName').value.trim();
+        const phoneRaw = document.getElementById('userPhone').value;
+        const phone = phoneRaw.replace(/-/g, '');
         const birthday = document.getElementById('userBirthday').value;
-        if(!name || phone.length!==10 || !birthday) return alert("請完整填寫姓名、手機及生日");
         
-        const res = await fetch(`${GAS_URL}?action=register&userId=${myUserId}&name=${name}&phone=${phone}&birthday=${birthday}&referrer=${referrer}&from=${fromSweet?'sweet':'pot'}`);
+        if(!name) return showToast("請填寫姓名");
+        if(phone.length !== 10) return showToast("請填寫正確的手機號碼 (09XX-XXX-XXX)");
+        if(!birthday) return showToast("請選擇生日");
+        
+        const brand = fromSweet ? 'sw' : 'om';
+        const url = `${GAS_URL}?action=register&userId=${myUserId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrer=${referrer}&from=${brand}`;
+        const res = await fetch(url);
         const r = await res.json();
-        if(r.success) fetchData(); else alert(r.message || "註冊失敗");
+        
+        if(r.success) {
+            showToast("註冊成功！歡迎加入！");
+            fetchData();
+        } else {
+            showToast(r.message || "註冊失敗，請稍後再試");
+        }
     }
 
-    // 漂亮分享卡片邏輯補強
-    function showShareCard() {
-        const link = `https://liff.line.me/${LIFF_ID}?from=${fromSweet?'sweet':'pot'}&referrer=${myUserId}`;
-        const linkBox = document.getElementById('shareLinkBox');
+    // 複製推薦碼並顯示漂亮 Toast
+    function copyReferralCode() {
+        const shareLink = `https://liff.line.me/${LIFF_ID}?from=${fromSweet ? 'sw' : 'om'}&referrer=${myUserId}`;
         
-        // 1. 將連結寫入專用彈窗的方塊中
-        linkBox.innerText = link;
-        
-        // 2. 顯示專用彈窗
-        document.getElementById('shareModal').style.display = 'flex';
+        // 複製到剪貼簿
+        navigator.clipboard.writeText(shareLink).then(() => {
+            showToast("✨ 專屬推薦碼已複製完成，趕緊去分享給好友 ✨", 2000);
+        }).catch(() => {
+            // 降級方案
+            const textarea = document.createElement('textarea');
+            textarea.value = shareLink;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast("✨ 專屬推薦碼已複製完成，趕緊去分享給好友 ✨", 2000);
+        });
     }
 
     initLIFF();
