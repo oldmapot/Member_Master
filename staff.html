@@ -159,7 +159,17 @@ async function processMemberId(scannedId) {
     try {
         if (window.openBrandLoading) window.openBrandLoading("老娘正在查詢會員資料...");
 
-        customerId = scannedId;
+        // --- 🔐 這裡開始：處理動態金鑰字串拆解 ---
+        let finalUid = scannedId;
+        const parts = scannedId.split('_');
+        
+        // 如果長度大於等於 3，代表是新的「代碼_金鑰_UID」格式
+        if (parts.length >= 3) {
+            finalUid = parts[2]; // 取出真正的 UID 供後續比對與存檔
+        }
+        // --- 🔐 結束 ---
+
+        customerId = scannedId; // 這裡保持完整字串傳給 GAS 進行金鑰校驗
         const rawID = String(customerId);
 
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
@@ -176,11 +186,19 @@ async function processMemberId(scannedId) {
             return; 
         }
 
-        const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
+        // 注意：這裡多傳一個 staffBranchCode 給 GAS 比對是否為該店金鑰
+        const staffBranchCode = (staff.branch.indexOf("老娘") > -1) ? "omp" : "swo";
+        const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}&staffBranchCode=${staffBranchCode}`);
         const data = await res.json();
         
         if (window.closeBrandLoading) window.closeBrandLoading();
         
+        // 新增：處理金鑰無效的報錯
+        if (data.keyInvalid) {
+            showModal("<p style='color:red; font-weight:bold;'>⚠️ 條碼驗證失敗！</p><p>原因：金鑰過期或非本系統產生。<br>請引導顧客重新開啟 LINE 會員頁面。</p>");
+            return;
+        }
+
         if(data.isMember) {
             document.getElementById('member-ui').style.display = 'block';
             document.getElementById('form-ui').classList.remove('locked');
@@ -236,10 +254,16 @@ async function submitData() {
     btn.disabled = true;
     btn.innerText = "處理中...";
 
+    // 確保傳回資料庫的是純 UID
+    let cleanId = customerId;
+    if (customerId.indexOf('_') > -1) {
+        cleanId = customerId.split('_')[2];
+    }
+
     const payload = {
         action: "addPoints",
         isTicketMode: document.getElementById('ticketMode').checked,
-        customerId: customerId,
+        customerId: cleanId, // 使用清洗後的 ID
         branch: staff.branch,
         staffName: staff.name,
         staffRole: staff.role,
@@ -251,7 +275,6 @@ async function submitData() {
         ticketRate: config.ticketRate,
         refRate: config.refRate
     };
-
     try {
         const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
         if (res.ok) {
