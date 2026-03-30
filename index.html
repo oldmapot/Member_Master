@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>老娘的一點心意</title>
     <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         :root { 
             --primary: #8b0000;      /* 老娘鍋主色 */
@@ -44,9 +45,13 @@
         .action-group-right { display: flex; flex-direction: column; gap: 10px; width: 140px; }
         .action-btn { padding: 12px; border-radius: 16px; background: var(--action-btn); border: none; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; }
         
-        /* QR Code 顯示區塊 */
-        .qr-section { background: var(--card-bg); margin:0 20px 20px; padding:28px; border-radius:20px; text-align:center; }
-        #qrcode { width:180px; height:180px; margin-bottom:12px; }
+        /* 條碼/QR Code 顯示區塊 */
+        .code-section { background: var(--card-bg); margin:0 20px 20px; padding:28px; border-radius:20px; text-align:center; }
+        .code-container { display: flex; justify-content: center; align-items: center; min-height: 200px; margin-bottom: 12px; }
+        #barcodeCanvas, #regBarcodeCanvas { background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 100%; }
+        #qrcode, #regGiftQR { width: 180px; height: 180px; margin-bottom: 0; }
+        .code-switch-btn { background: var(--brand-btn); color: #fff; border: none; padding: 8px 20px; border-radius: 30px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
+        .code-switch-btn:hover { opacity: 0.9; }
         
         /* 品牌按鈕與分享按鈕 */
         .brand-actions { display: flex; gap: 10px; margin: 0 20px 20px; }
@@ -56,7 +61,7 @@
         /* 註冊介面 */
         #regUI { display:none; padding:40px 24px; }
         .reg-input { width:100%; padding:16px; border-radius:14px; border:1px solid #ddd; font-size:16px; box-sizing:border-box; margin-top:10px; }
-        .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; }
+        .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; cursor: pointer; }
         .reg-qr-tip { background:#fff; padding:20px; border-radius:16px; text-align:center; margin-bottom:20px; border:2px dashed var(--primary); }
 
         /* 彈出式 Modal */
@@ -104,9 +109,14 @@
         </div>
     </div>
 
-    <div class="qr-section">
-        <img id="qrcode" src="">
-        <div style="font-size:14px; color:#666; font-weight:600;">結帳時請出示此碼，結帳後離開櫃台恕不補集點</div>
+    <!-- 修改：條碼/QR Code 切換區塊 -->
+    <div class="code-section">
+        <div class="code-container">
+            <canvas id="barcodeCanvas" style="display: none;"></canvas>
+            <img id="qrcode" style="display: none;" src="">
+        </div>
+        <button class="code-switch-btn" id="switchCodeBtn" onclick="toggleCodeDisplay()">🔁 切換至 QR Code</button>
+        <div style="font-size:14px; color:#666; font-weight:600; margin-top: 12px;">結帳時請出示此碼，結帳後離開櫃台恕不補集點</div>
     </div>
 
     <div class="brand-actions">
@@ -119,8 +129,13 @@
 <div id="regUI">
     <div id="regGiftArea" class="reg-qr-tip" style="display:none;">
         <div id="giftTitle" style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size: 18px;"></div>
-        <img id="regGiftQR" src="" style="width:160px; height:160px; margin-bottom:8px;">
-        <div style="font-size:12px; color:#8b0000;">請先出示此碼給店員掃描領取招待<br>領完後記得完成下方註冊喔！</div>
+        <!-- 修改：註冊頁面也支援條碼/QR Code 切換 -->
+        <div class="code-container">
+            <canvas id="regBarcodeCanvas" style="display: none; max-width: 100%;"></canvas>
+            <img id="regGiftQR" src="" style="display: none; width:160px; height:160px;">
+        </div>
+        <button class="code-switch-btn" id="regSwitchCodeBtn" onclick="toggleRegCodeDisplay()" style="margin-top: 8px; padding: 6px 16px; font-size: 12px;">🔁 切換至 QR Code</button>
+        <div style="font-size:12px; color:#8b0000; margin-top: 8px;">請先出示此碼給店員掃描領取招待<br>領完後記得完成下方註冊喔！</div>
     </div>
 
     <h2 style="text-align:center; color:var(--primary); margin-bottom: 20px;" id="regTitleText">新會員註冊</h2>
@@ -156,6 +171,8 @@ const TEXTS = {
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
 let userId = '', userData = null, currentFrom = 'omp', referrerParam = '';
+let isBarcodeMode = true;      // 會員頁面：true=條碼, false=QR Code
+let isRegBarcodeMode = true;    // 註冊頁面推薦人碼：true=條碼, false=QR Code
 
 function showToast(msg){
     const t = document.getElementById('toast');
@@ -169,6 +186,93 @@ document.getElementById('regPhone').addEventListener('input', function(e) {
     else if (v.length > 4) v = v.slice(0, 4) + '-' + v.slice(4);
     e.target.value = v;
 }); 
+
+// ========== 新增：條碼/QR Code 切換功能 ==========
+// 會員頁面：生成條碼或 QR Code
+function generateMemberCode() {
+    if (!userId) return;
+    
+    const barcodeCanvas = document.getElementById('barcodeCanvas');
+    const qrcodeImg = document.getElementById('qrcode');
+    const switchBtn = document.getElementById('switchCodeBtn');
+    
+    if (isBarcodeMode) {
+        // 顯示條碼 (Code 128)
+        barcodeCanvas.style.display = 'block';
+        qrcodeImg.style.display = 'none';
+        switchBtn.innerHTML = '🔁 切換至 QR Code';
+        
+        try {
+            JsBarcode(barcodeCanvas, userId, {
+                format: "CODE128",
+                width: 2,
+                height: 70,
+                displayValue: true,
+                fontSize: 14,
+                margin: 10
+            });
+        } catch(e) {
+            console.error("條碼生成失敗:", e);
+            isBarcodeMode = false;
+            generateMemberCode();
+        }
+    } else {
+        // 顯示 QR Code
+        barcodeCanvas.style.display = 'none';
+        qrcodeImg.style.display = 'block';
+        switchBtn.innerHTML = '🔁 切換至條碼';
+        qrcodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(userId)}`;
+    }
+}
+
+// 註冊頁面：生成推薦人條碼或 QR Code
+function generateRegCode() {
+    if (!referrerParam || referrerParam === 'undefined' || referrerParam === '') return;
+    
+    const barcodeCanvas = document.getElementById('regBarcodeCanvas');
+    const qrcodeImg = document.getElementById('regGiftQR');
+    const switchBtn = document.getElementById('regSwitchCodeBtn');
+    const giftData = `GIFT_BY_${referrerParam}`;
+    
+    if (isRegBarcodeMode) {
+        barcodeCanvas.style.display = 'block';
+        qrcodeImg.style.display = 'none';
+        switchBtn.innerHTML = '🔁 切換至 QR Code';
+        
+        try {
+            JsBarcode(barcodeCanvas, giftData, {
+                format: "CODE128",
+                width: 2,
+                height: 60,
+                displayValue: true,
+                fontSize: 12,
+                margin: 8
+            });
+        } catch(e) {
+            console.error("條碼生成失敗:", e);
+            isRegBarcodeMode = false;
+            generateRegCode();
+        }
+    } else {
+        barcodeCanvas.style.display = 'none';
+        qrcodeImg.style.display = 'block';
+        switchBtn.innerHTML = '🔁 切換至條碼';
+        qrcodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(giftData)}`;
+    }
+}
+
+// 會員頁面切換
+function toggleCodeDisplay() {
+    isBarcodeMode = !isBarcodeMode;
+    generateMemberCode();
+}
+
+// 註冊頁面切換
+function toggleRegCodeDisplay() {
+    isRegBarcodeMode = !isRegBarcodeMode;
+    generateRegCode();
+}
+// ========== 條碼/QR Code 功能結束 ==========
 
 async function initLiff() {
     const params = new URLSearchParams(window.location.search);
@@ -197,13 +301,10 @@ async function fetchData(isReload = false) {
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`);
         userData = await res.json();
         
-        // ✅ 新增：使用後端回傳的文句池文案更新載入畫面
         if(userData.loadingTexts && userData.loadingTexts.length > 0) {
-            // 隨機選取一句文案顯示
             const randomText = userData.loadingTexts[Math.floor(Math.random() * userData.loadingTexts.length)];
             document.getElementById('loading-text').innerText = randomText;
         } else {
-            // 如果後端沒回傳，使用預設文案
             const pool = TEXTS[currentFrom] || TEXTS.omp;
             document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
         }
@@ -212,19 +313,22 @@ async function fetchData(isReload = false) {
         
         if(!userData.isMember) {
             document.getElementById('regUI').style.display = 'block';
-            if(referrerParam) {
+            if(referrerParam && referrerParam !== 'undefined' && referrerParam !== '') {
                 document.getElementById('regGiftArea').style.display = 'block';
                 const referrerName = (userData.myReferrer && userData.myReferrer !== "無") ? userData.myReferrer : "神祕好友";
                 document.getElementById('giftTitle').innerText = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
-                const giftData = `GIFT_BY_${referrerParam}`;
-                document.getElementById('regGiftQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${giftData}`;
+                // 重置為條碼模式並生成
+                isRegBarcodeMode = true;
+                generateRegCode();
             }
         } else {
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
             document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
             document.getElementById('welcomeQuote').innerText = userData.welcomeQuote;
-            document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
+            // 重置為條碼模式並生成會員碼
+            isBarcodeMode = true;
+            generateMemberCode();
             if(isReload) showToast('✅ 資料已更新');
         }
     } catch(err) {
@@ -243,11 +347,9 @@ async function doRegister() {
         return showToast('請填寫完整資訊');
     }
 
-    // ✅ 顯示載入畫面，使用後端的文句池文案
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('regUI').style.display = 'none';
     
-    // 使用後端回傳的 loadingTexts 或預設文案
     if(userData && userData.loadingTexts && userData.loadingTexts.length > 0) {
         const randomText = userData.loadingTexts[Math.floor(Math.random() * userData.loadingTexts.length)];
         document.getElementById('loading-text').innerText = randomText;
@@ -256,7 +358,6 @@ async function doRegister() {
         document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
     }
     
-    // 設定動畫樣式
     if(currentFrom === 'so') {
         document.getElementById('loader').className = 'loader-icon so';
     } else {
@@ -270,7 +371,6 @@ async function doRegister() {
         const result = await res.json();
         
         if(result.success) {
-            // 註冊成功，顯示成功訊息後重新整理
             document.getElementById('loading').style.display = 'none';
             openModal(`
                 <div class="welcome-card">
@@ -298,14 +398,13 @@ async function doRegister() {
         showToast('網路連線錯誤，請稍後再試'); 
     }
 }
-// 這是唯一、正確、不衝突的版本
+
 function openEvents(brand) {
     const title = brand === 'so' ? '一點甜好康' : '老娘精選';
     
-    // ✅ 關鍵修正：對應你後端正確變數 ompEvents / soEvents
     const events = brand === 'so' 
-        ? (userData.soEvents || [])     // 一點甜
-        : (userData.ompEvents || []);   // 老娘鍋
+        ? (userData.soEvents || [])
+        : (userData.ompEvents || []);
 
     let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🔥 ${title}</h3>`;
     
@@ -339,19 +438,18 @@ function openHistory() {
     let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3>
     <table class="history-table">
         <thead>
-             <tr>
+              <tr>
                 <th style="width:16%">日期</th>
                 <th>本人獲取點</th>
                 <th>推薦回饋點</th>
                 <th>當日折抵</th>
                 <th>過期點數</th>
-             </tr>
+              </tr>
         </thead>
         <tbody>`;
     let totalExpiredSoon = 0;
     if(userData.history.length > 0) {
         html += userData.history.map(h => {
-            // 處理過期欄位，若無值則顯示空白
             const expiredValue = (h.expired && h.expired !== 'undefined' && h.expired !== null) ? h.expired : '';
             const expiredNum = Number(h.expired) || 0;
             totalExpiredSoon += expiredNum;
@@ -387,7 +485,7 @@ function autoCopyShare() {
                 <div class="share-title">✅ 推薦碼已自動複製！</div>
                 <div class="share-body">
                     趕快請好友領取新客招待禮<br>
-                    <span class="share-highlight">朋友消費，你領回饋</span>
+                    <span class="share-highlight">他消費，你領回饋</span>
                     別錯過唷!! 💕
                 </div>
             </div>`;
