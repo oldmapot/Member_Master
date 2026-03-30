@@ -25,8 +25,8 @@
         /* 載入動畫與隨機文案區 */
         #loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 20px; }
         .loader-icon { width: 60px; height: 35px; background: #333; border-radius: 0 0 25px 25px; position: relative; border: 3px solid #222; }
-        .loader-icon.om::after { content: '♨'; position: absolute; top: -30px; left: 12px; font-size: 28px; color: var(--primary); animation: steam 1.2s infinite; }
-        .loader-icon.sw { width: 55px; height: 40px; background: #ffcc00; border-radius: 15px 15px 8px 8px; border-top: 10px solid #663300; animation: wobble 0.7s infinite; }
+        .loader-icon.omp::after { content: '♨'; position: absolute; top: -30px; left: 12px; font-size: 28px; color: var(--primary); animation: steam 1.2s infinite; }
+        .loader-icon.so { width: 55px; height: 40px; background: #ffcc00; border-radius: 15px 15px 8px 8px; border-top: 10px solid #663300; animation: wobble 0.7s infinite; }
         @keyframes steam { 0%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(-20px)} }
         @keyframes wobble { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
         
@@ -56,7 +56,7 @@
         /* 註冊介面 */
         #regUI { display:none; padding:40px 24px; }
         .reg-input { width:100%; padding:16px; border-radius:14px; border:1px solid #ddd; font-size:16px; box-sizing:border-box; margin-top:10px; }
-        .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; cursor:pointer; }
+        .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; }
         .reg-qr-tip { background:#fff; padding:20px; border-radius:16px; text-align:center; margin-bottom:20px; border:2px dashed var(--primary); }
 
         /* 彈出式 Modal */
@@ -77,10 +77,6 @@
         .share-highlight { color: #ab545a; font-weight: bold; display: block; font-size: 18px; margin: 5px 0; }
 
         .toast { position:fixed; left:50%; bottom:60px; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:12px 20px; border-radius:12px; z-index:9999; display:none; }
-        
-        /* 註冊表單錯誤提示 */
-        .error-hint { color: #d32f2f; font-size: 12px; margin-top: 4px; display: block; }
-        input.error { border-color: #d32f2f; background-color: #fff8f8; }
     </style>
 </head>
 <body>
@@ -129,26 +125,18 @@
 
     <h2 style="text-align:center; color:var(--primary); margin-bottom: 20px;" id="regTitleText">新會員註冊</h2>
     
-    <div style="margin-bottom: 20px;">
-        <input id="regName" class="reg-input" placeholder="姓名 *">
-        <span id="nameError" class="error-hint"></span>
-    </div>
+    <input id="regName" class="reg-input" placeholder="姓名">
+    <input id="regPhone" class="reg-input" placeholder="手機 09XX-XXX-XXX" maxlength="12">
     
-    <div style="margin-bottom: 20px;">
-        <input id="regPhone" class="reg-input" placeholder="手機 09XX-XXX-XXX *" maxlength="13">
-        <span id="phoneError" class="error-hint"></span>
-    </div>
-    
-    <div style="margin-bottom: 20px; padding: 0 5px;">
-        <label style="display:block; font-weight:bold; color:var(--primary); margin-bottom: 5px;">🎂 生日 *</label>
+    <div style="margin-top: 20px; padding: 0 5px;">
+        <label style="display:block; font-weight:bold; color:var(--primary); margin-bottom: 5px;">🎂 生日</label>
         <input type="date" id="regBirthday" class="reg-input" style="margin-top:0;">
-        <span id="birthdayError" class="error-hint"></span>
         <div style="font-size:12px; color:#ab545a; margin-top: 8px; line-height: 1.4; background: #fff1f1; padding: 10px; border-radius: 10px; border: 1px solid #ffebeb;">
             ⚠️ 註記：享生日專屬優惠，註冊後不可修改。
         </div>
     </div>
 
-    <button class="reg-btn" onclick="validateAndRegister()" style="margin-top: 25px;">完成註冊</button>
+    <button class="reg-btn" onclick="doRegister()" style="margin-top: 25px;">完成註冊</button>
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeModal()">
@@ -175,98 +163,12 @@ function showToast(msg){
     setTimeout(()=>{ t.style.display = 'none'; }, 2000);
 }
 
-// 清除所有錯誤提示
-function clearErrors() {
-    document.getElementById('nameError').innerText = '';
-    document.getElementById('phoneError').innerText = '';
-    document.getElementById('birthdayError').innerText = '';
-    document.getElementById('regName').classList.remove('error');
-    document.getElementById('regPhone').classList.remove('error');
-    document.getElementById('regBirthday').classList.remove('error');
-}
-
-// 驗證表單
-function validateForm() {
-    clearErrors();
-    let isValid = true;
-    
-    const name = document.getElementById('regName').value.trim();
-    if (!name) {
-        document.getElementById('nameError').innerText = '請填寫姓名';
-        document.getElementById('regName').classList.add('error');
-        isValid = false;
-    } else if (name.length < 2) {
-        document.getElementById('nameError').innerText = '姓名至少2個字';
-        document.getElementById('regName').classList.add('error');
-        isValid = false;
-    }
-    
-    const phoneRaw = document.getElementById('regPhone').value.trim();
-    const phoneNum = phoneRaw.replace(/-/g, '');
-    if (!phoneRaw) {
-        document.getElementById('phoneError').innerText = '請填寫手機號碼';
-        document.getElementById('regPhone').classList.add('error');
-        isValid = false;
-    } else if (!/^09\d{8}$/.test(phoneNum)) {
-        document.getElementById('phoneError').innerText = '請輸入正確的手機號碼 (09開頭，共10碼)';
-        document.getElementById('regPhone').classList.add('error');
-        isValid = false;
-    }
-    
-    const birthday = document.getElementById('regBirthday').value;
-    if (!birthday) {
-        document.getElementById('birthdayError').innerText = '請選擇生日';
-        document.getElementById('regBirthday').classList.add('error');
-        isValid = false;
-    } else {
-        const birthDate = new Date(birthday);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-        if (age < 12) {
-            document.getElementById('birthdayError').innerText = '年齡需滿12歲以上';
-            document.getElementById('regBirthday').classList.add('error');
-            isValid = false;
-        } else if (age > 120) {
-            document.getElementById('birthdayError').innerText = '請輸入有效的生日';
-            document.getElementById('regBirthday').classList.add('error');
-            isValid = false;
-        }
-    }
-    
-    return isValid;
-}
-
-// 手機號碼自動格式化
 document.getElementById('regPhone').addEventListener('input', function(e) {
     let v = e.target.value.replace(/\D/g, '').slice(0, 10);
-    if (v.length >= 4) {
-        v = v.slice(0, 4) + '-' + v.slice(4);
-    }
-    if (v.length >= 8) {
-        v = v.slice(0, 8) + '-' + v.slice(8);
-    }
+    if (v.length > 7) v = v.slice(0, 4) + '-' + v.slice(4, 7) + '-' + v.slice(7);
+    else if (v.length > 4) v = v.slice(0, 4) + '-' + v.slice(4);
     e.target.value = v;
-    if (document.getElementById('phoneError').innerText) {
-        document.getElementById('phoneError').innerText = '';
-        e.target.classList.remove('error');
-    }
 }); 
-
-document.getElementById('regName').addEventListener('input', function(e) {
-    if (document.getElementById('nameError').innerText) {
-        document.getElementById('nameError').innerText = '';
-        e.target.classList.remove('error');
-    }
-});
-
-document.getElementById('regBirthday').addEventListener('change', function(e) {
-    if (document.getElementById('birthdayError').innerText) {
-        document.getElementById('birthdayError').innerText = '';
-        e.target.classList.remove('error');
-    }
-});
 
 async function initLiff() {
     const params = new URLSearchParams(window.location.search);
@@ -277,8 +179,8 @@ async function initLiff() {
     document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
 
     if(currentFrom === 'so') {
-        document.body.classList.add('theme-sw');
-        document.getElementById('loader').className = 'loader-icon sw';
+        document.body.classList.add('theme-so');
+        document.getElementById('loader').className = 'loader-icon so';
         document.getElementById('loading-text').style.color = '#b57c82';
     }
     try {
@@ -287,25 +189,21 @@ async function initLiff() {
         const p = await liff.getProfile();
         userId = p.userId;
         fetchData();
-    } catch(e) { 
-        console.error("LIFF初始化錯誤", e);
-        showToast('LIFF 初始化失敗'); 
-        document.getElementById('loading').style.display = 'none';
-    }
+    } catch(e) { showToast('LIFF 初始化失敗'); }
 }
 
 async function fetchData(isReload = false) {
     try {
-        const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${encodeURIComponent(referrerParam)}&t=${Date.now()}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`);
         userData = await res.json();
         
-        // 使用後端回傳的文句池文案更新載入畫面
+        // ✅ 新增：使用後端回傳的文句池文案更新載入畫面
         if(userData.loadingTexts && userData.loadingTexts.length > 0) {
+            // 隨機選取一句文案顯示
             const randomText = userData.loadingTexts[Math.floor(Math.random() * userData.loadingTexts.length)];
             document.getElementById('loading-text').innerText = randomText;
         } else {
+            // 如果後端沒回傳，使用預設文案
             const pool = TEXTS[currentFrom] || TEXTS.omp;
             document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
         }
@@ -314,19 +212,19 @@ async function fetchData(isReload = false) {
         
         if(!userData.isMember) {
             document.getElementById('regUI').style.display = 'block';
-            if(referrerParam && referrerParam !== 'undefined' && referrerParam !== '') {
+            if(referrerParam) {
                 document.getElementById('regGiftArea').style.display = 'block';
                 const referrerName = (userData.myReferrer && userData.myReferrer !== "無") ? userData.myReferrer : "神祕好友";
-                document.getElementById('giftTitle').innerHTML = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
+                document.getElementById('giftTitle').innerText = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
                 const giftData = `GIFT_BY_${referrerParam}`;
-                document.getElementById('regGiftQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(giftData)}`;
+                document.getElementById('regGiftQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${giftData}`;
             }
         } else {
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
             document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
-            document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || "歡迎回來！";
-            document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(userId)}`;
+            document.getElementById('welcomeQuote').innerText = userData.welcomeQuote;
+            document.getElementById('qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${userId}`;
             if(isReload) showToast('✅ 資料已更新');
         }
     } catch(err) {
@@ -336,20 +234,16 @@ async function fetchData(isReload = false) {
     }
 }
 
-// 驗證後註冊
-async function validateAndRegister() {
-    if (!validateForm()) {
-        return;
-    }
-    await doRegister();
-}
-
 async function doRegister() {
     const name = document.getElementById('regName').value.trim();
-    const phone = document.getElementById('regPhone').value.trim().replace(/-/g, '');
+    const phone = document.getElementById('regPhone').value.trim();
     const birthday = document.getElementById('regBirthday').value;
     
-    // 顯示載入畫面
+    if(!name || phone.length !== 12 || !birthday) {
+        return showToast('請填寫完整資訊');
+    }
+
+    // ✅ 顯示載入畫面，使用後端的文句池文案
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('regUI').style.display = 'none';
     
@@ -364,43 +258,19 @@ async function doRegister() {
     
     // 設定動畫樣式
     if(currentFrom === 'so') {
-        document.getElementById('loader').className = 'loader-icon sw';
+        document.getElementById('loader').className = 'loader-icon so';
     } else {
         document.getElementById('loader').className = 'loader-icon omp';
     }
 
-    // 使用 POST 方法發送註冊請求
-    const postData = {
-        action: "register",
-        userId: userId,
-        name: name,
-        phone: phone,
-        birthday: birthday,
-        referrerId: referrerParam || "",
-        from: currentFrom
-    };
+    const url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone.replace(/-/g,'')}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`;
     
     try {
-        const res = await fetch(GAS_URL, {
-            method: 'POST',
-            mode: 'no-cors', // 使用 no-cors 模式避免 CORS 問題
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(postData)
-        });
+        const res = await fetch(url);
+        const result = await res.json();
         
-        // 由於 no-cors 模式無法讀取回應內容，改用 GET 方式確認註冊狀態
-        // 等待 2 秒讓後端處理完成
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // 重新檢查會員狀態
-        const checkUrl = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${encodeURIComponent(referrerParam)}&t=${Date.now()}`;
-        const checkRes = await fetch(checkUrl);
-        const checkResult = await checkRes.json();
-        
-        if(checkResult.isMember) {
-            // 註冊成功
+        if(result.success) {
+            // 註冊成功，顯示成功訊息後重新整理
             document.getElementById('loading').style.display = 'none';
             openModal(`
                 <div class="welcome-card">
@@ -416,41 +286,43 @@ async function doRegister() {
                 closeModal();
                 location.reload(); 
             }, 3000);
-        } else {
+        } else { 
             document.getElementById('loading').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
-            showToast('註冊失敗，請稍後再試或聯絡客服');
+            showToast(result.message || '註冊失敗，請稍後再試'); 
         }
     } catch(e) { 
-        console.error("註冊錯誤:", e);
+        console.error(e);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('regUI').style.display = 'block';
-        showToast('網路連線錯誤，請確認網路後再試');
+        showToast('網路連線錯誤，請稍後再試'); 
     }
 }
-
+// 這是唯一、正確、不衝突的版本
 function openEvents(brand) {
     const title = brand === 'so' ? '一點甜好康' : '老娘精選';
-    const events = brand === 'so' 
-        ? (userData?.soEvents || [])
-        : (userData?.ompEvents || []);
     
+    // ✅ 關鍵修正：對應你後端正確變數 ompEvents / soEvents
+    const events = brand === 'so' 
+        ? (userData.soEvents || [])     // 一點甜
+        : (userData.ompEvents || []);   // 老娘鍋
+
     let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🔥 ${title}</h3>`;
     
     html += events.length > 0 
         ? events.map(e => `<div style="padding:15px 0; border-bottom:1px solid #f0f0f0; line-height:1.5;">✨ ${e}</div>`).join('')
         : '<p style="text-align:center; color:#999;">目前暫無活動</p>';
-    
+
     openModal(html);
 }
 
 function openReferral() {
     let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3>
     <div style="margin-bottom:15px; padding-bottom:12px; border-bottom:2px solid #eee;">
-        <b>推薦您的好友是：</b><span style="color:var(--primary); margin-left:8px;">${userData?.myReferrer || "無"}</span>
+        <b>推薦您的好友是：</b><span style="color:var(--primary); margin-left:8px;">${userData.myReferrer}</span>
     </div>
     <div style="font-weight:bold; margin-bottom:10px; color:#555;">您推薦的好友：</div>`;
-    if(userData?.myReferrals && userData.myReferrals.length > 0) {
+    if(userData.myReferrals.length > 0) {
         html += userData.myReferrals.map((r, i) => `
             <div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f0f0f0; font-size:14px;">
                 <span>${i+1}. ${r.name}</span>
@@ -467,17 +339,19 @@ function openHistory() {
     let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3>
     <table class="history-table">
         <thead>
-              <tr>
+             <tr>
                 <th style="width:16%">日期</th>
                 <th>本人獲取點</th>
                 <th>推薦回饋點</th>
                 <th>當日折抵</th>
-              </tr>
+                <th>過期點數</th>
+             </tr>
         </thead>
         <tbody>`;
     let totalExpiredSoon = 0;
-    if(userData?.history && userData.history.length > 0) {
+    if(userData.history.length > 0) {
         html += userData.history.map(h => {
+            // 處理過期欄位，若無值則顯示空白
             const expiredValue = (h.expired && h.expired !== 'undefined' && h.expired !== null) ? h.expired : '';
             const expiredNum = Number(h.expired) || 0;
             totalExpiredSoon += expiredNum;
@@ -487,10 +361,11 @@ function openHistory() {
                 <td>${h.gain || ''}</td>
                 <td>${h.share || ''}</td>
                 <td style="color:#d00; font-weight:bold;">${h.spend || ''}</td>
+                <td style="color:#d00;">${expiredValue}</td>
             </tr>`;
         }).join('');
     } else {
-        html += `<tr><td colspan="4" style="padding:20px; color:#999;">目前尚無紀錄</td></tr>`;
+        html += `<tr><td colspan="5" style="padding:20px; color:#999;">目前尚無紀錄</td></tr>`;
     }
     html += `</tbody>
     </table>
@@ -521,17 +396,12 @@ function autoCopyShare() {
 }
 
 function openProfile() {
-    const p = userData?.profile || {};
-    openModal(`<h3>👤 個人資料</h3><p>姓名：${p.name || ''}</p><p>電話：${p.phone || ''}</p><p>生日：${p.birthday || ''}</p><p>等級：${p.level || '一般會員'}</p>`);
+    const p = userData.profile;
+    openModal(`<h3>👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p><p>等級：${p.level}</p>`);
 }
 
-function openModal(html) { 
-    document.getElementById('modalBody').innerHTML = html; 
-    document.getElementById('modal').style.display = 'flex'; 
-}
-function closeModal() { 
-    document.getElementById('modal').style.display = 'none'; 
-}
+function openModal(html) { document.getElementById('modalBody').innerHTML = html; document.getElementById('modal').style.display = 'flex'; }
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
 initLiff();
 </script>
