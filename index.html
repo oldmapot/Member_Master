@@ -149,7 +149,7 @@
 
 <script>
 const TEXTS = {
-    om: ["老娘正在翻帳本，幫你算驚喜...", "老娘正在準備你的心意...", "火鍋滾了，心意也快好了...", "湯頭正在滾，心意馬上到..."],
+    omp: ["老娘正在翻帳本，幫你算驚喜...", "老娘正在準備你的心意...", "火鍋滾了，心意也快好了...", "湯頭正在滾，心意馬上到..."],
     so: ["正在為你的生活，加入一點甜...", "遇見你，就是一點甜...", "捕捉今日份的甜，請稍候片刻...", "心意準備中，等等來點甜的吧！"]
 };
 
@@ -204,7 +204,7 @@ async function fetchData(isReload = false) {
             document.getElementById('loading-text').innerText = randomText;
         } else {
             // 如果後端沒回傳，使用預設文案
-            const pool = TEXTS[currentFrom] || TEXTS.om;
+            const pool = TEXTS[currentFrom] || TEXTS.omp;
             document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
         }
         
@@ -252,7 +252,7 @@ async function doRegister() {
         const randomText = userData.loadingTexts[Math.floor(Math.random() * userData.loadingTexts.length)];
         document.getElementById('loading-text').innerText = randomText;
     } else {
-        const pool = TEXTS[currentFrom] || TEXTS.om;
+        const pool = TEXTS[currentFrom] || TEXTS.omp;
         document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
     }
     
@@ -275,7 +275,8 @@ async function doRegister() {
             openModal(`
                 <div class="welcome-card">
                     <h2>🎉 註冊成功！</h2>
-                    <p>歡迎加入老娘的一點心意🍲🍰<br><br>
+                    <p>歡迎加入老娘的一點心意🍲🍰<br>
+                    <br>
                     這是老娘留給你的偏心。<br>
                     日子不一定天天完美，但一定要有一點甜 💕</p>
                     <div style="margin-top: 20px; font-size: 14px;">3秒後自動進入會員頁面...</div>
@@ -297,27 +298,21 @@ async function doRegister() {
         showToast('網路連線錯誤，請稍後再試'); 
     }
 }
-    // ✅ 新增：優化 openEvents 函數，加入載入狀態
+// 這是唯一、正確、不衝突的版本
 function openEvents(brand) {
     const title = brand === 'so' ? '一點甜好康' : '老娘精選';
-    const events = brand === 'so' ? (userData.swEvents || []) : (userData.omEvents || []);
     
-    let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom: 20px;">🔥 ${title}</h3>`;
+    // ✅ 關鍵修正：對應你後端正確變數 ompEvents / soEvents
+    const events = brand === 'so' 
+        ? (userData.soEvents || [])     // 一點甜
+        : (userData.ompEvents || []);   // 老娘鍋
+
+    let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🔥 ${title}</h3>`;
     
-    if(events.length > 0) {
-        html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
-        events.forEach(e => {
-            html += `
-                <div style="padding: 16px; background: #fef7e6; border-radius: 16px; border-left: 4px solid var(--primary);">
-                    <div style="font-size: 16px; font-weight: 500;">✨ ${e}</div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-    } else {
-        html += `<div style="text-align:center; color:#999; padding: 40px;">📭 目前暫無活動<br><span style="font-size: 14px;">敬請期待</span></div>`;
-    }
-    
+    html += events.length > 0 
+        ? events.map(e => `<div style="padding:15px 0; border-bottom:1px solid #f0f0f0; line-height:1.5;">✨ ${e}</div>`).join('')
+        : '<p style="text-align:center; color:#999;">目前暫無活動</p>';
+
     openModal(html);
 }
 
@@ -384,7 +379,7 @@ function openHistory() {
 
 function autoCopyShare() {
     const branch = currentFrom === 'so' ? '一點甜' : '老娘鍋';
-    const text = `✨ 發現${branch}隱藏版美味 ✨\n立即加入領取新客禮：\nhttps://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
+    const text = `✨ 發現高雄隱藏版美味 ✨\n立即加入領取新客禮：\nhttps://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
     
     navigator.clipboard.writeText(text).then(() => {
         const html = `
@@ -398,14 +393,6 @@ function autoCopyShare() {
             </div>`;
         openModal(html);
     }).catch(() => showToast('複製失敗，請手動複製'));
-}
-
-function openEvents(brand) {
-    const title = brand === 'so' ? '一點甜好康' : '老娘精選';
-    const events = brand === 'so' ? userData.swEvents : userData.omEvents;
-    let html = `<h3 style="color:var(--primary); text-align:center;">🔥 ${title}</h3>`;
-    html += events.map(e => `<div style="padding:15px 0; border-bottom:1px solid #f0f0f0; line-height:1.5;">✨ ${e}</div>`).join('') || '<p style="text-align:center; color:#999;">目前暫無活動</p>';
-    openModal(html);
 }
 
 function openProfile() {
