@@ -32,9 +32,21 @@
         @keyframes wobble { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
         
         /* 標頭樣式 */
-        .header { background: var(--primary); color: #fff; padding: 45px 20px; text-align: center; border-radius: 0 0 30px 30px; }
+        .header { background: var(--primary); color: #fff; padding: 45px 20px; text-align: center; border-radius: 0 0 30px 30px; position: relative; }
+        .menu-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-size: 28px; cursor: pointer; color: #fff; background: none; border: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
         .welcome-quote { font-size: 18px; opacity: 0.95; margin-bottom: 8px; }
         .main-title { font-size: 32px; font-weight: 900; }
+        
+        /* 側邊選單 */
+        .side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--card-bg); box-shadow: 2px 0 12px rgba(0,0,0,0.15); z-index: 10000; transition: left 0.3s ease; overflow-y: auto; }
+        .side-menu.open { left: 0; }
+        .side-menu-header { background: var(--primary); color: #fff; padding: 30px 20px; text-align: center; }
+        .side-menu-header h3 { margin: 0; font-size: 18px; }
+        .side-menu-items { padding: 20px 0; }
+        .side-menu-item { display: block; width: 100%; padding: 16px 24px; background: none; border: none; text-align: left; font-size: 16px; color: var(--text); cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f0f0f0; }
+        .side-menu-item:hover { background: #f9f9f9; }
+        .side-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: none; }
+        .side-menu-overlay.show { display: block; }
         
         /* 點數資產卡片 */
         .points-card { background: var(--card-bg); margin: -25px 20px 20px; padding: 28px 24px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
@@ -42,12 +54,9 @@
         .points-value { font-size: 48px; font-weight: 900; color: var(--primary); line-height: 1.1; }
         .refresh-btn { margin-top: 12px; padding: 8px 16px; border-radius: 12px; background: #f7f7f7; border: 1px solid #eee; font-size: 14px; color: var(--light-text); cursor: pointer; }
         
-        .action-group-right { display: flex; flex-direction: column; gap: 10px; width: 140px; }
-        .action-btn { padding: 12px; border-radius: 16px; background: var(--action-btn); border: none; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; }
-        
         /* 條碼/QR Code 顯示區塊 */
         .code-section { background: var(--card-bg); margin:0 20px 20px; padding:28px 20px; border-radius:20px; text-align:center; }
-        .code-container { display: flex; justify-content: center; align-items: center; min-height: 240px; margin-bottom: 12px; }
+        .code-container { display: flex; justify-content: center; align-items: center; min-height: 280px; margin-bottom: 12px; }
         #barcodeCanvas, #regBarcodeCanvas { background: #fff; padding: 15px 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 100%; }
         #qrcode, #regGiftQR { width: 200px; height: 200px; margin-bottom: 0; }
         .code-switch-btn { background: var(--brand-btn); color: #fff; border: none; padding: 10px 24px; border-radius: 30px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
@@ -65,7 +74,7 @@
         .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; cursor: pointer; }
         .reg-qr-tip { background:#fff; padding:20px; border-radius:16px; text-align:center; margin-bottom:20px; border:2px dashed var(--primary); }
         
-        /* 會員權益條款區塊 - 修改為兩個獨立勾選框 */
+        /* 會員權益條款區塊 - 註冊頁面用 */
         .terms-section { background: #fef9f0; border-radius: 16px; padding: 16px; margin-top: 20px; border: 1px solid #ffe0b5; }
         .terms-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ffe0b5; }
         .terms-item:last-child { border-bottom: none; }
@@ -90,14 +99,15 @@
         .share-title { font-size: 22px; color: var(--primary); font-weight: 900; margin-bottom: 15px; }
         .share-body { font-size: 16px; line-height: 1.8; color: #555; }
         .share-highlight { color: #ab545a; font-weight: bold; display: block; font-size: 18px; margin: 5px 0; }
+        .shop-info-item { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
+        .shop-info-label { font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+        .shop-info-value { color: #555; line-height: 1.5; }
 
         .toast { position:fixed; left:50%; bottom:60px; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:12px 20px; border-radius:12px; z-index:9999; display:none; }
         
         @media (max-width: 480px) {
             .points-card { flex-direction: column; align-items: stretch; }
-            .action-group-right { width: 100%; flex-direction: row; justify-content: space-between; }
-            .action-group-right .action-btn { flex: 1; text-align: center; }
-            .code-container { min-height: 200px; }
+            .code-container { min-height: 220px; }
             #qrcode, #regGiftQR { width: 160px; height: 160px; }
             #barcodeCanvas, #regBarcodeCanvas { transform: scale(0.95); }
         }
@@ -112,19 +122,32 @@
 
 <div id="memberUI" style="display:none">
     <div class="header">
+        <button class="menu-icon" id="menuIcon">☰</button>
         <div class="welcome-quote" id="welcomeQuote"></div>
         <div class="main-title">老娘的一點心意</div>
     </div>
+    
+    <!-- 側邊選單 -->
+    <div id="sideMenuOverlay" class="side-menu-overlay"></div>
+    <div id="sideMenu" class="side-menu">
+        <div class="side-menu-header">
+            <h3>選單</h3>
+        </div>
+        <div class="side-menu-items">
+            <button class="side-menu-item" onclick="openProfile(); closeSideMenu()">👤 個人資料</button>
+            <button class="side-menu-item" onclick="openReferral(); closeSideMenu()">👥 推薦名單</button>
+            <button class="side-menu-item" onclick="openHistory(); closeSideMenu()">📜 點數明細</button>
+            <button class="side-menu-item" onclick="openShopInfo(); closeSideMenu()">🏪 店面資訊</button>
+            <button class="side-menu-item" onclick="openRightsDetail(); closeSideMenu()">📋 會員權益</button>
+            <button class="side-menu-item" onclick="openLegalDetail(); closeSideMenu()">⚖️ 法務免責及管控聲明</button>
+        </div>
+    </div>
+    
     <div class="points-card">
         <div class="points-left">
             <div style="font-size:14px; color:#666;">可用點數資產</div>
             <div class="points-value" id="pointsDisplay">--</div>
             <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
-        </div>
-        <div class="action-group-right">
-            <button class="action-btn" onclick="openProfile()">👤 個人資料</button>
-            <button class="action-btn" onclick="openReferral()">👥 推薦名單</button>
-            <button class="action-btn" onclick="openHistory()">📜 點數明細</button>
         </div>
     </div>
 
@@ -168,15 +191,15 @@
         </div>
     </div>
 
-    <!-- 修改：兩個獨立的紅色粗體勾選框 -->
+    <!-- 註冊頁面同意條款（兩個獨立勾選框） -->
     <div class="terms-section">
         <div class="terms-item">
             <input type="checkbox" id="agreeRights">
-            <label>我同意 <span class="red-text" onclick="openRightsModal(event)">【會員權益】</span><span class="required-star">*</span></label>
+            <label>我已閱讀並理解 <span class="red-text" onclick="openRightsModal(event)">「會員權益」</span><span class="required-star">*</span></label>
         </div>
         <div class="terms-item">
             <input type="checkbox" id="agreeLegal">
-            <label>我同意 <span class="red-text" onclick="openLegalModal(event)">【法務免責與規章聲明】</span><span class="required-star">*</span></label>
+            <label>我已閱讀並同意遵守 <span class="red-text" onclick="openLegalModal(event)">「法務免責及管控聲明」</span><span class="required-star">*</span></label>
         </div>
     </div>
 
@@ -205,29 +228,48 @@ let tokenExpireTime = 0;
 let isBarcodeMode = true;
 let isRegBarcodeMode = true;
 
-// ========== 彈出會員權益卡片 ==========
-function openRightsModal(event) {
-    event.stopPropagation();
-    const rightsHtml = `
-        <h3 style="color:var(--primary); margin-bottom:16px; text-align:center;">會員權益</h3>
-        <p>◆ 點數價值：$1 點 = NT$1 元。</p>
-        <p>◆ 本人集點：以「實付金額（折抵/折扣後）」之 3% 計算。<br>效期：取得日起 12 個月。</p>
-        <p>◆ 朋友回饋：以朋友消費實付額之 1% 計算。<br>效期：取得日起 6 個月。</p>
-        <p>◆ 生效時間：採 隔日生效制（今日取得，明日 00:00 後方可使用）。</p>
-        <p>◆ 購買餐券：提撥 1% 點數（該筆交易不可使用點數折抵）。</p>
-        <p>◆ 使用餐券消費：扣除餐券面額後之剩餘實付金額，提撥 2% 點數。</p>
-        <p>◆ 特殊日期折抵：春節、母親節或特殊活動檔期，暫停折抵功能，僅限消費集點。</p>
-        <p>◆ 特殊活動檔期：本人集點 2%，朋友回饋 1%。</p>
-    `;
-    openModal(rightsHtml);
+// ========== 側邊選單功能 ==========
+function openSideMenu() {
+    document.getElementById('sideMenu').classList.add('open');
+    document.getElementById('sideMenuOverlay').classList.add('show');
 }
 
-// ========== 彈出法務聲明卡片 ==========
+function closeSideMenu() {
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('sideMenuOverlay').classList.remove('show');
+}
+
+// ========== 彈出會員權益（註冊頁面用，關閉後自動勾選）==========
+function openRightsModal(event) {
+    if (event) event.stopPropagation();
+    const rightsHtml = `
+        <h3 style="color:var(--primary); margin-bottom:16px; text-align:center;">📋 會員權益</h3>
+        <p>◆ 點數價值： $1 點 = NT$1 元。</p>
+        <p>◆ 本人集點： 以「實付金額（折抵/折扣後）」之 5% 計算。<br>效期：取得日起 12 個月。</p>
+        <p>◆ 朋友回饋： 以朋友消費實付額之 2% 計算。<br>效期：取得日起 6 個月。</p>
+        <p>◆ 生效時間： 採 隔日生效制（今日取得，明日 00:00 後方可使用）。</p>
+        <p>◆ 購買餐券： 提撥 3% 點數（該筆交易不可使用點數折抵）。</p>
+        <p>◆ 使用餐券消費： 扣除餐券面額後之剩餘實付金額，提撥 5% 點數。</p>
+        <p>◆ 特殊日期折抵： 春節、母親節或特殊活動檔期，暫停折抵功能，僅限集點。</p>
+        <p>◆ 特殊活動檔期 (如鍋友日、周年慶)：本人集點 3%，朋友回饋 1%。</p>
+    `;
+    openModal(rightsHtml);
+    // 關閉後自動勾選
+    const closeBtn = document.querySelector('#modal .modal-card button:last-child');
+    const originalClose = closeBtn.onclick;
+    closeBtn.onclick = () => {
+        document.getElementById('agreeRights').checked = true;
+        if (originalClose) originalClose();
+        closeModal();
+    };
+}
+
+// ========== 彈出法務聲明（註冊頁面用，關閉後自動勾選）==========
 function openLegalModal(event) {
-    event.stopPropagation();
+    if (event) event.stopPropagation();
     const legalHtml = `
-        <h3 style="color:var(--primary); margin-bottom:16px; text-align:center;">法務免責與規章聲明</h3>
-        <p>◆ 非現金化： 點數為非現金資產，不得要求兌換現金或轉讓他人，僅限用於折抵本平台之店家消費。</p>
+        <h3 style="color:var(--primary); margin-bottom:16px; text-align:center;">⚖️ 法務免責及管控聲明</h3>
+        <p>◆ 非現金化： 點數不具現金價值，不可要求兌換現金或轉讓。</p>
         <p>◆ 終止權： 店家保有修改、暫停或終止活動之權利。</p>
         <p>◆ 營運調整： 若因營運調整或不可抗力因素，點數自動失效，不得要求賠償。</p>
         <p>◆ 最終解釋權：本公司保有活動最終解釋權。</p>
@@ -235,6 +277,71 @@ function openLegalModal(event) {
         <p>◆ 權益終止：若判定為惡意集點或違反公平使用原則，店家有權直接凍結帳號並清空點數，不另行通知。</p>
     `;
     openModal(legalHtml);
+    const closeBtn = document.querySelector('#modal .modal-card button:last-child');
+    const originalClose = closeBtn.onclick;
+    closeBtn.onclick = () => {
+        document.getElementById('agreeLegal').checked = true;
+        if (originalClose) originalClose();
+        closeModal();
+    };
+}
+
+// ========== 會員頁面：彈出會員權益詳細版 ==========
+function openRightsDetail() {
+    const rightsHtml = `
+        <h3 style="color:var(--primary); margin-bottom:16px; text-align:center;">📋 會員權益</h3>
+        <p><strong>◆ 點數價值：</strong> $1 點 = NT$1 元</p>
+        <p><strong>◆ 本人集點：</strong><br>
+        - 一般消費：以「實付金額（折抵/折扣後）」之 5% 計算<br>
+        - 餐券購買：提撥 3% 點數（該筆交易不可使用點數折抵）<br>
+        - 餐券消費：扣除餐券面額後之剩餘實付金額，提撥 5% 點數<br>
+        - 效期：取得日起 12 個月</p>
+        <p><strong>◆ 朋友回饋：</strong><br>
+        - 以朋友消費實付額之 2% 計算<br>
+        - 效期：取得日起 6 個月</p>
+        <p><strong>◆ 生效時間：</strong> 採隔日生效制（今日取得，明日 00:00 後方可使用）</p>
+        <p><strong>◆ 特殊日期：</strong><br>
+        - 春節、母親節或特殊活動檔期，暫停折抵功能，僅限集點<br>
+        - 特殊活動檔期（如鍋友日、周年慶）：本人集點 3%，朋友回饋 1%</p>
+        <p><strong>◆ 點數查詢：</strong> 可於本 LINE 官方帳號「老娘的一點心意」隨時查詢</p>
+        <p><strong>◆ 點數使用：</strong> 結帳時出示會員條碼，由店員協助折抵</p>
+    `;
+    openModal(rightsHtml);
+}
+
+// ========== 會員頁面：彈出法務聲明 ==========
+function openLegalDetail() {
+    const legalHtml = `
+        <h3 style="color:var(--primary); margin-bottom:16px; text-align:center;">⚖️ 法務免責及管控聲明</h3>
+        <p>◆ 非現金化： 點數不具現金價值，不可要求兌換現金或轉讓。</p>
+        <p>◆ 終止權： 店家保有修改、暫停或終止活動之權利。</p>
+        <p>◆ 營運調整： 若因營運調整或不可抗力因素，點數自動失效，不得要求賠償。</p>
+        <p>◆ 最終解釋權：本公司保有活動最終解釋權。</p>
+        <p>◆ 誠信原則監測： 系統會監測異常頻繁集點或疑似虛假推薦，店家有權直接凍結帳號並清空點數，不另行通知。</p>
+        <p>◆ 權益終止：若判定為惡意集點或違反公平使用原則，店家有權直接凍結帳號並清空點數，不另行通知。</p>
+    `;
+    openModal(legalHtml);
+}
+
+// ========== 彈出店面資訊 ==========
+function openShopInfo() {
+    if (!userData || !userData.shopInfo) {
+        openModal(`<p style="text-align:center; color:#999;">店面資訊載入中...</p>`);
+        return;
+    }
+    
+    let html = `<h3 style="color:var(--primary); margin-bottom:16px; text-align:center;">🏪 店面資訊</h3>`;
+    
+    userData.shopInfo.forEach(shop => {
+        html += `<div class="shop-info-item">`;
+        if (shop.name) html += `<div class="shop-info-label">🏠 分店名稱</div><div class="shop-info-value">${shop.name}</div>`;
+        if (shop.address) html += `<div class="shop-info-label">📍 地址</div><div class="shop-info-value">${shop.address}</div>`;
+        if (shop.phone) html += `<div class="shop-info-label">📞 電話</div><div class="shop-info-value">${shop.phone}</div>`;
+        if (shop.hours) html += `<div class="shop-info-label">⏰ 營業時間</div><div class="shop-info-value">${shop.hours}</div>`;
+        html += `</div>`;
+    });
+    
+    openModal(html);
 }
 
 function generateSecureToken() {
@@ -293,7 +400,7 @@ function generateMemberCode() {
             JsBarcode(barcodeCanvas, codeData, {
                 format: "CODE128",
                 width: 2.2,
-                height: 85,
+                height: 120,
                 displayValue: true,
                 fontSize: 14,
                 margin: 12,
@@ -379,6 +486,10 @@ async function initLiff() {
         await updateUserToken();
         fetchData();
     } catch(e) { showToast('LIFF 初始化失敗'); }
+    
+    // 側邊選單事件
+    document.getElementById('menuIcon').addEventListener('click', openSideMenu);
+    document.getElementById('sideMenuOverlay').addEventListener('click', closeSideMenu);
 }
 
 async function fetchData(isReload = false) {
@@ -432,7 +543,6 @@ async function doRegister() {
     const agreeRights = document.getElementById('agreeRights').checked;
     const agreeLegal = document.getElementById('agreeLegal').checked;
     
-    // 驗證表單
     if(!name) {
         return showToast('請填寫姓名');
     }
@@ -443,10 +553,10 @@ async function doRegister() {
         return showToast('請選擇生日');
     }
     if(!agreeRights) {
-        return showToast('請先同意【會員權益】');
+        return showToast('請先閱讀並同意【會員權益】');
     }
     if(!agreeLegal) {
-        return showToast('請先同意【法務免責與規章聲明】');
+        return showToast('請先閱讀並同意【法務免責及管控聲明】');
     }
 
     document.getElementById('loading').style.display = 'flex';
@@ -515,7 +625,7 @@ function openReferral() {
         <b>推薦您的好友是：</b><span style="color:var(--primary); margin-left:8px;">${userData.myReferrer}</span>
     </div>
     <div style="font-weight:bold; margin-bottom:10px; color:#555;">您推薦的好友：</div>`;
-    if(userData.myReferrals.length > 0) {
+    if(userData.myReferrals && userData.myReferrals.length > 0) {
         html += userData.myReferrals.map((r, i) => `
             <div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f0f0f0; font-size:14px;">
                 <span>${i+1}. ${r.name}</span>
@@ -531,7 +641,7 @@ function openReferral() {
 function openHistory() {
     let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3>
     <table class="history-table">
-        <thead>——<th style="width:16%">日期</th><th>本人獲取點</th><th>推薦回饋點</th><th>當日折抵</th><th>過期點數</th>——</thead>
+        <thead><th style="width:16%">日期</th><th>本人獲取點</th><th>推薦回饋點</th><th>當日折抵</th><th>過期點數</th></thead>
         <tbody>`;
     let totalExpiredSoon = 0;
     if(userData.history && userData.history.length > 0) {
@@ -539,7 +649,7 @@ function openHistory() {
             const expiredValue = (h.expired && h.expired !== 'undefined' && h.expired !== null) ? h.expired : '';
             const expiredNum = Number(h.expired) || 0;
             totalExpiredSoon += expiredNum;
-            return `tr<td>${h.date}</td><td>${h.gain || ''}</td><td>${h.share || ''}</td><td style="color:#d00;">${h.spend || ''}</td><td style="color:#d00;">${expiredValue}</td></tr>`;
+            return `<tr><td>${h.date}</td><td>${h.gain || ''}</td><td>${h.share || ''}</td><td style="color:#d00;">${h.spend || ''}</td><td style="color:#d00;">${expiredValue}</td></tr>`;
         }).join('');
     } else {
         html += `<tr><td colspan="5" style="padding:20px; color:#999;">目前尚無紀錄</td></tr>`;
