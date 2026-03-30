@@ -315,43 +315,33 @@ document.getElementById('agreeTerms').addEventListener('change', function(e) {
     headerCheckbox.checked = e.target.checked;
 });
 
+// 修改 index.html 中的 generateMemberCode 函數
 function generateMemberCode() {
-    if (!userId) return;
-    if (!isTokenValid()) {
-        updateUserToken().then(() => generateMemberCode());
-        return;
-    }
+    if (!userId || !userData) return;
     
-    const barcodeCanvas = document.getElementById('barcodeCanvas');
-    const qrcodeImg = document.getElementById('qrcode');
-    const switchBtn = document.getElementById('switchCodeBtn');
-    const codeData = userToken;
+    // 從後端回傳的資料中取得分店代碼與當前金鑰
+    // 注意：這裡必須配合後端傳回來的 shopCode 和 shopKey
+    let shopCode = userData.shopCode || (currentFrom === 'so' ? 'swo' : 'omp');
+    let shopKey = userData.shopKey || "000"; 
     
-    if (isBarcodeMode) {
-        barcodeCanvas.style.display = 'block';
-        qrcodeImg.style.display = 'none';
-        switchBtn.innerHTML = '🔁 切換至 QR Code';
+    // 組合出店員端能解析的格式：分店_金鑰_UID
+    let displayCode = `${shopCode}_${shopKey}_${userId}`;
+    
+    let c = document.getElementById('barcodeCanvas'), 
+        q = document.getElementById('qrcode'), 
+        btn = document.getElementById('switchCodeBtn');
         
-        try {
-            JsBarcode(barcodeCanvas, codeData, {
-                format: "CODE128",
-                width: 2.2,
-                height: 85,
-                displayValue: true,
-                fontSize: 14,
-                margin: 12,
-                textMargin: 8
-            });
-        } catch(e) {
-            console.error("條碼生成失敗:", e);
-            isBarcodeMode = false;
-            generateMemberCode();
-        }
+    if (isBarcodeMode) {
+        c.style.display = 'block'; q.style.display = 'none';
+        btn.innerHTML = '🔁 切換至 QR Code';
+        JsBarcode(c, displayCode, { 
+            format: "CODE128", width: 2, height: 100, // 稍微調小一點點避免溢出
+            displayValue: true, fontSize: 12, margin: 10 
+        });
     } else {
-        barcodeCanvas.style.display = 'none';
-        qrcodeImg.style.display = 'block';
-        switchBtn.innerHTML = '🔁 切換至條碼';
-        qrcodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(codeData)}`;
+        c.style.display = 'none'; q.style.display = 'block';
+        btn.innerHTML = '🔁 切換至條碼';
+        q.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(displayCode)}`;
     }
 }
 
