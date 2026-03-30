@@ -193,21 +193,9 @@ async function initLiff() {
 }
 
 async function fetchData(isReload = false) {
-        try {
-        const res = await fetch(GAS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                action: "register",
-                userId: userId,
-                name: name,
-                phone: phone.replace(/-/g,''),
-                birthday: birthday,
-                referrerId: referrerParam,
-                from: currentFrom
-            })
-        });
-        const result = await res.json();
+    try {
+        const res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`);
+        userData = await res.json();
         
         // ✅ 新增：使用後端回傳的文句池文案更新載入畫面
         if(userData.loadingTexts && userData.loadingTexts.length > 0) {
@@ -270,9 +258,9 @@ async function doRegister() {
     
     // 設定動畫樣式
     if(currentFrom === 'so') {
-        document.getElementById('loader').className = 'loader-icon so';
+        document.getElementById('loader').className = 'loader-icon sw';
     } else {
-        document.getElementById('loader').className = 'loader-icon omp';
+        document.getElementById('loader').className = 'loader-icon om';
     }
 
     const url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone.replace(/-/g,'')}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`;
