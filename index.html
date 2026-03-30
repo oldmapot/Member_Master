@@ -56,7 +56,7 @@
         /* 註冊介面 */
         #regUI { display:none; padding:40px 24px; }
         .reg-input { width:100%; padding:16px; border-radius:14px; border:1px solid #ddd; font-size:16px; box-sizing:border-box; margin-top:10px; }
-        .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; }
+        .reg-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:bold; margin-top:30px; cursor: pointer; }
         .reg-qr-tip { background:#fff; padding:20px; border-radius:16px; text-align:center; margin-bottom:20px; border:2px dashed var(--primary); }
 
         /* 彈出式 Modal */
@@ -234,20 +234,43 @@ async function fetchData(isReload = false) {
     }
 }
 
+// ========== 修正註冊功能 ==========
 async function doRegister() {
     const name = document.getElementById('regName').value.trim();
-    const phone = document.getElementById('regPhone').value.trim();
+    const phoneRaw = document.getElementById('regPhone').value.trim();
+    const phone = phoneRaw.replace(/-/g, '');
     const birthday = document.getElementById('regBirthday').value;
     
-    if(!name || phone.length !== 12 || !birthday) {
-        return showToast('請填寫完整資訊');
+    // 詳細驗證
+    if(!name) {
+        showToast('請填寫姓名');
+        return;
+    }
+    if(!phoneRaw || phone.length !== 10 || !phone.startsWith('09')) {
+        showToast('請填寫正確的手機號碼 (09開頭，共10碼)');
+        return;
+    }
+    if(!birthday) {
+        showToast('請選擇生日');
+        return;
+    }
+    
+    // 檢查年齡是否滿12歲
+    const birthDate = new Date(birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+    if (age < 12) {
+        showToast('年齡需滿12歲以上才能註冊');
+        return;
     }
 
-    // ✅ 顯示載入畫面，使用後端的文句池文案
+    // 顯示載入畫面
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('regUI').style.display = 'none';
     
-    // 使用後端回傳的 loadingTexts 或預設文案
+    // 設定載入文案
     if(userData && userData.loadingTexts && userData.loadingTexts.length > 0) {
         const randomText = userData.loadingTexts[Math.floor(Math.random() * userData.loadingTexts.length)];
         document.getElementById('loading-text').innerText = randomText;
@@ -263,14 +286,72 @@ async function doRegister() {
         document.getElementById('loader').className = 'loader-icon omp';
     }
 
-    const url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone.replace(/-/g,'')}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`;
+    // 使用 POST 方式發送註冊請求，避免 URL 過長問題
+    const postData = {
+        action: "register",
+        userId: userId,
+        name: name,
+        phone: phone,
+        birthday: birthday,
+        referrerId: referrerParam || "",
+        from: currentFrom
+    };
     
     try {
-        const res = await fetch(url);
-        const result = await res.json();
+        // 使用 POST 請求
+        const response = await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(postData)
+        });
         
-        if(result.success) {
-            // 註冊成功，顯示成功訊息後重新整理
+        // 嘗試解析回應
+        let result;
+        try {
+            result = await response.json();
+        } catch(e) {
+            // 如果無法解析 JSON，可能是 no-cors 模式或回應格式問題
+            // 改用 GET 方式確認註冊狀態
+            console.log("JSON 解析失敗，改用確認方式");
+            // 等待 2 秒讓後端處理
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // 重新檢查會員狀態
+            const checkUrl = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${encodeURIComponent(referrerParam)}&t=${Date.now()}`;
+            const checkRes = await fetch(checkUrl);
+            const checkResult = await checkRes.json();
+            
+            if(checkResult.isMember) {
+                // 註冊成功
+                document.getElementById('loading').style.display = 'none';
+                openModal(`
+                    <div class="welcome-card">
+                        <h2>🎉 註冊成功！</h2>
+                        <p>歡迎加入老娘的一點心意🍲🍰<br>
+                        <br>
+                        這是老娘留給你的偏心。<br>
+                        日子不一定天天完美，但一定要有一點甜 💕</p>
+                        <div style="margin-top: 20px; font-size: 14px;">3秒後自動進入會員頁面...</div>
+                    </div>
+                `);
+                setTimeout(() => { 
+                    closeModal();
+                    location.reload(); 
+                }, 3000);
+                return;
+            } else {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('regUI').style.display = 'block';
+                showToast('註冊失敗，請稍後再試');
+                return;
+            }
+        }
+        
+        // 正常處理 JSON 回應
+        if(result && result.success) {
             document.getElementById('loading').style.display = 'none';
             openModal(`
                 <div class="welcome-card">
@@ -286,26 +367,55 @@ async function doRegister() {
                 closeModal();
                 location.reload(); 
             }, 3000);
-        } else { 
+        } else {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
-            showToast(result.message || '註冊失敗，請稍後再試'); 
+            showToast((result && result.message) || '註冊失敗，請稍後再試');
         }
     } catch(e) { 
-        console.error(e);
+        console.error("註冊錯誤:", e);
+        
+        // 如果 POST 失敗，嘗試用 GET 方式重試（相容性處理）
+        try {
+            const getUrl = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam || ''}&from=${currentFrom}&t=${Date.now()}`;
+            const getRes = await fetch(getUrl);
+            const getResult = await getRes.json();
+            
+            if(getResult && getResult.success) {
+                document.getElementById('loading').style.display = 'none';
+                openModal(`
+                    <div class="welcome-card">
+                        <h2>🎉 註冊成功！</h2>
+                        <p>歡迎加入老娘的一點心意🍲🍰<br>
+                        <br>
+                        這是老娘留給你的偏心。<br>
+                        日子不一定天天完美，但一定要有一點甜 💕</p>
+                        <div style="margin-top: 20px; font-size: 14px;">3秒後自動進入會員頁面...</div>
+                    </div>
+                `);
+                setTimeout(() => { 
+                    closeModal();
+                    location.reload(); 
+                }, 3000);
+                return;
+            }
+        } catch(retryErr) {
+            console.error("重試也失敗:", retryErr);
+        }
+        
         document.getElementById('loading').style.display = 'none';
         document.getElementById('regUI').style.display = 'block';
         showToast('網路連線錯誤，請稍後再試'); 
     }
 }
-// 這是唯一、正確、不衝突的版本
+// ========== 修正結束 ==========
+
 function openEvents(brand) {
     const title = brand === 'so' ? '一點甜好康' : '老娘精選';
     
-    // ✅ 關鍵修正：對應你後端正確變數 ompEvents / soEvents
     const events = brand === 'so' 
-        ? (userData.soEvents || [])     // 一點甜
-        : (userData.ompEvents || []);   // 老娘鍋
+        ? (userData.soEvents || [])
+        : (userData.ompEvents || []);
 
     let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🔥 ${title}</h3>`;
     
@@ -322,7 +432,7 @@ function openReferral() {
         <b>推薦您的好友是：</b><span style="color:var(--primary); margin-left:8px;">${userData.myReferrer}</span>
     </div>
     <div style="font-weight:bold; margin-bottom:10px; color:#555;">您推薦的好友：</div>`;
-    if(userData.myReferrals.length > 0) {
+    if(userData.myReferrals && userData.myReferrals.length > 0) {
         html += userData.myReferrals.map((r, i) => `
             <div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f0f0f0; font-size:14px;">
                 <span>${i+1}. ${r.name}</span>
@@ -341,8 +451,8 @@ function openHistory() {
         <thead>
              <tr>
                 <th style="width:16%">日期</th>
-                <th>本人獲取點</th>
-                <th>推薦回饋點</th>
+                <th>本人獲取</th>
+                <th>推薦回饋</th>
                 <th>當日折抵</th>
                 <th>過期點數</th>
              </tr>
@@ -379,7 +489,7 @@ function openHistory() {
 
 function autoCopyShare() {
     const branch = currentFrom === 'so' ? '一點甜' : '老娘鍋';
-    const text = `✨ 發現高雄隱藏版美味 ✨\n立即加入領取新客禮：\nhttps://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
+    const text = `✨ 發現高雄隱藏版美味 ✨\n立即加入領取新客禮，消費領回饋金：\nhttps://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`;
     
     navigator.clipboard.writeText(text).then(() => {
         const html = `
@@ -387,7 +497,7 @@ function autoCopyShare() {
                 <div class="share-title">✅ 推薦碼已自動複製！</div>
                 <div class="share-body">
                     趕快請好友領取新客招待禮<br>
-                    <span class="share-highlight">他消費，你領回饋</span>
+                    <span class="share-highlight">朋友消費，你領回饋</span>
                     別錯過唷!! 💕
                 </div>
             </div>`;
