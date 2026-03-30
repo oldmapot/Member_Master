@@ -82,7 +82,7 @@
 <body>
 
 <div id="loading">
-    <div id="loader" class="loader-icon om"></div>
+    <div id="loader" class="loader-icon omp"></div>
     <div id="loading-text" style="font-weight: bold; color: var(--primary); font-size: 16px; text-align:center; padding:0 20px;"></div>
 </div>
 
@@ -110,7 +110,7 @@
     </div>
 
     <div class="brand-actions">
-        <button class="event-brand-btn" onclick="openEvents('om')">老娘精選</button>
+        <button class="event-brand-btn" onclick="openEvents('omp')">老娘精選</button>
         <button class="event-brand-btn" onclick="openEvents('so')">一點甜好康</button>
     </div>
     <button class="share-btn" onclick="autoCopyShare()">🚀 分享推薦碼，享好友消費回饋</button>
@@ -155,7 +155,7 @@ const TEXTS = {
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
-let userId = '', userData = null, currentFrom = 'om', referrerParam = '';
+let userId = '', userData = null, currentFrom = 'omp', referrerParam = '';
 
 function showToast(msg){
     const t = document.getElementById('toast');
@@ -172,10 +172,10 @@ document.getElementById('regPhone').addEventListener('input', function(e) {
 
 async function initLiff() {
     const params = new URLSearchParams(window.location.search);
-    currentFrom = params.get('from') || 'om';
+    currentFrom = params.get('from') || 'omp';
     referrerParam = params.get('referrer') || '';
     
-    const pool = TEXTS[currentFrom] || TEXTS.om;
+    const pool = TEXTS[currentFrom] || TEXTS.omp;
     document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
 
     if(currentFrom === 'so') {
@@ -258,9 +258,9 @@ async function doRegister() {
     
     // 設定動畫樣式
     if(currentFrom === 'so') {
-        document.getElementById('loader').className = 'loader-icon sw';
+        document.getElementById('loader').className = 'loader-icon so';
     } else {
-        document.getElementById('loader').className = 'loader-icon om';
+        document.getElementById('loader').className = 'loader-icon omp';
     }
 
     const url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone.replace(/-/g,'')}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`;
