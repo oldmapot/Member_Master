@@ -238,22 +238,87 @@ async function doRegister() {
     const name = document.getElementById('regName').value.trim();
     const phone = document.getElementById('regPhone').value.trim();
     const birthday = document.getElementById('regBirthday').value;
-    if(!name || phone.length !== 12 || !birthday) return showToast('請填寫完整資訊');
+    
+    if(!name || phone.length !== 12 || !birthday) {
+        return showToast('請填寫完整資訊');
+    }
+
+    // ✅ 顯示載入畫面，使用後端的文句池文案
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('regUI').style.display = 'none';
+    
+    // 使用後端回傳的 loadingTexts 或預設文案
+    if(userData && userData.loadingTexts && userData.loadingTexts.length > 0) {
+        const randomText = userData.loadingTexts[Math.floor(Math.random() * userData.loadingTexts.length)];
+        document.getElementById('loading-text').innerText = randomText;
+    } else {
+        const pool = TEXTS[currentFrom] || TEXTS.om;
+        document.getElementById('loading-text').innerText = pool[Math.floor(Math.random() * pool.length)];
+    }
+    
+    // 設定動畫樣式
+    if(currentFrom === 'so') {
+        document.getElementById('loader').className = 'loader-icon sw';
+    } else {
+        document.getElementById('loader').className = 'loader-icon om';
+    }
 
     const url = `${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone.replace(/-/g,'')}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`;
+    
     try {
         const res = await fetch(url);
         const result = await res.json();
+        
         if(result.success) {
+            // 註冊成功，顯示成功訊息後重新整理
+            document.getElementById('loading').style.display = 'none';
             openModal(`
                 <div class="welcome-card">
-                    <h2>歡迎加入老娘的一點心意🍲🍰</h2>
-                    <p>這是老娘留給你的偏心。<br><br>日子不一定天天完美，但一定要有一點甜 💕</p>
+                    <h2>🎉 註冊成功！</h2>
+                    <p>歡迎加入老娘的一點心意🍲🍰<br><br>
+                    這是老娘留給你的偏心。<br>
+                    日子不一定天天完美，但一定要有一點甜 💕</p>
+                    <div style="margin-top: 20px; font-size: 14px;">3秒後自動進入會員頁面...</div>
                 </div>
             `);
-            setTimeout(() => { location.reload(); }, 3500);
-        } else { showToast(result.message); }
-    } catch(e) { showToast('註冊失敗'); }
+            setTimeout(() => { 
+                closeModal();
+                location.reload(); 
+            }, 3000);
+        } else { 
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('regUI').style.display = 'block';
+            showToast(result.message || '註冊失敗，請稍後再試'); 
+        }
+    } catch(e) { 
+        console.error(e);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('regUI').style.display = 'block';
+        showToast('網路連線錯誤，請稍後再試'); 
+    }
+}
+    // ✅ 新增：優化 openEvents 函數，加入載入狀態
+function openEvents(brand) {
+    const title = brand === 'so' ? '一點甜好康' : '老娘精選';
+    const events = brand === 'so' ? (userData.swEvents || []) : (userData.omEvents || []);
+    
+    let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom: 20px;">🔥 ${title}</h3>`;
+    
+    if(events.length > 0) {
+        html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
+        events.forEach(e => {
+            html += `
+                <div style="padding: 16px; background: #fef7e6; border-radius: 16px; border-left: 4px solid var(--primary);">
+                    <div style="font-size: 16px; font-weight: 500;">✨ ${e}</div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    } else {
+        html += `<div style="text-align:center; color:#999; padding: 40px;">📭 目前暫無活動<br><span style="font-size: 14px;">敬請期待</span></div>`;
+    }
+    
+    openModal(html);
 }
 
 function openReferral() {
