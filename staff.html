@@ -25,6 +25,9 @@
         #customModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: center; }
         .modal-btn { background: #00b900; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; margin-top: 20px; cursor: pointer; width: 100%; }
+        
+        /* 掃碼槍隱藏輸入框樣式 */
+        #hiddenIdInput { position: absolute; left: -9999px; opacity: 0; }
     </style>
 </head>
 <body>
@@ -44,7 +47,9 @@
         </div>
     </div>
 
-    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描</button>
+    <input type="text" id="hiddenIdInput">
+
+    <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描 / 準備掃碼槍</button>
 
     <div class="member-info" id="member-ui">
         顧客：<b id="cus-name">-</b> | 現有資產：<b id="cus-pts" style="color:red;">0</b> 點
@@ -90,7 +95,6 @@ const LIFF_ID = "2009625641-AYIKoXbw";
 
 let config = {}, customerId = "", currentPoints = 0, staff = {};
 
-// 彈窗控制
 function showModal(html) {
     document.getElementById('modalText').innerHTML = html;
     document.getElementById('customModal').style.display = 'flex';
@@ -103,10 +107,12 @@ async function init() {
     try {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
+        
         const urlParams = new URLSearchParams(window.location.search);
         const key = urlParams.get('k');
-        const profile = await liff.getProfile();
+        const externalCusId = urlParams.get('customerId'); // 接住手機原相機掃描傳進來的 ID
         
+        const profile = await liff.getProfile();
         const res = await fetch(`${GAS_URL}?action=staffLogin&userId=${profile.userId}&keyword=${key}`);
         staff = await res.json();
         
@@ -114,6 +120,14 @@ async function init() {
             document.getElementById('shop-name').innerText = staff.branch;
             document.getElementById('staff-name').innerText = staff.name;
             document.getElementById('role-text').innerText = staff.role;
+            
+            // 如果網址已有 ID (手機原相機模式)，直接執行查詢
+            if (externalCusId) {
+                processMemberId(externalCusId);
+            } else {
+                // 否則自動聚焦掃碼槍輸入框
+                document.getElementById('hiddenIdInput').focus();
+            }
         } else {
             alert("權限驗證失敗！");
         }
@@ -122,28 +136,37 @@ async function init() {
     }
 }
 
+// 監聽掃碼槍 Enter
+document.getElementById('hiddenIdInput').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        processMemberId(this.value);
+        this.value = "";
+    }
+});
+
 async function handleScan() {
     try {
         const result = await liff.scanCodeV2();
         if (!result || !result.value) return;
+        processMemberId(result.value);
+    } catch (err) {
+        console.log("掃描取消或出錯:", err.message);
+    }
+}
 
-        // --- 1. 開始查詢：開啟品牌 Loading ---
-        if (window.openBrandLoading) {
-            window.openBrandLoading("老娘正在查詢會員資料...");
-        }
+// 核心功能：處理與查詢會員資料 (由 LIFF、原相機、掃碼槍共用)
+async function processMemberId(scannedId) {
+    try {
+        if (window.openBrandLoading) window.openBrandLoading("老娘正在查詢會員資料...");
 
-        customerId = result.value;
+        customerId = scannedId;
         const rawID = String(customerId);
 
-        // 判斷是否為新客招待禮
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
-            // --- 查詢結束：關閉 Loading ---
             if (window.closeBrandLoading) window.closeBrandLoading();
-
             customerId = "";
             document.getElementById('member-ui').style.display = 'none';
             document.getElementById('form-ui').classList.add('locked');
-
             showModal(`
                 <h3 style="color:#e91e63; margin-top:0;">🎁 新客招待禮確認</h3>
                 <hr>
@@ -153,11 +176,9 @@ async function handleScan() {
             return; 
         }
 
-        // 向 GAS 發送查詢請求
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}`);
         const data = await res.json();
         
-        // --- 2. 資料回傳：不論成功失敗都關閉 Loading ---
         if (window.closeBrandLoading) window.closeBrandLoading();
         
         if(data.isMember) {
@@ -167,14 +188,14 @@ async function handleScan() {
             document.getElementById('cus-pts').innerText = data.points;
             currentPoints = Number(data.points);
             config = data.config; 
+            document.getElementById('totalSpend').focus(); // 自動跳轉至金額輸入
             doCalc();
         } else {
             showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
         }
     } catch (err) {
-        // 出錯或取消也要確保 Loading 關閉，才不會卡死畫面
         if (window.closeBrandLoading) window.closeBrandLoading();
-        console.log("掃描取消或出錯:", err.message);
+        alert("查詢失敗，請重掃");
     }
 }
 
@@ -188,7 +209,6 @@ function toggleMode() {
 function doCalc() {
     if (!config.earnRate) return;
     const isTicket = document.getElementById('ticketMode').checked;
-    
     let newPts = 0, redeem = 0;
     
     if (isTicket) {
@@ -198,10 +218,8 @@ function doCalc() {
         const total = Number(document.getElementById('totalSpend').value) || 0;
         const tPay = Number(document.getElementById('ticketSpend').value) || 0;
         const settleBase = total - tPay;
-        
         const maxRedeem = (settleBase >= config.minSpend) ? Math.min(currentPoints, Math.floor(settleBase * config.maxRate)) : 0;
         document.getElementById('max-hint').innerText = maxRedeem;
-        
         redeem = Number(document.getElementById('redeemAmount').value) || 0;
         if (redeem > maxRedeem) {
             redeem = maxRedeem;
@@ -209,7 +227,6 @@ function doCalc() {
         }
         newPts = Math.floor((settleBase - redeem) * config.earnRate);
     }
-    
     document.getElementById('new-pts').innerText = newPts;
     document.getElementById('after-pts').innerText = (currentPoints - redeem + newPts);
 }
@@ -246,7 +263,7 @@ async function submitData() {
     } catch (e) {
         alert("提交失敗: " + e.message);
         btn.disabled = false;
-        btn.innerText = "重新提交";
+        btn.innerText = "確認過卡 (發送股東/消費通知)";
     }
 }
 
