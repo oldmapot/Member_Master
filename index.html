@@ -344,25 +344,36 @@ function openHistory() {
     let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3>
     <table class="history-table">
         <thead>
-            <tr>
+             <tr>
                 <th style="width:16%">日期</th>
-                <th>本人獲取</th>
-                <th>推薦回饋</th>
-                <th>折抵</th>
-                <th>過期</th>
-            </tr>
+                <th>本人獲取點</th>
+                <th>推薦回饋點</th>
+                <th>當日折抵</th>
+                <th>過期點數</th>
+             </tr>
         </thead>
         <tbody>`;
     let totalExpiredSoon = 0;
     if(userData.history.length > 0) {
         html += userData.history.map(h => {
-            totalExpiredSoon += (Number(h.expired) || 0);
-            return `<tr><td>${h.date}</td><td>${h.gain}</td><td>${h.share}</td><td style="color:#d00; font-weight:bold;">${h.spend}</td><td style="color:#d00;">${h.expired}</td></tr>`;
+            // 處理過期欄位，若無值則顯示空白
+            const expiredValue = (h.expired && h.expired !== 'undefined' && h.expired !== null) ? h.expired : '';
+            const expiredNum = Number(h.expired) || 0;
+            totalExpiredSoon += expiredNum;
+            
+            return `<tr>
+                <td>${h.date}</td>
+                <td>${h.gain || ''}</td>
+                <td>${h.share || ''}</td>
+                <td style="color:#d00; font-weight:bold;">${h.spend || ''}</td>
+                <td style="color:#d00;">${expiredValue}</td>
+            </tr>`;
         }).join('');
     } else {
         html += `<tr><td colspan="5" style="padding:20px; color:#999;">目前尚無紀錄</td></tr>`;
     }
-    html += `</tbody></table>
+    html += `</tbody>
+    </table>
     <div style="margin-top: 20px; padding: 15px; background: #fff5f5; border-radius: 12px; border: 1px dashed #ab545a; text-align: center;">
         <div style="font-size: 14px; color: #666;">⏳ 即將過期點數 (近期)</div>
         <div style="font-size: 24px; font-weight: 900; color: #d00; margin-top: 5px;">${totalExpiredSoon} <span style="font-size: 14px;">點</span></div>
