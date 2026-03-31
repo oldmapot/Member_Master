@@ -227,7 +227,14 @@ async function initLiff() {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         userId = (await liff.getProfile()).userId;
-        userToken = btoa(`${userId}_${Date.now()}`).replace(/=/g, '');
+        // 根據 currentFrom 決定分店代碼
+const branchCode = currentFrom === 'so' ? 'swo' : 'omp';
+
+// 產生隨機金鑰（簡單範例，實際可從後端取得）
+const randomKey = Math.random().toString(36).substring(2, 10);
+
+// 組合完整格式：分店代碼_金鑰_會員ID
+userToken = `${branchCode}_${randomKey}_${userId}`;
         await fetchData();
     } catch(e) { 
         showToast('初始化失敗，請重新開啟頁面'); 
