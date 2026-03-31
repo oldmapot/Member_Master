@@ -230,8 +230,30 @@ async function initLiff() {
         // 根據 currentFrom 決定分店代碼
 const branchCode = currentFrom === 'so' ? 'swo' : 'omp';
 
-// 產生隨機金鑰（簡單範例，實際可從後端取得）
-const randomKey = Math.random().toString(36).substring(2, 10);
+// 從後端取得正確的隨機金鑰
+async function getRandomKeyFromServer(shopCode) {
+    try {
+        const response = await fetch(`${GAS_URL}?action=getRandomKey&shopCode=${shopCode}`);
+        const data = await response.json();
+        return data.key;
+    } catch(e) {
+        console.error('取得金鑰失敗:', e);
+        return null;
+    }
+}
+
+// 在 initLiff 中，取得 userId 後，加上這段
+// 根據 currentFrom 決定分店代碼
+const branchCode = currentFrom === 'so' ? 'swo' : 'omp';
+
+// 從後端取得正確的隨機金鑰
+const randomKey = await getRandomKeyFromServer(branchCode);
+if (!randomKey) {
+    throw new Error('無法取得金鑰');
+}
+
+// 組合完整格式：分店代碼_金鑰_會員ID
+userToken = `${branchCode}_${randomKey}_${userId}`;
 
 // 組合完整格式：分店代碼_金鑰_會員ID
 userToken = `${branchCode}_${randomKey}_${userId}`;
