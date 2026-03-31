@@ -281,16 +281,26 @@ async function fetchData(isReload = false) {
         let res = await fetch(url);
         if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
         let responseText = await res.text();
-        try { userData = JSON.parse(responseText); } catch(e) { throw new Error("伺服器回應格式錯誤"); }
+        try { 
+            userData = JSON.parse(responseText); 
+        } catch(e) { 
+            throw new Error("伺服器回應格式錯誤"); 
+        }
         
         document.getElementById('loading').style.display = 'none';
         
         if (userData && userData.isMember === true) {
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
-            document.getElementById('pointsDisplay').innerText = userData.profile?.points || 0;
+            
+            // --- 修正重點：確保點數正確顯示 ---
+            // 如果後台傳回的是 userData.points 或是 userData.profile.points，都自動適應
+            const displayPoints = userData.points !== undefined ? userData.points : (userData.profile?.points || 0);
+            document.getElementById('pointsDisplay').innerText = displayPoints;
+            
             document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
             generateMemberCode();
+            
             if (isReload) showToast('✅ 資料已更新');
         } else {
             document.getElementById('memberUI').style.display = 'none';
@@ -303,6 +313,7 @@ async function fetchData(isReload = false) {
             }
         }
     } catch(e) { 
+        console.error("Fetch Error:", e);
         showToast('資料載入失敗，請稍後再試');
         document.getElementById('loading').style.display = 'none';
     }
