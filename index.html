@@ -296,8 +296,8 @@ async function doRegister() {
             
             setTimeout(() => { 
                 closeModal(); 
-                // 核心修正：直接重新初始化頁面，跳轉會員頁
-                fetchData();
+                // 最強制刷新整頁，100%跳轉會員
+                window.location.reload();
             }, 3000);
         } else {
             document.getElementById('loading').style.display = 'none';
