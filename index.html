@@ -288,16 +288,15 @@ async function doRegister() {
         let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
         let result = await res.json();
         if (result.success) {
-            document.getElementById('loading').style.display = 'none';
             openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
             <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
             <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
             <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
             
             setTimeout(() => { 
-                closeModal(); 
-                // 最強制刷新整頁，100%跳轉會員
-                window.location.reload();
+                closeModal();
+                // 🔥 最強制：整頁重新載入 → 100%進會員頁
+                window.location.href = window.location.href.split('?')[0] + "?from=" + currentFrom;
             }, 3000);
         } else {
             document.getElementById('loading').style.display = 'none';
