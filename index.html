@@ -298,17 +298,26 @@ async function doRegister() {
         let result = await res.json();
         
         if (result.success) {
-            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
-            <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
-            <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
-            <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
-            
-            // 3秒後重整頁面
-            setTimeout(() => { 
-                closeModal();
-                window.location.reload();
-            }, 3000);
-        } else {
+    // 關閉 loading
+    document.getElementById('loading').style.display = 'none';
+    
+    // 顯示歡迎 Modal
+    openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
+    <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
+    <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
+    <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
+    
+    // 3秒後關閉 modal 並手動切換畫面（不重整）
+    setTimeout(() => { 
+        closeModal();
+        // 直接手動切換到會員畫面
+        document.getElementById('memberUI').style.display = 'block';
+        document.getElementById('regUI').style.display = 'none';
+        
+        // 重新載入會員資料
+        fetchData(true);
+    }, 3000);
+}
             document.getElementById('loading').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
             showToast(result.message || '註冊失敗');
