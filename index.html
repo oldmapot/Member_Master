@@ -172,29 +172,36 @@ function openShopInfo() {
         openModal(`<p style="text-align:center;">店面資訊載入中...</p>`); 
         return; 
     }
+    
     let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🏪 店面資訊</h3><div class="shop-info-container">`;
+    
     userData.shopInfo.forEach(shop => {
         html += `<div class="shop-info-item">`;
         html += `<div style="font-size:20px; font-weight:bold; color:var(--primary); margin-bottom:12px;">🏠 ${shop.name}</div>`;
+        
         if (shop.details && shop.details.length) {
             shop.details.forEach(detail => {
                 let labelText = "";
+                let val = detail.value || "無";
+                
+                // 比對試算表中的欄位名稱
                 if (detail.label.includes("地址")) labelText = "📍 地址";
                 else if (detail.label.includes("電話")) labelText = "📞 電話";
-                else if (detail.label.includes("IG")) labelText = "📷 IG";
-                else if (detail.label.includes("FB")) labelText = "👍 FB";
+                else if (detail.label.includes("I G") || detail.label.toUpperCase() === "IG") labelText = "📷 Instagram";
+                else if (detail.label.includes("F B") || detail.label.toUpperCase() === "FB") labelText = "👍 Facebook";
                 else if (detail.label.includes("營業時間")) labelText = "⏰ 營業時間";
                 else if (detail.label.includes("公休日")) labelText = "📅 公休日";
                 else labelText = detail.label;
                 
                 html += `<div style="margin-bottom:12px;">`;
                 html += `<div style="font-weight:bold; color:var(--primary); margin-bottom:4px;">${labelText}</div>`;
-                html += `<div style="color:#555; line-height:1.4;">${detail.value}</div>`;
+                html += `<div style="color:#555; line-height:1.4; word-break: break-all;">${val}</div>`;
                 html += `</div>`;
             });
         }
         html += `</div>`;
     });
+    
     html += `</div>`;
     openModal(html);
 }
