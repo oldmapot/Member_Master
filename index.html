@@ -359,27 +359,46 @@ function openReferral() { let html = `<h3 style="color:var(--primary); text-alig
 // 將原本的 openHistory 替換或更名為這個，以對應選單的 openPointHistory()
 function openPointHistory() {
     let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3>
-    <table class="history-table">
-        <thead><tr><th style="width:16%">日期</th><th>本人獲取點</th><th>推薦回饋點</th><th>當日折抵</th><th>過期點數</th></tr></thead>
+    <table class="history-table" style="width:100%; border-collapse:collapse; text-align:center; font-size:14px;">
+        <thead>
+            <tr style="color:#666; font-weight:bold;">
+                <th style="width:16%; padding:6px 2px;">日期</th>
+                <th style="padding:6px 2px;">本　人<br>獲取點</th>
+                <th style="padding:6px 2px;">推　薦<br>回饋點</th>
+                <th style="padding:6px 2px;">當日<br>折抵</th>
+                <th style="padding:6px 2px;">過期<br>點數</th>
+            </tr>
+        </thead>
         <tbody>`;
+
     let totalExpiredSoon = 0;
-    if(userData.history && userData.history.length > 0) {
+
+    if (userData && userData.history && userData.history.length > 0) {
         html += userData.history.map(h => {
-            const expiredValue = (h.expired && h.expired !== 'undefined' && h.expired !== null) ? h.expired : '';
+            const expiredValue = h.expired != null && h.expired !== 'undefined' ? h.expired : '';
             const expiredNum = Number(h.expired) || 0;
             totalExpiredSoon += expiredNum;
-            return `<tr><td>${h.date}</td><td>${h.gain || ''}</td><td>${h.share || ''}</td><td style="color:#d00;">${h.spend || ''}</td><td style="color:#d00;">${expiredValue}</td></tr>`;
+            return `
+            <tr style="border-top:1px solid #eee;">
+                <td style="padding:8px 2px;">${h.date || ''}</td>
+                <td style="padding:8px 2px;">${h.gain || ''}</td>
+                <td style="padding:8px 2px;">${h.share || ''}</td>
+                <td style="padding:8px 2px; color:#d00;">${h.spend || ''}</td>
+                <td style="padding:8px 2px; color:#d00;">${expiredValue}</td>
+            </tr>`;
         }).join('');
     } else {
-        html += `<tr><td colspan="5" style="padding:20px; color:#999;">目前尚無紀錄</td></tr>`;
+        html += `<tr><td colspan="5" style="padding:25px; color:#999;">目前尚無紀錄</td></tr>`;
     }
+
     html += `</tbody>
     </table>
-    <div style="margin-top: 20px; padding: 15px; background: #fff5f5; border-radius: 12px; border: 1px dashed #ab545a; text-align: center;">
-        <div style="font-size: 14px; color: #666;">⏳ 即將過期點數 (近期)</div>
-        <div style="font-size: 24px; font-weight: 900; color: #d00; margin-top: 5px;">${totalExpiredSoon} <span style="font-size: 14px;">點</span></div>
-        <div style="font-size: 11px; color: #999; margin-top: 5px;">* 點數寶貴，記得趕快來店內折抵唷！ *</div>
+    <div style="margin-top:20px; padding:15px; background:#fff5f5; border-radius:12px; border:1px dashed #ab545a; text-align:center;">
+        <div style="font-size:14px; color:#666;">⏳ 即將過期點數 (近期)</div>
+        <div style="font-size:24px; font-weight:900; color:#d00; margin-top:5px;">${totalExpiredSoon} <span style="font-size:14px;">點</span></div>
+        <div style="font-size:11px; color:#999; margin-top:5px;">* 點數寶貴，記得趕快來店內折抵唷！ *</div>
     </div>`;
+
     openModal(html);
 }
 function openProfile() { let p = userData?.profile; if(!p) return; openModal(`<h3 style="color:var(--primary); text-align:center;">👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p>`); }
