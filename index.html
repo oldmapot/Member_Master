@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -262,58 +261,40 @@ async function initLiff() {
     }
 }
 
-// 修改後的 fetchData 函數
 async function fetchData(isReload = false) {
     try {
-        // 1. 確保拿到 userId 才發送請求
-        if (!userId) {
-            console.log("等待 userId 中...");
-            return;
-        }
-
-        const url = `${GAS_URL}?action=checkID&userId=${encodeURIComponent(userId)}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`;
+        const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`;
         let res = await fetch(url);
+        if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
         let responseText = await res.text();
-        userData = JSON.parse(responseText);
-
-        console.log("檢查會員狀態:", userData.isMember);
-
-        // 2. 嚴格判定 UI 顯示邏輯
-        const memberUI = document.getElementById('memberUI');
-        const regUI = document.getElementById('regUI');
-        const loadingUI = document.getElementById('loading');
-
+        try { userData = JSON.parse(responseText); } catch(e) { throw new Error("伺服器回應格式錯誤"); }
+        
+        document.getElementById('loading').style.display = 'none';
+        
         if (userData && userData.isMember === true) {
-            // 是會員：顯示會員介面，隱藏註冊介面
-            regUI.style.display = 'none';
-            memberUI.style.display = 'block';
-            
-            if (userData.profile) {
-                document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
-                document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
-                generateMemberCode();
-            }
+            document.getElementById('memberUI').style.display = 'block';
+            document.getElementById('regUI').style.display = 'none';
+            document.getElementById('pointsDisplay').innerText = userData.profile?.points || 0;
+            document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
+            generateMemberCode();
+            if (isReload) showToast('✅ 資料已更新');
         } else {
-            // 非會員：顯示註冊介面，隱藏會員介面
-            memberUI.style.display = 'none';
-            regUI.style.display = 'block';
-            
-            if (referrerParam && referrerParam !== 'undefined') {
+            document.getElementById('memberUI').style.display = 'none';
+            document.getElementById('regUI').style.display = 'block';
+            if (referrerParam && referrerParam !== 'undefined' && referrerParam !== '') {
                 document.getElementById('regGiftArea').style.display = 'block';
-                document.getElementById('giftTitle').innerText = currentFrom === 'so' ? "一點甜新客招待" : "老娘鍋新客招待";
+                let referrerName = (userData && userData.myReferrer && userData.myReferrer !== "無") ? userData.myReferrer : "神祕好友";
+                document.getElementById('giftTitle').innerText = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
+                isRegBarcodeMode = true;
                 generateRegCode();
             }
         }
-
-        // 3. 最後才關閉 Loading 畫面
-        loadingUI.style.display = 'none';
-
-    } catch (e) {
-        console.error("Fetch Error:", e);
+    } catch(e) { 
+        showToast('資料載入失敗，請稍後再試');
         document.getElementById('loading').style.display = 'none';
-        showToast('資料讀取失敗，請重新開啟');
     }
 }
+
 async function doRegister() {
     let name = document.getElementById('regName').value.trim();
     let phone = document.getElementById('regPhone').value.replace(/-/g, '');
@@ -349,19 +330,7 @@ async function doRegister() {
     }
 }
 
-function openEvents(brand) {
-    const title = brand === 'so' ? '一點甜好康' : '老娘精選';
-    const events = brand === 'so' 
-        ? (userData.soEvents || []) 
-        : (userData.ompEvents || []);
-
-    let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🔥 ${title}</h3>`;
-    html += events.length > 0 
-        ? events.map(e => `<div style="padding:12px 0; border-bottom:1px solid #f0f0f0;">✨ ${e}</div>`).join('')
-        : '<p style="text-align:center; color:#999;">目前暫無活動</p>';
-
-    openModal(html);
-}
+function openEvents(brand) { let events = brand === 'so' ? (userData.soEvents || []) : (userData.ompEvents || []); openModal(`<h3 style="color:var(--primary); text-align:center;">🔥 活動資訊</h3>` + (events.length ? events.map(e => `<div style="padding:10px 0;">✨ ${e}</div>`).join('') : '<p>目前暫無活動</p>')); }
 function openReferral() { let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3><div><b>推薦您的好友：</b> ${userData?.myReferrer || '無'}</div><div style="margin-top:15px;"><b>您推薦的好友：</b></div>` + (userData?.myReferrals?.length ? userData.myReferrals.map((r,i)=>`<div>${i+1}. ${r.name} (${r.date})</div>`).join('') : '<div>尚無好友加入</div>'); openModal(html); }
 function openHistory() { openModal(`<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3><p style="text-align:center;">請洽櫃台查詢詳細紀錄</p>`); }
 function openProfile() { let p = userData?.profile; if(!p) return; openModal(`<h3 style="color:var(--primary); text-align:center;">👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p>`); }
