@@ -95,13 +95,21 @@
         </div>
     </div>
     
-    <div class="points-card">
-        <div class="points-left">
-            <div style="font-size:14px; color:#666;">可用點數資產</div>
-            <div class="points-value" id="pointsDisplay">--</div>
-            <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
-        </div>
+   <div class="asset-card" style="background:#fff; border-radius:15px; padding:20px; margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; align-items: center; position: relative;">
+    
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; border-right: 1px solid #f0f0f0;">
+        <div style="font-size: 22px; font-weight: bold; color: #555; letter-spacing: 2px;">可用資產</div>
+        <div style="font-size: 22px; font-weight: bold; color: #555; letter-spacing: 8px; margin-top: 5px;">點數</div>
     </div>
+
+    <div style="flex: 1.2; text-align: center; display: flex; flex-direction: column; align-items: center;">
+        <div id="user-points" style="font-size: 64px; font-weight: bold; color: var(--primary); line-height: 1;">0</div>
+        
+        <button onclick="fetchData()" style="margin-top: 10px; background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 8px; padding: 4px 12px; color: #007bff; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+            🔄 重新整理
+        </button>
+    </div>
+</div>
 
     <div class="code-section">
         <div class="code-container">
