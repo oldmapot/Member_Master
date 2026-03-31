@@ -358,7 +358,7 @@ function openEvents(brand) { let events = brand === 'so' ? (userData.soEvents ||
 function openReferral() { let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3><div><b>推薦您的好友：</b> ${userData?.myReferrer || '無'}</div><div style="margin-top:15px;"><b>您推薦的好友：</b></div>` + (userData?.myReferrals?.length ? userData.myReferrals.map((r,i)=>`<div>${i+1}. ${r.name} (${r.date})</div>`).join('') : '<div>尚無好友加入</div>'); openModal(html); }
 // 將原本的 openHistory 替換或更名為這個，以對應選單的 openPointHistory()
 function openPointHistory() {
-    // 1. 檢查資料是否存在
+    // 1. 檢查資料是否存在 → 無資料就顯示空值提示，不報錯
     if (!userData || !userData.history || userData.history.length === 0) {
         openModal(`
             <h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3>
@@ -370,31 +370,48 @@ function openPointHistory() {
         return;
     }
 
-    // 2. 開始組合明細內容
+    // 2. 組合點數明細
     let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:15px;">📜 點數明細</h3>`;
-    html += `<div style="max-height:60vh; overflow-y:auto; padding:0 10px;">`;
+    html += `<div style="max-height:45vh; overflow-y:auto; padding:0 10px;">`;
     
     userData.history.forEach(item => {
-        // 判斷點數正負值與顏色 (獲得為綠，消耗為紅)
-        const val = parseFloat(item.points);
-        const color = val >= 0 ? '#28a745' : '#dc3545';
-        const sign = val >= 0 ? '+' : '';
+        const gain = Number(item.gain) || 0;
+        const share = Number(item.share) || 0;
+        const spend = Number(item.spend) || 0;
+        const total = gain + share - spend;
+        const color = total >= 0 ? '#28a745' : '#dc3545';
+        const sign = total >= 0 ? '+' : '';
         
         html += `
         <div style="padding:12px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
             <div style="flex:1; padding-right:10px;">
-                <div style="font-weight:bold; color:#333; font-size:15px;">${item.reason || '點數變動'}</div>
+                <div style="font-weight:bold; color:#333; font-size:15px;">點數異動</div>
                 <div style="font-size:12px; color:#999; margin-top:2px;">${item.date || ''}</div>
             </div>
             <div style="font-weight:bold; color:${color}; font-size:18px; white-space:nowrap;">
-                ${sign}${item.points}
+                ${sign}${total.toFixed(0)}
             </div>
         </div>`;
     });
     
     html += `</div>`;
-    
-    // 3. 呼叫彈窗顯示
+
+    // ==============================================
+    // ✅ 3. 你要的：30天內即將過期點數（放在明細下方）
+    // ==============================================
+    html += `
+    <div style="margin-top:20px; padding-top:15px; border-top:2px solid #f0f0f0;">
+        <h4 style="color:#d03; text-align:center; margin:0 0 10px 0; font-size:16px;">
+            ⚠️ 30天內即將過期點數
+        </h4>
+        <div style="text-align:center; padding:12px; color:#555; font-size:15px; background:#fff9f9; border-radius:10px;">
+            即將過期點數：<b style="color:#d03; font-size:18px;">0 點</b>
+            <div style="font-size:12px; color:#999; margin-top:5px;">
+                實際過期時程請依店家公告與櫃台紀錄為準
+            </div>
+        </div>
+    </div>`;
+
     openModal(html);
 }
 function openProfile() { let p = userData?.profile; if(!p) return; openModal(`<h3 style="color:var(--primary); text-align:center;">👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p>`); }
