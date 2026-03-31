@@ -176,15 +176,15 @@ function openShopInfo() {
     let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🏪 店面資訊</h3><div class="shop-info-container">`;
     
     userData.shopInfo.forEach(shop => {
-        html += `<div class="shop-info-item">`;
-        html += `<div style="font-size:20px; font-weight:bold; color:var(--primary); margin-bottom:12px;">🏠 ${shop.name}</div>`;
+        html += `<div class="shop-info-item" style="background:#fff; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #eee;">`;
+        html += `<div style="font-size:20px; font-weight:bold; color:var(--primary); margin-bottom:15px; border-left:4px solid var(--primary); padding-left:10px;">${shop.name}</div>`;
         
         if (shop.details && shop.details.length) {
             shop.details.forEach(detail => {
                 let labelText = "";
-                let val = detail.value || "無";
+                let val = detail.value ? detail.value.trim() : "";
                 
-                // 比對試算表中的欄位名稱
+                // 精準比對試算表 A 欄標籤
                 if (detail.label.includes("地址")) labelText = "📍 地址";
                 else if (detail.label.includes("電話")) labelText = "📞 電話";
                 else if (detail.label.includes("I G") || detail.label.toUpperCase() === "IG") labelText = "📷 Instagram";
@@ -194,8 +194,16 @@ function openShopInfo() {
                 else labelText = detail.label;
                 
                 html += `<div style="margin-bottom:12px;">`;
-                html += `<div style="font-weight:bold; color:var(--primary); margin-bottom:4px;">${labelText}</div>`;
-                html += `<div style="color:#555; line-height:1.4; word-break: break-all;">${val}</div>`;
+                html += `<div style="font-weight:bold; color:#888; font-size:13px; margin-bottom:4px;">${labelText}</div>`;
+                
+                // 判斷是否為社群連結並顯示為按鈕
+                if ((labelText.includes("Instagram") || labelText.includes("Facebook")) && val.startsWith('http')) {
+                    html += `<a href="${val}" target="_blank" style="display:inline-block; background:#f0f7ff; color:#007bff; text-decoration:none; font-weight:bold; padding:8px 16px; border-radius:8px; border:1px solid #cce5ff; font-size:14px; margin-top:2px;">🔗 點我前往參觀</a>`;
+                } else {
+                    // 一般文字顯示，並處理換行（如老娘鍋的營業時間）
+                    html += `<div style="color:var(--text); line-height:1.5; font-size:15px; white-space: pre-wrap;">${val || '暫無資訊'}</div>`;
+                }
+                
                 html += `</div>`;
             });
         }
