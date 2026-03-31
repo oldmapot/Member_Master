@@ -289,8 +289,21 @@ async function doRegister() {
         let result = await res.json();
         if (result.success) {
             document.getElementById('loading').style.display = 'none';
-            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2><p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。<br>日子不一定天天完美，但一定要有一點甜 💕</p><div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
-            setTimeout(() => { closeModal(); location.reload(); }, 3000);
+            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
+            <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
+            <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
+            <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
+            
+            setTimeout(() => { 
+                closeModal(); 
+                
+                // 修正：不要只用 reload，要帶參數跳轉回首頁
+                const urlParams = new URLSearchParams(window.location.search);
+                const shopKey = urlParams.get('k') || ""; // 抓取原本的分店金鑰 (omp 或 swo)
+                
+                // 強制導向回 index 並帶上必要的參數
+                window.location.href = `index.html?userId=${userId}&k=${shopKey}`;
+            }, 3000);
         } else {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
