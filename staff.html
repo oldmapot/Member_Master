@@ -159,15 +159,15 @@ async function processMemberId(scannedId) {
     try {
         if (window.openBrandLoading) window.openBrandLoading("老娘正在查詢會員資料...");
 
-        // --- 🛡️ 邏輯修正：相容相機與掃描槍的加密字串 ---
-        let workingId = String(scannedId).trim();
+        // --- 🛡️ 邏輯修正：直接接收原始字串，不進行拆解 ---
+        let workingId = String(scannedId).trim(); 
         
         // 1. 如果有掃描槍的 ## 前綴，先切掉
         if (workingId.indexOf("##") === 0) {
             workingId = workingId.substring(2);
         }
 
-        // 2. 直接存入全域變數 (不要在前端 split，整串加密英文丟給 GAS 處理)
+        // 2. 直接存入全域變數，整串加密英文丟給 GAS 處理
         customerId = workingId; 
         const rawID = String(customerId);
 
@@ -216,7 +216,6 @@ async function processMemberId(scannedId) {
         alert("查詢失敗，請重掃");
     }
 }
-
 function toggleMode() {
     const isTicket = document.getElementById('ticketMode').checked;
     document.getElementById('normal-fields').style.display = isTicket ? 'none' : 'block';
