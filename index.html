@@ -265,44 +265,55 @@ async function initLiff() {
 // 修改後的 fetchData 函數
 async function fetchData(isReload = false) {
     try {
-        // 加入時間戳避免緩存
+        // 1. 確保拿到 userId 才發送請求
+        if (!userId) {
+            console.log("等待 userId 中...");
+            return;
+        }
+
         const url = `${GAS_URL}?action=checkID&userId=${encodeURIComponent(userId)}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`;
         let res = await fetch(url);
         let responseText = await res.text();
         userData = JSON.parse(responseText);
 
-        console.log("GAS 回傳結果:", userData); 
+        console.log("檢查會員狀態:", userData.isMember);
 
-        // 核心修正：確保 isMember 判斷與 UI 切換同步
+        // 2. 嚴格判定 UI 顯示邏輯
+        const memberUI = document.getElementById('memberUI');
+        const regUI = document.getElementById('regUI');
+        const loadingUI = document.getElementById('loading');
+
         if (userData && userData.isMember === true) {
-            document.getElementById('memberUI').style.display = 'block';
-            document.getElementById('regUI').style.display = 'none';
+            // 是會員：顯示會員介面，隱藏註冊介面
+            regUI.style.display = 'none';
+            memberUI.style.display = 'block';
             
-            // 更新會員資料
             if (userData.profile) {
                 document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
                 document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
-                generateMemberCode(); // 只有是會員才產生碼
+                generateMemberCode();
             }
         } else {
-            document.getElementById('memberUI').style.display = 'none';
-            document.getElementById('regUI').style.display = 'block';
-            // 如果有推薦人，才顯示領取招待的區域
-            if (referrerParam) {
+            // 非會員：顯示註冊介面，隱藏會員介面
+            memberUI.style.display = 'none';
+            regUI.style.display = 'block';
+            
+            if (referrerParam && referrerParam !== 'undefined') {
                 document.getElementById('regGiftArea').style.display = 'block';
                 document.getElementById('giftTitle').innerText = currentFrom === 'so' ? "一點甜新客招待" : "老娘鍋新客招待";
                 generateRegCode();
             }
         }
 
-        document.getElementById('loading').style.display = 'none';
+        // 3. 最後才關閉 Loading 畫面
+        loadingUI.style.display = 'none';
+
     } catch (e) {
         console.error("Fetch Error:", e);
         document.getElementById('loading').style.display = 'none';
-        showToast('載入失敗，請重新整理');
+        showToast('資料讀取失敗，請重新開啟');
     }
 }
-
 async function doRegister() {
     let name = document.getElementById('regName').value.trim();
     let phone = document.getElementById('regPhone').value.replace(/-/g, '');
