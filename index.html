@@ -31,10 +31,14 @@
         .side-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: none; }
         .side-menu-overlay.show { display: block; }
 
-        .points-card { background: var(--card-bg); margin: -25px 20px 20px; padding: 28px 24px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .points-left { flex: 1; text-align: center; min-width: 120px; }
-        .points-value { font-size: 48px; font-weight: 900; color: var(--primary); line-height: 1.1; }
-        .refresh-btn { margin-top: 12px; padding: 8px 16px; border-radius: 12px; background: #f7f7f7; border: 1px solid #eee; font-size: 14px; cursor: pointer; }
+        /* 點數卡片重新排版 */
+        .points-card { background: var(--card-bg); margin: 20px 20px 20px; padding: 24px 20px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+        .points-left { text-align: left; }
+        .points-left .label-small { font-size: 14px; color: #666; margin-bottom: 4px; }
+        .points-left .label-large { font-size: 18px; font-weight: bold; color: var(--primary); }
+        .points-right { text-align: right; }
+        .points-value { font-size: 42px; font-weight: 900; color: var(--primary); line-height: 1; margin-bottom: 8px; }
+        .refresh-btn { padding: 8px 20px; border-radius: 30px; background: #f0f0f0; border: none; font-size: 14px; color: var(--light-text); cursor: pointer; }
 
         .code-section { background: var(--card-bg); margin:0 20px 20px; padding:28px 20px; border-radius:20px; text-align:center; }
         .code-container { display: flex; justify-content: center; align-items: center; min-height: 280px; margin-bottom: 12px; }
@@ -63,6 +67,10 @@
         .share-modal-content { text-align: center; padding: 10px; }
         .share-title { font-size: 22px; color: var(--primary); font-weight: 900; margin-bottom: 15px; }
         .toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: rgba(0,0,0,0.75); color: #fff; padding: 12px 20px; border-radius: 12px; z-index: 9999; display: none; }
+        
+        .reg-gift-section { margin-bottom: 20px; }
+        .reg-gift-code-container { display: flex; justify-content: center; align-items: center; margin-bottom: 8px; }
+        .reg-gift-switch-btn { background: var(--brand-btn); color: #fff; border: none; padding: 6px 16px; border-radius: 30px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -80,7 +88,7 @@
     </div>
     <div id="sideMenuOverlay" class="side-menu-overlay" onclick="closeSideMenu()"></div>
     <div id="sideMenu" class="side-menu">
-        <div class="side-menu-header"><h3>選單</h3></div>
+        <div class="side-menu-header"><h3>心意盒</h3></div>
         <div class="side-menu-items">
             <button class="side-menu-item" onclick="openProfile(); closeSideMenu()">👤 個人資料</button>
             <button class="side-menu-item" onclick="openReferral(); closeSideMenu()">👥 推薦名單</button>
@@ -90,13 +98,19 @@
             <button class="side-menu-item" onclick="openLegalDetail(); closeSideMenu()">⚖️ 法務免責及管控聲明</button>
         </div>
     </div>
+    
+    <!-- 點數卡片新版面 -->
     <div class="points-card">
         <div class="points-left">
-            <div style="font-size:14px; color:#666;">可用點數資產</div>
+            <div class="label-small">可用點數</div>
+            <div class="label-large">資產</div>
+        </div>
+        <div class="points-right">
             <div class="points-value" id="pointsDisplay">--</div>
-            <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理資料</button>
+            <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
         </div>
     </div>
+
     <div class="code-section">
         <div class="code-container">
             <canvas id="barcodeCanvas"></canvas>
@@ -115,13 +129,17 @@
 <div id="regUI">
     <div id="regGiftArea" class="reg-qr-tip" style="display:none;">
         <div id="giftTitle" style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size: 18px;"></div>
-        <canvas id="regBarcodeCanvas" style="max-width: 100%; height: 80px;"></canvas>
+        <div class="reg-gift-code-container">
+            <canvas id="regBarcodeCanvas" style="max-width: 100%; height: 80px;"></canvas>
+            <img id="regGiftQR" style="display: none; width: 160px; height: 160px;">
+        </div>
+        <button class="reg-gift-switch-btn" id="regSwitchCodeBtn" onclick="toggleRegCodeDisplay()">🔁 切換至 QR Code</button>
         <div style="font-size:12px; color:#8b0000; margin-top: 8px;">請先出示此碼給店員掃描領取招待<br>領完後記得完成下方註冊喔！</div>
     </div>
     <h2 style="text-align:center; color:var(--primary); margin-bottom: 20px;">新會員註冊</h2>
     <input id="regName" class="reg-input" placeholder="姓名 *">
     <input id="regPhone" class="reg-input" placeholder="手機 09XX-XXX-XXX *" maxlength="12">
-    <div style="margin-top: 20px;">
+    <div style="margin-top: 10px;">
         <label style="display:block; font-weight:bold; color:var(--primary); margin-bottom: 5px; margin-left:5px;">🎂 生日 *</label>
         <input type="date" id="regBirthday" class="reg-input" style="margin-top:0;">
         <div style="font-size:12px; color:#ab545a; margin-top: 8px; line-height: 1.4; background: #fff1f1; padding: 10px; border-radius: 10px; border: 1px solid #ffebeb;">⚠️ 註記：享生日專屬優惠，註冊後不可修改。</div>
@@ -150,7 +168,7 @@
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
-let userId = '', userData = null, currentFrom = 'omp', referrerParam = '', userToken = '', isBarcodeMode = true, pendingCheckboxId = null;
+let userId = '', userData = null, currentFrom = 'omp', referrerParam = '', userToken = '', isBarcodeMode = true, isRegBarcodeMode = true, pendingCheckboxId = null;
 
 function showToast(msg) { let t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
 function openSideMenu() { document.getElementById('sideMenu').classList.add('open'); document.getElementById('sideMenuOverlay').classList.add('show'); }
@@ -162,7 +180,10 @@ function openRightsDetail() { pendingCheckboxId = null; openRightsModal(); }
 function openLegalDetail() { pendingCheckboxId = null; openLegalModal(); }
 
 function openShopInfo() {
-    if (!userData?.shopInfo?.length) { openModal(`<p style="text-align:center;">店面資訊載入中...</p>`); return; }
+    if (!userData?.shopInfo?.length) { 
+        openModal(`<p style="text-align:center;">店面資訊載入中...</p>`); 
+        return; 
+    }
     let html = `<h3 style="color:var(--primary); text-align:center;">🏪 店面資訊</h3>`;
     userData.shopInfo.forEach(s => {
         let content = "";
@@ -181,7 +202,7 @@ function generateMemberCode() {
     if (isBarcodeMode) {
         c.style.display = 'block'; q.style.display = 'none';
         btn.innerHTML = '🔁 切換至 QR Code';
-        JsBarcode(c, userToken, { format: "CODE128", width: 2.2, height: 160, displayValue: true, fontSize: 14 });
+        JsBarcode(c, userToken, { format: "CODE128", width: 2.2, height: 160, displayValue: false, fontSize: 14 });
     } else {
         c.style.display = 'none'; q.style.display = 'block';
         btn.innerHTML = '🔁 切換至條碼';
@@ -189,6 +210,22 @@ function generateMemberCode() {
     }
 }
 function toggleCodeDisplay() { isBarcodeMode = !isBarcodeMode; generateMemberCode(); }
+
+function generateRegCode() {
+    if (!referrerParam || referrerParam === 'undefined' || referrerParam === '') return;
+    let c = document.getElementById('regBarcodeCanvas'), q = document.getElementById('regGiftQR'), btn = document.getElementById('regSwitchCodeBtn');
+    let codeData = `INV_${referrerParam}`;
+    if (isRegBarcodeMode) {
+        c.style.display = 'block'; q.style.display = 'none';
+        btn.innerHTML = '🔁 切換至 QR Code';
+        JsBarcode(c, codeData, { format: "CODE128", width: 2, height: 70, displayValue: false, fontSize: 12 });
+    } else {
+        c.style.display = 'none'; q.style.display = 'block';
+        btn.innerHTML = '🔁 切換至條碼';
+        q.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(codeData)}`;
+    }
+}
+function toggleRegCodeDisplay() { isRegBarcodeMode = !isRegBarcodeMode; generateRegCode(); }
 
 async function initLiff() {
     let params = new URLSearchParams(window.location.search);
@@ -209,7 +246,6 @@ async function initLiff() {
         userToken = btoa(`${userId}_${Date.now()}`).replace(/=/g, '');
         await fetchData();
     } catch(e) { 
-        console.error("LIFF初始化錯誤:", e);
         showToast('初始化失敗，請重新開啟頁面'); 
         document.getElementById('loading').style.display = 'none';
     }
@@ -219,24 +255,12 @@ async function fetchData(isReload = false) {
     try {
         const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`;
         let res = await fetch(url);
-        
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-        }
-        
+        if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
         let responseText = await res.text();
-        console.log("原始回應:", responseText);
-        
-        try {
-            userData = JSON.parse(responseText);
-        } catch(e) {
-            console.error("JSON解析失敗:", e);
-            throw new Error("伺服器回應格式錯誤");
-        }
+        try { userData = JSON.parse(responseText); } catch(e) { throw new Error("伺服器回應格式錯誤"); }
         
         document.getElementById('loading').style.display = 'none';
         
-        // 判斷是否為會員
         if (userData && userData.isMember === true) {
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
@@ -251,13 +275,11 @@ async function fetchData(isReload = false) {
                 document.getElementById('regGiftArea').style.display = 'block';
                 let referrerName = (userData && userData.myReferrer && userData.myReferrer !== "無") ? userData.myReferrer : "神祕好友";
                 document.getElementById('giftTitle').innerText = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
-                try {
-                    JsBarcode("#regBarcodeCanvas", `INV_${referrerParam}`, { height: 60, displayValue: false });
-                } catch(e) { console.error("條碼生成失敗", e); }
+                isRegBarcodeMode = true;
+                generateRegCode();
             }
         }
     } catch(e) { 
-        console.error("Fetch 錯誤:", e);
         showToast('資料載入失敗，請稍後再試');
         document.getElementById('loading').style.display = 'none';
     }
@@ -292,7 +314,6 @@ async function doRegister() {
             showToast(result.message || '註冊失敗');
         }
     } catch(e) { 
-        console.error("註冊錯誤:", e);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('regUI').style.display = 'block';
         showToast('網路連線錯誤，請稍後再試'); 
@@ -301,10 +322,7 @@ async function doRegister() {
 
 function openEvents(brand) { let events = brand === 'so' ? (userData.soEvents || []) : (userData.ompEvents || []); openModal(`<h3 style="color:var(--primary); text-align:center;">🔥 活動資訊</h3>` + (events.length ? events.map(e => `<div style="padding:10px 0;">✨ ${e}</div>`).join('') : '<p>目前暫無活動</p>')); }
 function openReferral() { let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3><div><b>推薦您的好友：</b> ${userData?.myReferrer || '無'}</div><div style="margin-top:15px;"><b>您推薦的好友：</b></div>` + (userData?.myReferrals?.length ? userData.myReferrals.map((r,i)=>`<div>${i+1}. ${r.name} (${r.date})</div>`).join('') : '<div>尚無好友加入</div>'); openModal(html); }
-function openHistory() { 
-    let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3><p style="text-align:center;">請洽櫃台查詢詳細紀錄</p>`; 
-    openModal(html); 
-}
+function openHistory() { openModal(`<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3><p style="text-align:center;">請洽櫃台查詢詳細紀錄</p>`); }
 function openProfile() { let p = userData?.profile; if(!p) return; openModal(`<h3 style="color:var(--primary); text-align:center;">👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p>`); }
 
 function autoCopyShare() { 
