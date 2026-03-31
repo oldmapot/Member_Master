@@ -294,11 +294,16 @@ async function doRegister() {
             // 關閉任何可能開啟的 modal
             closeModal();
             
-            // 顯示成功訊息（不使用 modal，避免干擾跳轉）
-            showToast('🎉 註冊成功！歡迎加入！');
+            // 顯示原本的歡迎 Modal
+            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
+            <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
+            <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
+            <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
             
-            // 強制刷新會員資料
+            // 3秒後關閉 modal 並載入會員畫面
             setTimeout(async () => {
+                closeModal();
+                
                 try {
                     // 重新獲取會員資料
                     const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&t=${Date.now()}`;
@@ -314,7 +319,6 @@ async function doRegister() {
                         document.getElementById('pointsDisplay').innerText = userData.profile?.points || 0;
                         document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
                         generateMemberCode();
-                        showToast('✅ 已成功登入會員系統');
                     } else {
                         // 如果還是沒有會員資料，強制重整頁面
                         window.location.reload();
@@ -324,7 +328,7 @@ async function doRegister() {
                     // 最後的手段：重整頁面
                     window.location.reload();
                 }
-            }, 1500);
+            }, 3000);
             
         } else {
             document.getElementById('loading').style.display = 'none';
