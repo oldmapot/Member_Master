@@ -179,44 +179,43 @@ function openShopInfo() {
         html += `<div class="shop-info-item" style="background:#fff; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">`;
         html += `<div style="font-size:20px; font-weight:bold; color:var(--primary); margin-bottom:15px; border-left:4px solid var(--primary); padding-left:10px;">${shop.name}</div>`;
         
-        // 用來存放按鈕的陣列，最後再並排顯示
         let socialButtons = [];
         
         if (shop.details && shop.details.length) {
             shop.details.forEach(detail => {
                 let val = detail.value ? detail.value.trim() : "";
-                let originalLabel = detail.label || "";
-                let displayLabel = originalLabel;
+                let label = detail.label || "";
                 
-                // 1. 先處理標籤顯示圖示
-                if (originalLabel.includes("地址")) displayLabel = "📍 地址";
-                else if (originalLabel.includes("電話")) displayLabel = "📞 電話";
-                else if (originalLabel.includes("G") || originalLabel.includes("Instagram")) displayLabel = "📷 IG";
-                else if (originalLabel.includes("B") || originalLabel.includes("Facebook")) displayLabel = "👍 FB";
-                else if (originalLabel.includes("營業")) displayLabel = "⏰ 營業時間";
-                else if (originalLabel.includes("公休")) displayLabel = "📅 公休日";
-
-                // 2. 判斷是否為網址按鈕（IG/FB）
+                // 判斷是否為社群網址
                 if (val.toLowerCase().startsWith('http')) {
-                    socialButtons.push({ label: displayLabel, url: val });
+                    // 根據標籤決定 Logo (這裡使用常用的 SVG 圖標)
+                    let logo = "";
+                    if (label.toUpperCase().includes("IG") || label.includes("Instagram")) {
+                        logo = `<img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" style="width:16px; vertical-align:middle; margin-right:5px;">`;
+                    } else if (label.toUpperCase().includes("FB") || label.includes("Facebook")) {
+                        logo = `<img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" style="width:16px; vertical-align:middle; margin-right:5px;">`;
+                    }
+                    socialButtons.push({ label: label, url: val, logo: logo });
                 } else {
-                    // 一般資訊：加入左側縮進
+                    // 一般資訊排版：使用試算表原始標籤名稱 + 縮進數值
                     html += `<div style="margin-bottom:12px;">`;
-                    html += `<div style="font-weight:bold; color:#888; font-size:12px; margin-bottom:4px;">${displayLabel}</div>`;
+                    html += `<div style="font-weight:bold; color:#888; font-size:12px; margin-bottom:4px;">${label}</div>`;
                     html += `<div style="color:var(--text); line-height:1.5; font-size:15px; white-space: pre-wrap; padding-left: 20px;">${val || '暫無資訊'}</div>`;
                     html += `</div>`;
                 }
             });
         }
         
-        // 3. 處理 IG & FB 並排按鈕
+        // IG & FB 並排按鈕區
         if (socialButtons.length > 0) {
             html += `<div style="display: flex; gap: 10px; margin-top: 15px;">`;
             socialButtons.forEach(btn => {
                 html += `
                 <div style="flex: 1;">
-                    <div style="font-weight:bold; color:#888; font-size:12px; margin-bottom:4px; text-align:center;">${btn.label}</div>
-                    <a href="${btn.url}" target="_blank" style="display:block; background:var(--primary); color:#fff; text-decoration:none; font-weight:bold; padding:10px 5px; border-radius:8px; font-size:13px; text-align:center; box-shadow: 0 3px 6px rgba(0,0,0,0.1);">點我參觀</a>
+                    <div style="font-weight:bold; color:#888; font-size:12px; margin-bottom:6px; text-align:center;">${btn.label}</div>
+                    <a href="${btn.url}" target="_blank" style="display:flex; align-items:center; justify-content:center; background:#f8f9fa; color:#333; text-decoration:none; font-weight:bold; padding:10px 5px; border-radius:8px; font-size:13px; border:1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        ${btn.logo}點我前往
+                    </a>
                 </div>`;
             });
             html += `</div>`;
