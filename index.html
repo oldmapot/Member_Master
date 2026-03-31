@@ -288,7 +288,7 @@ async function doRegister() {
     if (!agreeRights) return showToast('請先閱讀並同意【會員權益】');
     if (!agreeLegal) return showToast('請先閱讀並同意【法務免責及管控聲明】');
     
-    // 顯示 loading
+    // 先關閉所有畫面，只留 loading
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('regUI').style.display = 'none';
     document.getElementById('memberUI').style.display = 'none';
@@ -298,52 +298,22 @@ async function doRegister() {
         let result = await res.json();
         
         if (result.success) {
-            // 關閉任何可能開啟的 modal
-            closeModal();
-            
-            // 顯示原本的歡迎 Modal
             openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
             <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
             <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
             <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
             
-            // 3秒後關閉 modal 並載入會員畫面
-            setTimeout(async () => {
+            // 3秒後重整頁面
+            setTimeout(() => { 
                 closeModal();
-                
-                try {
-                    // 重新獲取會員資料
-                    const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&t=${Date.now()}`;
-                    let response = await fetch(url);
-                    let data = await response.json();
-                    
-                    if (data && data.isMember === true) {
-                        // 更新畫面
-                        userData = data;
-                        document.getElementById('loading').style.display = 'none';
-                        document.getElementById('memberUI').style.display = 'block';
-                        document.getElementById('regUI').style.display = 'none';
-                        document.getElementById('pointsDisplay').innerText = userData.profile?.points || 0;
-                        document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
-                        generateMemberCode();
-                    } else {
-                        // 如果還是沒有會員資料，強制重整頁面
-                        window.location.reload();
-                    }
-                } catch (error) {
-                    console.error('重新載入會員資料失敗:', error);
-                    // 最後的手段：重整頁面
-                    window.location.reload();
-                }
+                window.location.reload();
             }, 3000);
-            
         } else {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
-            showToast(result.message || '註冊失敗，請稍後再試');
+            showToast(result.message || '註冊失敗');
         }
     } catch(e) { 
-        console.error('註冊錯誤:', e);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('regUI').style.display = 'block';
         showToast('網路連線錯誤，請稍後再試'); 
