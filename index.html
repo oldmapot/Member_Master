@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>老娘的一點心意</title>
     <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode/3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         :root { --primary: #8b0000; --bg: #fdf5e6; --card-bg: #fff; --text: #333; --light-text: #666; --action-btn: #beb1a8; --brand-btn: #ab545a; --success: #06C755; }
         .theme-so { --primary: #b57c82; --bg: #FFF9E6; }
@@ -39,7 +39,7 @@
         .code-section { background: var(--card-bg); margin:0 20px 20px; padding:28px 20px; border-radius:20px; text-align:center; }
         .code-container { display: flex; justify-content: center; align-items: center; min-height: 280px; margin-bottom: 12px; }
         #barcodeCanvas { background: #fff; padding: 15px 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 100%; height: 160px !important; }
-        #qrcode { width: 220px; height: 220px; display: none; }
+        #qrcode { width: 220px; height: 220px; }
         .code-switch-btn { background: var(--brand-btn); color: #fff; border: none; padding: 10px 24px; border-radius: 30px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 8px; }
         .code-hint { font-size: 12px; color: #999; margin-top: 12px; }
 
@@ -100,7 +100,7 @@
     <div class="code-section">
         <div class="code-container">
             <canvas id="barcodeCanvas"></canvas>
-            <img id="qrcode">
+            <img id="qrcode" style="display: none;">
         </div>
         <button class="code-switch-btn" id="switchCodeBtn" onclick="toggleCodeDisplay()">🔁 切換至 QR Code</button>
         <div class="code-hint">結帳時請出示此碼，結帳後離開櫃台恕不補集點</div>
@@ -208,20 +208,27 @@ async function initLiff() {
         userId = (await liff.getProfile()).userId;
         userToken = btoa(`${userId}_${Date.now()}`).replace(/=/g, '');
         await fetchData();
-    } catch(e) { console.error(e); showToast('初始化失敗'); }
+    } catch(e) { 
+        console.error("LIFF初始化錯誤:", e);
+        showToast('初始化失敗，請重新開啟頁面'); 
+        document.getElementById('loading').style.display = 'none';
+    }
 }
 
 async function fetchData(isReload = false) {
     try {
-        let res = await fetch(`${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`, {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-cache'
-        });
-        if (!res.ok) throw new Error('Network response was not ok');
+        const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`;
+        console.log("Fetching:", url);
+        let res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
         userData = await res.json();
+        console.log("userData:", userData);
+        
         document.getElementById('loading').style.display = 'none';
-        if (userData.isMember) {
+        
+        if (userData && userData.isMember === true) {
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
             document.getElementById('pointsDisplay').innerText = userData.profile?.points || 0;
@@ -231,16 +238,18 @@ async function fetchData(isReload = false) {
         } else {
             document.getElementById('memberUI').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
-            if (referrerParam && referrerParam !== 'undefined') {
+            if (referrerParam && referrerParam !== 'undefined' && referrerParam !== '') {
                 document.getElementById('regGiftArea').style.display = 'block';
-                let referrerName = (userData.myReferrer && userData.myReferrer !== "無") ? userData.myReferrer : "神祕好友";
+                let referrerName = (userData && userData.myReferrer && userData.myReferrer !== "無") ? userData.myReferrer : "神祕好友";
                 document.getElementById('giftTitle').innerText = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
-                JsBarcode("#regBarcodeCanvas", `INV_${referrerParam}`, { height: 60, displayValue: false });
+                try {
+                    JsBarcode("#regBarcodeCanvas", `INV_${referrerParam}`, { height: 60, displayValue: false });
+                } catch(e) { console.error("條碼生成失敗", e); }
             }
         }
-    } catch(e) {
-        console.error("fetch error:", e);
-        showToast('網路連線錯誤');
+    } catch(e) { 
+        console.error("Fetch 錯誤:", e);
+        showToast('資料載入失敗，請稍後再試');
         document.getElementById('loading').style.display = 'none';
     }
 }
@@ -249,35 +258,44 @@ async function doRegister() {
     let name = document.getElementById('regName').value.trim();
     let phone = document.getElementById('regPhone').value.replace(/-/g, '');
     let birthday = document.getElementById('regBirthday').value;
-    if (!name || phone.length !== 10 || !birthday || !document.getElementById('agreeRights').checked || !document.getElementById('agreeLegal').checked) {
-        return showToast('請填妥資料並同意條款');
-    }
+    let agreeRights = document.getElementById('agreeRights').checked;
+    let agreeLegal = document.getElementById('agreeLegal').checked;
+    
+    if (!name) return showToast('請填寫姓名');
+    if (!phone || phone.length !== 10 || !phone.startsWith('09')) return showToast('請填寫正確的手機號碼 (09開頭，共10碼)');
+    if (!birthday) return showToast('請選擇生日');
+    if (!agreeRights) return showToast('請先閱讀並同意【會員權益】');
+    if (!agreeLegal) return showToast('請先閱讀並同意【法務免責及管控聲明】');
+    
     document.getElementById('loading').style.display = 'flex';
+    document.getElementById('regUI').style.display = 'none';
+    
     try {
-        let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`,{
-            method:'GET',
-            mode:'cors'
-        });
-        if (!res.ok) throw new Error('Network response was not ok');
+        let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
         let result = await res.json();
         if (result.success) {
             document.getElementById('loading').style.display = 'none';
-            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2><p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。<br>日子不一定天天完美，但一定要有一點甜 💕</p></div>`);
-            setTimeout(() => { location.reload(); }, 3000);
+            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2><p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。<br>日子不一定天天完美，但一定要有一點甜 💕</p><div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
+            setTimeout(() => { closeModal(); location.reload(); }, 3000);
         } else {
             document.getElementById('loading').style.display = 'none';
-            showToast(result.message);
+            document.getElementById('regUI').style.display = 'block';
+            showToast(result.message || '註冊失敗');
         }
-    } catch(e) {
-        console.error(e);
+    } catch(e) { 
+        console.error("註冊錯誤:", e);
         document.getElementById('loading').style.display = 'none';
-        showToast('註冊失敗');
+        document.getElementById('regUI').style.display = 'block';
+        showToast('網路連線錯誤，請稍後再試'); 
     }
 }
 
 function openEvents(brand) { let events = brand === 'so' ? (userData.soEvents || []) : (userData.ompEvents || []); openModal(`<h3 style="color:var(--primary); text-align:center;">🔥 活動資訊</h3>` + (events.length ? events.map(e => `<div style="padding:10px 0;">✨ ${e}</div>`).join('') : '<p>目前暫無活動</p>')); }
 function openReferral() { let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3><div><b>推薦您的好友：</b> ${userData.myReferrer || '無'}</div><div style="margin-top:15px;"><b>您推薦的好友：</b></div>` + (userData.myReferrals?.length ? userData.myReferrals.map((r,i)=>`<div>${i+1}. ${r.name} (${r.date})</div>`).join('') : '<div>尚無好友加入</div>'); openModal(html); }
-function openHistory() { let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3><p style="text-align:center;">請洽櫃台查詢詳細紀錄</p>`; openModal(html); }
+function openHistory() { 
+    let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3><p style="text-align:center;">請洽櫃台查詢詳細紀錄</p>`; 
+    openModal(html); 
+}
 function openProfile() { let p = userData.profile; openModal(`<h3 style="color:var(--primary); text-align:center;">👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p>`); }
 
 function autoCopyShare() { 
