@@ -296,13 +296,8 @@ async function doRegister() {
             
             setTimeout(() => { 
                 closeModal(); 
-                
-                // 修正：不要只用 reload，要帶參數跳轉回首頁
-                const urlParams = new URLSearchParams(window.location.search);
-                const shopKey = urlParams.get('k') || ""; // 抓取原本的分店金鑰 (omp 或 swo)
-                
-                // 強制導向回 index 並帶上必要的參數
-                window.location.href = `index.html?userId=${userId}&k=${shopKey}`;
+                // 核心修正：直接重新初始化頁面，跳轉會員頁
+                fetchData();
             }, 3000);
         } else {
             document.getElementById('loading').style.display = 'none';
