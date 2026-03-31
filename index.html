@@ -312,20 +312,30 @@ async function fetchData(isReload = false) {
 
 async function doRegister() {
     let name = document.getElementById('regName').value.trim();
-    let phone = document.getElementById('regPhone').value.replace(/-/g, '');
+    let phone = document.getElementById('regPhone').value.trim(); // 直接拿帶格式的電話，不處理
     let birthday = document.getElementById('regBirthday').value;
     let agreeRights = document.getElementById('agreeRights').checked;
     let agreeLegal = document.getElementById('agreeLegal').checked;
+
+    // 驗證格式 09xx-xxx-xxx
+    const phonePattern = /^09\d{2}-\d{3}-\d{3}$/;
+    if (!phonePattern.test(phone)) {
+        return showToast('請輸入正確格式：09xx-xxx-xxx');
+    }
+
     if (!name) return showToast('請填寫姓名');
-    if (!phone || phone.length !== 10 || !phone.startsWith('09')) return showToast('請填寫正確的手機號碼 (09開頭，共10碼)');
     if (!birthday) return showToast('請選擇生日');
     if (!agreeRights) return showToast('請先閱讀並同意【會員權益】');
     if (!agreeLegal) return showToast('請先閱讀並同意【法務免責及管控聲明】');
+    
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('regUI').style.display = 'none';
+    
     try {
-        let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
+        // 提交時直接傳送 09xx-xxx-xxx 格式，不做任何取代
+        let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
         let result = await res.json();
+        
         if (result.success) {
             document.getElementById('loading').style.display = 'none';
             openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2><p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。<br>日子不一定天天完美，但一定要有一點甜 💕</p><div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
