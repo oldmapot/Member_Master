@@ -295,8 +295,7 @@ async function doRegister() {
             
             setTimeout(() => { 
                 closeModal();
-                // 🔥 最強制：整頁重新載入 → 100%進會員頁
-                window.location.href = window.location.href.split('?')[0] + "?from=" + currentFrom;
+                window.location.reload();
             }, 3000);
         } else {
             document.getElementById('loading').style.display = 'none';
