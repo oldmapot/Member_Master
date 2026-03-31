@@ -375,12 +375,15 @@ function openPointHistory() {
 
     if (userData && userData.history && userData.history.length > 0) {
         html += userData.history.map(h => {
+            // 只取 月/日，把後面的時間切掉
+            const shortDate = (h.date || "").split(" ")[0];
+            
             const expiredValue = h.expired != null && h.expired !== 'undefined' ? h.expired : '';
             const expiredNum = Number(h.expired) || 0;
             totalExpiredSoon += expiredNum;
             return `
             <tr style="border-top:1px solid #eee;">
-                <td style="padding:8px 2px;">${h.date || ''}</td>
+                <td style="padding:8px 2px;">${shortDate}</td>
                 <td style="padding:8px 2px;">${h.gain || ''}</td>
                 <td style="padding:8px 2px;">${h.share || ''}</td>
                 <td style="padding:8px 2px; color:#d00;">${h.spend || ''}</td>
