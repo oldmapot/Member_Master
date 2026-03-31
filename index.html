@@ -69,8 +69,7 @@
         .reg-gift-switch-btn { background: var(--brand-btn); color: #fff; border: none; padding: 6px 16px; border-radius: 30px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         
         .shop-info-container { max-height: 60vh; overflow-y: auto; }
-        .shop-info-item { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        .shop-info-name { font-size: 18px; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+        .shop-info-item { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -183,18 +182,22 @@ function openShopInfo() {
     let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🏪 店面資訊</h3><div class="shop-info-container">`;
     userData.shopInfo.forEach(shop => {
         html += `<div class="shop-info-item">`;
-        html += `<div class="shop-info-name">🏠 ${shop.name}</div>`;
+        html += `<div style="font-size:20px; font-weight:bold; color:var(--primary); margin-bottom:12px;">🏠 ${shop.name}</div>`;
         if (shop.details && shop.details.length) {
             shop.details.forEach(detail => {
                 let labelText = "";
-                if (detail.label.includes("地址")) labelText = "📍 地址：";
-                else if (detail.label.includes("電話")) labelText = "📞 電話：";
-                else if (detail.label.includes("IG")) labelText = "📷 IG：";
-                else if (detail.label.includes("FB")) labelText = "👍 FB：";
-                else if (detail.label.includes("營業時間")) labelText = "⏰ 營業時間：";
-                else if (detail.label.includes("公休日")) labelText = "📅 公休日：";
-                else labelText = detail.label + "：";
-                html += `<div style="margin-bottom:5px; color:#555;"><span style="font-weight:bold; color:#333; display:inline-block; width:75px;">${labelText}</span>${detail.value}</div>`;
+                if (detail.label.includes("地址")) labelText = "📍 地址";
+                else if (detail.label.includes("電話")) labelText = "📞 電話";
+                else if (detail.label.includes("IG")) labelText = "📷 IG";
+                else if (detail.label.includes("FB")) labelText = "👍 FB";
+                else if (detail.label.includes("營業時間")) labelText = "⏰ 營業時間";
+                else if (detail.label.includes("公休日")) labelText = "📅 公休日";
+                else labelText = detail.label;
+                
+                html += `<div style="margin-bottom:12px;">`;
+                html += `<div style="font-weight:bold; color:var(--primary); margin-bottom:4px;">${labelText}</div>`;
+                html += `<div style="color:#555; line-height:1.4;">${detail.value}</div>`;
+                html += `</div>`;
             });
         }
         html += `</div>`;
