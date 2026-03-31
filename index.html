@@ -179,33 +179,49 @@ function openShopInfo() {
         html += `<div class="shop-info-item" style="background:#fff; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">`;
         html += `<div style="font-size:20px; font-weight:bold; color:var(--primary); margin-bottom:15px; border-left:4px solid var(--primary); padding-left:10px;">${shop.name}</div>`;
         
+        // 用來存放按鈕的陣列，最後再並排顯示
+        let socialButtons = [];
+        
         if (shop.details && shop.details.length) {
             shop.details.forEach(detail => {
                 let val = detail.value ? detail.value.trim() : "";
                 let originalLabel = detail.label || "";
                 let displayLabel = originalLabel;
                 
-                // 1. 先處理標籤顯示圖示 (不影響按鈕判斷)
+                // 1. 先處理標籤顯示圖示
                 if (originalLabel.includes("地址")) displayLabel = "📍 地址";
                 else if (originalLabel.includes("電話")) displayLabel = "📞 電話";
-                else if (originalLabel.includes("G") || originalLabel.includes("Instagram")) displayLabel = "📷 Instagram";
-                else if (originalLabel.includes("B") || originalLabel.includes("Facebook")) displayLabel = "👍 Facebook";
+                else if (originalLabel.includes("G") || originalLabel.includes("Instagram")) displayLabel = "📷 IG";
+                else if (originalLabel.includes("B") || originalLabel.includes("Facebook")) displayLabel = "👍 FB";
                 else if (originalLabel.includes("營業")) displayLabel = "⏰ 營業時間";
                 else if (originalLabel.includes("公休")) displayLabel = "📅 公休日";
-                
-                html += `<div style="margin-bottom:12px;">`;
-                html += `<div style="font-weight:bold; color:#888; font-size:12px; margin-bottom:4px;">${displayLabel}</div>`;
-                
-                // 2. 核心邏輯：只要內容是網址，不管標籤是什麼，通通變按鈕
+
+                // 2. 判斷是否為網址按鈕（IG/FB）
                 if (val.toLowerCase().startsWith('http')) {
-                    html += `<a href="${val}" target="_blank" style="display:block; background:var(--primary); color:#fff; text-decoration:none; font-weight:bold; padding:12px; border-radius:8px; font-size:14px; margin-top:5px; text-align:center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🔗 點我前往參觀</a>`;
+                    socialButtons.push({ label: displayLabel, url: val });
                 } else {
-                    html += `<div style="color:var(--text); line-height:1.5; font-size:15px; white-space: pre-wrap;">${val || '暫無資訊'}</div>`;
+                    // 一般資訊：加入左側縮進
+                    html += `<div style="margin-bottom:12px;">`;
+                    html += `<div style="font-weight:bold; color:#888; font-size:12px; margin-bottom:4px;">${displayLabel}</div>`;
+                    html += `<div style="color:var(--text); line-height:1.5; font-size:15px; white-space: pre-wrap; padding-left: 20px;">${val || '暫無資訊'}</div>`;
+                    html += `</div>`;
                 }
-                
-                html += `</div>`;
             });
         }
+        
+        // 3. 處理 IG & FB 並排按鈕
+        if (socialButtons.length > 0) {
+            html += `<div style="display: flex; gap: 10px; margin-top: 15px;">`;
+            socialButtons.forEach(btn => {
+                html += `
+                <div style="flex: 1;">
+                    <div style="font-weight:bold; color:#888; font-size:12px; margin-bottom:4px; text-align:center;">${btn.label}</div>
+                    <a href="${btn.url}" target="_blank" style="display:block; background:var(--primary); color:#fff; text-decoration:none; font-weight:bold; padding:10px 5px; border-radius:8px; font-size:13px; text-align:center; box-shadow: 0 3px 6px rgba(0,0,0,0.1);">點我參觀</a>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
         html += `</div>`;
     });
     
