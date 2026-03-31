@@ -26,19 +26,17 @@
         .side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--card-bg); box-shadow: 2px 0 12px rgba(0,0,0,0.15); z-index: 10000; transition: left 0.3s ease; overflow-y: auto; }
         .side-menu.open { left: 0; }
         .side-menu-header { background: var(--primary); color: #fff; padding: 30px 20px; text-align: center; }
+        .side-menu-header h3 { margin: 0; font-size: 24px; font-weight: bold; }
         .side-menu-items { padding: 20px 0; }
-        .side-menu-item { display: block; width: 100%; padding: 18px 24px; background: none; border: none; text-align: left; font-size: 16px; color: var(--text); cursor: pointer; border-bottom: 1px solid #f0f0f0; font-weight: bold; }
+        .side-menu-item { display: block; width: 100%; padding: 18px 24px; background: none; border: none; text-align: left; font-size: 18px; color: var(--text); cursor: pointer; border-bottom: 1px solid #f0f0f0; font-weight: bold; }
         .side-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: none; }
         .side-menu-overlay.show { display: block; }
 
-        /* 點數卡片重新排版 */
-        .points-card { background: var(--card-bg); margin: 20px 20px 20px; padding: 24px 20px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
-        .points-left { text-align: left; }
-        .points-left .label-small { font-size: 14px; color: #666; margin-bottom: 4px; }
-        .points-left .label-large { font-size: 18px; font-weight: bold; color: var(--primary); }
-        .points-right { text-align: right; }
-        .points-value { font-size: 42px; font-weight: 900; color: var(--primary); line-height: 1; margin-bottom: 8px; }
-        .refresh-btn { padding: 8px 20px; border-radius: 30px; background: #f0f0f0; border: none; font-size: 14px; color: var(--light-text); cursor: pointer; }
+        /* 點數卡片 - 恢復原本樣式 */
+        .points-card { background: var(--card-bg); margin: 20px 20px 20px; padding: 28px 24px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .points-left { flex: 1; text-align: center; min-width: 120px; }
+        .points-value { font-size: 48px; font-weight: 900; color: var(--primary); line-height: 1.1; }
+        .refresh-btn { margin-top: 12px; padding: 8px 16px; border-radius: 12px; background: #f7f7f7; border: 1px solid #eee; font-size: 14px; cursor: pointer; }
 
         .code-section { background: var(--card-bg); margin:0 20px 20px; padding:28px 20px; border-radius:20px; text-align:center; }
         .code-container { display: flex; justify-content: center; align-items: center; min-height: 280px; margin-bottom: 12px; }
@@ -71,6 +69,12 @@
         .reg-gift-section { margin-bottom: 20px; }
         .reg-gift-code-container { display: flex; justify-content: center; align-items: center; margin-bottom: 8px; }
         .reg-gift-switch-btn { background: var(--brand-btn); color: #fff; border: none; padding: 6px 16px; border-radius: 30px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        
+        .shop-info-container { max-height: 60vh; overflow-y: auto; }
+        .shop-info-item { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .shop-info-name { font-size: 18px; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+        .shop-info-detail { margin-bottom: 5px; color: #555; }
+        .shop-info-label { font-weight: bold; color: #333; display: inline-block; width: 70px; }
     </style>
 </head>
 <body>
@@ -99,13 +103,10 @@
         </div>
     </div>
     
-    <!-- 點數卡片新版面 -->
+    <!-- 點數卡片 - 恢復原本樣式 -->
     <div class="points-card">
         <div class="points-left">
-            <div class="label-small">可用點數</div>
-            <div class="label-large">資產</div>
-        </div>
-        <div class="points-right">
+            <div style="font-size:14px; color:#666;">可用點數資產</div>
             <div class="points-value" id="pointsDisplay">--</div>
             <button class="refresh-btn" onclick="fetchData(true)">🔄 重新整理</button>
         </div>
@@ -184,15 +185,19 @@ function openShopInfo() {
         openModal(`<p style="text-align:center;">店面資訊載入中...</p>`); 
         return; 
     }
-    let html = `<h3 style="color:var(--primary); text-align:center;">🏪 店面資訊</h3>`;
-    userData.shopInfo.forEach(s => {
-        let content = "";
-        if (s.name) content += `<b>🏠 ${s.name}</b><br>`;
-        if (s.address) content += `📍 ${s.address}<br>`;
-        if (s.phone) content += `📞 ${s.phone}<br>`;
-        if (s.hours) content += `⏰ ${s.hours}<br>`;
-        if (content) html += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #eee;">${content}</div>`;
+    let html = `<h3 style="color:var(--primary); text-align:center; margin-bottom:20px;">🏪 店面資訊</h3><div class="shop-info-container">`;
+    userData.shopInfo.forEach(shop => {
+        html += `<div class="shop-info-item">`;
+        html += `<div class="shop-info-name">🏠 ${shop.name}</div>`;
+        if (shop.address) html += `<div class="shop-info-detail"><span class="shop-info-label">📍 地址：</span>${shop.address}</div>`;
+        if (shop.phone) html += `<div class="shop-info-detail"><span class="shop-info-label">📞 電話：</span>${shop.phone}</div>`;
+        if (shop.ig) html += `<div class="shop-info-detail"><span class="shop-info-label">📷 IG：</span>${shop.ig}</div>`;
+        if (shop.fb) html += `<div class="shop-info-detail"><span class="shop-info-label">👍 FB：</span>${shop.fb}</div>`;
+        if (shop.hours) html += `<div class="shop-info-detail"><span class="shop-info-label">⏰ 營業時間：</span>${shop.hours}</div>`;
+        if (shop.holiday) html += `<div class="shop-info-detail"><span class="shop-info-label">📅 公休日：</span>${shop.holiday}</div>`;
+        html += `</div>`;
     });
+    html += `</div>`;
     openModal(html);
 }
 
@@ -257,7 +262,7 @@ async function fetchData(isReload = false) {
         let res = await fetch(url);
         if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
         let responseText = await res.text();
-        try { userData = JSON.parse(responseText); } catch(e) { throw new Error("伺服器回應格式錯誤"); }
+        try { userData = await JSON.parse(responseText); } catch(e) { throw new Error("伺服器回應格式錯誤"); }
         
         document.getElementById('loading').style.display = 'none';
         
