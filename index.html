@@ -7,73 +7,78 @@
     <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
-    :root { --primary: #8b0000; --bg: #fdf5e6; --card-bg: #fff; --text: #333; --light-text: #666; --action-btn: #beb1a8; --brand-btn: #ab545a; --success: #06C755; }
-    .theme-so { --primary: #b57c82; --bg: #FFF9E6; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-bottom: 10vw; color: var(--text); }
-    
-    #loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 5vw; }
-    .loader-icon { width: 15vw; height: 8vw; background: #333; border-radius: 0 0 6vw 6vw; position: relative; border: 0.8vw solid #222; }
-    .loader-icon.omp::after { content: '♨'; position: absolute; top: -8vw; left: 3vw; font-size: 7vw; color: var(--primary); animation: steam 1.2s infinite; }
-    .loader-icon.so { width: 14vw; height: 10vw; background: #ffcc00; border-radius: 4vw 4vw 2vw 2vw; border-top: 2.5vw solid #663300; animation: wobble 0.7s infinite; }
-    @keyframes steam { 0%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(-5vw)} }
-    @keyframes wobble { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
+        :root { --primary: #8b0000; --bg: #fdf5e6; --card-bg: #fff; --text: #333; --light-text: #666; --action-btn: #beb1a8; --brand-btn: #ab545a; --success: #06C755; }
+        .theme-so { --primary: #b57c82; --bg: #FFF9E6; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-bottom: 40px; color: var(--text); overflow-x: hidden; }
+        
+        #loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 20px; }
+        .loader-icon { width: 60px; height: 35px; background: #333; border-radius: 0 0 25px 25px; position: relative; border: 3px solid #222; }
+        .loader-icon.omp::after { content: '♨'; position: absolute; top: -30px; left: 12px; font-size: 28px; color: var(--primary); animation: steam 1.2s infinite; }
+        .loader-icon.so { width: 55px; height: 40px; background: #ffcc00; border-radius: 15px 15px 8px 8px; border-top: 10px solid #663300; animation: wobble 0.7s infinite; }
+        @keyframes steam { 0%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(-20px)} }
+        @keyframes wobble { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
 
-    .header { background: var(--primary); color: #fff; padding: 12vw 5vw; text-align: center; border-radius: 0 0 8vw 8vw; position: relative; }
-    .menu-icon { position: absolute; left: 5vw; top: 50%; transform: translateY(-50%); font-size: 7vw; cursor: pointer; background: none; border: none; color: #fff; width: 10vw; height: 10vw; display: flex; align-items: center; justify-content: center; z-index: 10; }
-    .welcome-quote { font-size: 4.5vw; opacity: 0.95; margin-bottom: 2vw; min-height: 6vw; }
-    .main-title { font-size: 8vw; font-weight: 900; }
+        /* 自適應 Header */
+        .header { background: var(--primary); color: #fff; padding: 12vw 20px; text-align: center; border-radius: 0 0 30px 30px; position: relative; }
+        .menu-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-size: 28px; cursor: pointer; background: none; border: none; color: #fff; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 10; }
+        .welcome-quote { font-size: 4.5vw; opacity: 0.95; margin-bottom: 8px; min-height: 24px; }
+        .main-title { font-size: 8.5vw; font-weight: 900; }
 
-    .side-menu { position: fixed; top: 0; left: -70vw; width: 70vw; height: 100%; background: var(--card-bg); box-shadow: 0.5vw 0 3vw rgba(0,0,0,0.15); z-index: 10000; transition: left 0.3s ease; overflow-y: auto; }
-    .side-menu.open { left: 0; }
-    .side-menu-header { background: var(--primary); color: #fff; padding: 8vw 5vw; text-align: center; }
-    .side-menu-header h3 { margin: 0; font-size: 6vw; font-weight: bold; }
-    .side-menu-items { padding: 5vw 0; }
-    .side-menu-item { display: block; width: 100%; padding: 4.5vw 6vw; background: none; border: none; text-align: left; font-size: 4.5vw; color: var(--text); cursor: pointer; border-bottom: 0.3vw solid #f0f0f0; font-weight: bold; }
-    .side-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: none; }
-    .side-menu-overlay.show { display: block; }
+        .side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--card-bg); box-shadow: 2px 0 12px rgba(0,0,0,0.15); z-index: 10000; transition: left 0.3s ease; overflow-y: auto; }
+        .side-menu.open { left: 0; }
+        .side-menu-header { background: var(--primary); color: #fff; padding: 30px 20px; text-align: center; }
+        .side-menu-header h3 { margin: 0; font-size: 24px; font-weight: bold; }
+        .side-menu-items { padding: 20px 0; }
+        .side-menu-item { display: block; width: 100%; padding: 18px 24px; background: none; border: none; text-align: left; font-size: 18px; color: var(--text); cursor: pointer; border-bottom: 1px solid #f0f0f0; font-weight: bold; }
+        .side-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: none; }
+        .side-menu-overlay.show { display: block; }
 
-    .points-card { background: var(--card-bg); margin: 5vw 5vw 5vw; padding: 7vw 6vw; border-radius: 6vw; box-shadow: 0 2vw 5vw rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-    .points-left { flex: 1; text-align: center; min-width: 30vw; }
-    .points-value { font-size: 12vw; font-weight: 900; color: var(--primary); line-height: 1.1; }
-    .refresh-btn { margin-top: 3vw; padding: 2vw 4vw; border-radius: 3vw; background: #f7f7f7; border: 0.3vw solid #eee; font-size: 3.5vw; cursor: pointer; }
+        /* 自適應資產卡片 */
+        .asset-card { 
+            background: #fff; border-radius: 15px; padding: 4vw 5vw; margin: 20px 20px 10px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; align-items: center; 
+            justify-content: center; gap: 5vw; flex-wrap: nowrap;
+        }
 
-    .code-section { background: var(--card-bg); margin:0 5vw 5vw; padding:7vw 5vw; border-radius:5vw; text-align:center; }
-    .code-container { display: flex; justify-content: center; align-items: center; min-height: 70vw; margin-bottom: 3vw; }
-    #qrcode { width: 55vw; height: 55vw; }
-    .code-hint { font-size: 3vw; color: #999; margin-top: 3vw; }
+        .code-section { background: var(--card-bg); margin:0 20px 20px; padding:28px 20px; border-radius:20px; text-align:center; }
+        .code-container { display: flex; justify-content: center; align-items: center; min-height: 200px; margin-bottom: 12px; }
+        #qrcode { width: 55vw; height: 55vw; max-width: 220px; max-height: 220px; }
+        .code-hint { font-size: 12px; color: #999; margin-top: 12px; }
 
-    .brand-actions { display: flex; gap: 2.5vw; margin: 0 5vw 5vw; }
-    .event-brand-btn { flex: 1; padding: 4vw; border-radius: 4vw; background: var(--brand-btn); color: #fff; font-weight: bold; font-size: 4vw; border: none; cursor: pointer; }
-    .share-btn { display: block; width: calc(100% - 10vw); margin: 0 auto; padding: 4.5vw; border-radius: 5vw; background: var(--success); color: #fff; font-weight: bold; font-size: 4.5vw; border: none; cursor: pointer; }
+        .brand-actions { display: flex; gap: 10px; margin: 0 20px 20px; }
+        .event-brand-btn { flex: 1; padding: 15px; border-radius: 16px; background: var(--brand-btn); color: #fff; font-weight: bold; font-size: 4.2vw; border: none; cursor: pointer; }
+        .share-btn { display: block; width: calc(100% - 40px); margin: 0 auto; padding: 18px; border-radius: 20px; background: var(--success); color: #fff; font-weight: bold; font-size: 4.8vw; border: none; cursor: pointer; }
 
-    #regUI { display: none; padding: 10vw 6vw; }
-    .reg-input { width: 100%; padding: 4vw; border-radius: 3.5vw; border: 0.3vw solid #ddd; font-size: 4vw; box-sizing: border-box; margin-top: 2.5vw; height: 13.5vw; }
-    .reg-btn { width: 100%; padding: 4.5vw; background: var(--primary); color: #fff; border: none; border-radius: 4vw; font-weight: bold; margin-top: 7.5vw; cursor: pointer; }
-    
-    .terms-section { background: #fef9f0; border-radius: 4vw; padding: 4vw; margin-top: 5vw; border: 0.3vw solid #ffe0b5; }
-    .terms-item { display: flex; align-items: flex-start; gap: 3vw; padding: 3vw 0; border-bottom: 0.3vw solid #ffe0b5; }
-    .terms-item:last-child { border-bottom: none; }
-    .terms-item label .red-text { color: #d00; font-weight: bold; cursor: pointer; }
+        /* 媒體查詢：針對特小螢幕優化，避免大字體爆開 */
+        @media screen and (min-width: 450px) {
+            .welcome-quote { font-size: 18px; }
+            .main-title { font-size: 32px; }
+            .event-brand-btn { font-size: 16px; }
+            .share-btn { font-size: 18px; }
+        }
 
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 30000; }
-    .modal-card { background: var(--card-bg); width: 92%; max-width: 105vw; border-radius: 6vw; overflow: hidden; }
-    .modal-body { padding: 6vw; max-height: 65vh; overflow-y: auto; }
-    .welcome-card { background: linear-gradient(135deg, #8b0000, #ff69b4); color: #fff; padding: 7.5vw 6vw; border-radius: 6vw; text-align: center; }
-    .share-modal-content { text-align: center; padding: 2.5vw; }
-    .share-title { font-size: 5.5vw; color: var(--primary); font-weight: 900; margin-bottom: 3.5vw; }
-    .toast { position: fixed; left: 50%; bottom: 15vw; transform: translateX(-50%); background: rgba(0,0,0,0.75); color: #fff; padding: 3vw 5vw; border-radius: 3vw; z-index: 9999; display: none; }
-    
-    .reg-gift-code-container { display: flex; justify-content: center; align-items: center; margin-bottom: 2vw; }
-    
-    .shop-info-container { max-height: 60vh; overflow-y: auto; }
-    .shop-info-item { margin-bottom: 6.5vw; padding-bottom: 4vw; border-bottom: 0.3vw solid #eee; }
+        #regUI { display: none; padding: 40px 24px; }
+        .reg-input { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; margin-top: 10px; height: 55px; }
+        .reg-btn { width: 100%; padding: 18px; background: var(--primary); color: #fff; border: none; border-radius: 16px; font-weight: bold; margin-top: 30px; cursor: pointer; }
+        
+        .terms-section { background: #fef9f0; border-radius: 16px; padding: 16px; margin-top: 20px; border: 1px solid #ffe0b5; }
+        .terms-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ffe0b5; }
+        .terms-item:last-child { border-bottom: none; }
+        .terms-item label .red-text { color: #d00; font-weight: bold; cursor: pointer; }
 
-    /* 額外微調確保小手機不爆版 */
-    @media (max-width: 360px) {
-        body { font-size: 3.5vw; }
-        .modal-card { width: 95%; }
-    }
-</style>
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 30000; }
+        .modal-card { background: var(--card-bg); width: 92%; max-width: 420px; border-radius: 24px; overflow: hidden; }
+        .modal-body { padding: 24px; max-height: 65vh; overflow-y: auto; }
+        .welcome-card { background: linear-gradient(135deg, #8b0000, #ff69b4); color: #fff; padding: 30px 24px; border-radius: 24px; text-align: center; }
+        .share-modal-content { text-align: center; padding: 10px; }
+        .share-title { font-size: 22px; color: var(--primary); font-weight: 900; margin-bottom: 15px; }
+        .toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: rgba(0,0,0,0.75); color: #fff; padding: 12px 20px; border-radius: 12px; z-index: 9999; display: none; }
+        
+        .reg-gift-code-container { display: flex; justify-content: center; align-items: center; margin-bottom: 8px; }
+        
+        .shop-info-container { max-height: 60vh; overflow-y: auto; }
+        .shop-info-item { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+    </style>
 </head>
 <body>
 
