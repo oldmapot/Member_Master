@@ -155,24 +155,23 @@ async function handleScan() {
 }
 
 // 核心功能：處理與查詢會員資料 (由 LIFF、原相機、掃碼槍共用)
-// 核心功能：處理與查詢會員資料 (由 LIFF、原相機、掃碼槍共用)
 async function processMemberId(scannedId) {
     try {
         if (window.openBrandLoading) window.openBrandLoading("老娘正在查詢會員資料...");
 
-        // --- 🛡️ 這裡開始：只修正邏輯，完全不改動下面任何文字 ---
-        let workingId = String(scannedId).trim(); // 確保它是字串並去除前後空白
+        // --- 🛡️ 邏輯修正：相容相機與掃描槍的加密字串 ---
+        let workingId = String(scannedId).trim();
         
-        // 處理掃描槍傳入帶有 ## 的字串
+        // 1. 如果有掃描槍的 ## 前綴，先切掉
         if (workingId.indexOf("##") === 0) {
             workingId = workingId.substring(2);
         }
 
-        // 這裡直接將處理後的 ID（包含掃描槍掃出的那串英文）傳給 GAS
+        // 2. 直接存入全域變數 (不要在前端 split，整串加密英文丟給 GAS 處理)
         customerId = workingId; 
         const rawID = String(customerId);
 
-        // --- ⚠️ 以下所有文字內容，完全維持你提供的原始版本 ---
+        // --- ⚠️ 以下文字 100% 維持你原本的內容，一字不差 ---
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
             if (window.closeBrandLoading) window.closeBrandLoading();
             customerId = "";
@@ -188,6 +187,8 @@ async function processMemberId(scannedId) {
         }
 
         const staffBranchCode = (staff.branch.indexOf("老娘") > -1) ? "omp" : "swo";
+        
+        // 3. 發送給 GAS (GAS 會負責解密那串 VWNm... 開頭的英文)
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}&staffBranchCode=${staffBranchCode}`);
         const data = await res.json();
         
