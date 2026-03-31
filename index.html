@@ -9,7 +9,7 @@
     <style>
         :root { --primary: #8b0000; --bg: #fdf5e6; --card-bg: #fff; --text: #333; --light-text: #666; --action-btn: #beb1a8; --brand-btn: #ab545a; --success: #06C755; }
         .theme-so { --primary: #b57c82; --bg: #FFF9E6; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-bottom: 40px; color: var(--text); }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-bottom: 40px; color: var(--text); overflow-x: hidden; }
         
         #loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 20px; }
         .loader-icon { width: 60px; height: 35px; background: #333; border-radius: 0 0 25px 25px; position: relative; border: 3px solid #222; }
@@ -18,10 +18,11 @@
         @keyframes steam { 0%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(-20px)} }
         @keyframes wobble { 0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)} }
 
-        .header { background: var(--primary); color: #fff; padding: 45px 20px; text-align: center; border-radius: 0 0 30px 30px; position: relative; }
+        /* 自適應 Header */
+        .header { background: var(--primary); color: #fff; padding: 12vw 20px; text-align: center; border-radius: 0 0 30px 30px; position: relative; }
         .menu-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-size: 28px; cursor: pointer; background: none; border: none; color: #fff; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 10; }
-        .welcome-quote { font-size: 18px; opacity: 0.95; margin-bottom: 8px; min-height: 24px; }
-        .main-title { font-size: 32px; font-weight: 900; }
+        .welcome-quote { font-size: 4.5vw; opacity: 0.95; margin-bottom: 8px; min-height: 24px; }
+        .main-title { font-size: 8.5vw; font-weight: 900; }
 
         .side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--card-bg); box-shadow: 2px 0 12px rgba(0,0,0,0.15); z-index: 10000; transition: left 0.3s ease; overflow-y: auto; }
         .side-menu.open { left: 0; }
@@ -32,19 +33,29 @@
         .side-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: none; }
         .side-menu-overlay.show { display: block; }
 
-        .points-card { background: var(--card-bg); margin: 20px 20px 20px; padding: 28px 24px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .points-left { flex: 1; text-align: center; min-width: 120px; }
-        .points-value { font-size: 48px; font-weight: 900; color: var(--primary); line-height: 1.1; }
-        .refresh-btn { margin-top: 12px; padding: 8px 16px; border-radius: 12px; background: #f7f7f7; border: 1px solid #eee; font-size: 14px; cursor: pointer; }
+        /* 自適應資產卡片 */
+        .asset-card { 
+            background: #fff; border-radius: 15px; padding: 4vw 5vw; margin: 20px 20px 10px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; align-items: center; 
+            justify-content: center; gap: 5vw; flex-wrap: nowrap;
+        }
 
         .code-section { background: var(--card-bg); margin:0 20px 20px; padding:28px 20px; border-radius:20px; text-align:center; }
-        .code-container { display: flex; justify-content: center; align-items: center; min-height: 280px; margin-bottom: 12px; }
-        #qrcode { width: 220px; height: 220px; }
+        .code-container { display: flex; justify-content: center; align-items: center; min-height: 200px; margin-bottom: 12px; }
+        #qrcode { width: 55vw; height: 55vw; max-width: 220px; max-height: 220px; }
         .code-hint { font-size: 12px; color: #999; margin-top: 12px; }
 
         .brand-actions { display: flex; gap: 10px; margin: 0 20px 20px; }
-        .event-brand-btn { flex: 1; padding: 15px; border-radius: 16px; background: var(--brand-btn); color: #fff; font-weight: bold; font-size: 16px; border: none; cursor: pointer; }
-        .share-btn { display: block; width: calc(100% - 40px); margin: 0 auto; padding: 18px; border-radius: 20px; background: var(--success); color: #fff; font-weight: bold; font-size: 18px; border: none; cursor: pointer; }
+        .event-brand-btn { flex: 1; padding: 15px; border-radius: 16px; background: var(--brand-btn); color: #fff; font-weight: bold; font-size: 4.2vw; border: none; cursor: pointer; }
+        .share-btn { display: block; width: calc(100% - 40px); margin: 0 auto; padding: 18px; border-radius: 20px; background: var(--success); color: #fff; font-weight: bold; font-size: 4.8vw; border: none; cursor: pointer; }
+
+        /* 媒體查詢：針對特小螢幕優化，避免大字體爆開 */
+        @media screen and (min-width: 450px) {
+            .welcome-quote { font-size: 18px; }
+            .main-title { font-size: 32px; }
+            .event-brand-btn { font-size: 16px; }
+            .share-btn { font-size: 18px; }
+        }
 
         #regUI { display: none; padding: 40px 24px; }
         .reg-input { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; margin-top: 10px; height: 55px; }
@@ -96,15 +107,14 @@
         </div>
     </div>
     
-    <div class="asset-card" style="background:#fff; border-radius:15px; padding:15px 20px; margin: 20px 20px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; gap: 20px;">
-        
-        <div style="display: flex; flex-direction: column; align-items: center; border-right: 1px solid #eee; padding-right: 20px;">
-            <div style="font-size: 16px; font-weight: bold; color: #666; letter-spacing: 1px;">可用資產</div>
-            <div style="font-size: 16px; font-weight: bold; color: #666; letter-spacing: 6px; margin-top: 2px;">點數</div>
+    <div class="asset-card">
+        <div style="display: flex; flex-direction: column; align-items: center; border-right: 1px solid #eee; padding-right: 5vw; flex: 1;">
+            <div style="font-size: 4vw; max-font-size: 16px; font-weight: bold; color: #666; letter-spacing: 1px;">可用資產</div>
+            <div style="font-size: 4vw; max-font-size: 16px; font-weight: bold; color: #666; letter-spacing: 6px; margin-top: 2px;">點數</div>
         </div>
 
-        <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
-            <div id="pointsDisplay" style="font-size: 32px; font-weight: bold; color: var(--primary); line-height: 1.2;">--</div>
+        <div style="text-align: center; display: flex; flex-direction: column; align-items: center; flex: 1.2;">
+            <div id="pointsDisplay" style="font-size: 10vw; max-font-size: 38px; font-weight: bold; color: var(--primary); line-height: 1.2;">--</div>
             
             <button onclick="fetchData(true)" style="margin-top: 8px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 2px 10px; color: #888; font-size: 12px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
                 🔄 重新整理
@@ -126,6 +136,7 @@
     
     <button class="share-btn" onclick="autoCopyShare()">🚀 分享推薦碼，享好友消費回饋</button>
 </div>
+
 <div id="regUI">
     <div id="regGiftArea" class="reg-qr-tip" style="display:none;">
         <div id="giftTitle" style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size: 18px;"></div>
@@ -196,9 +207,7 @@ function openShopInfo() {
                 let val = detail.value ? detail.value.trim() : "";
                 let label = detail.label || "";
                 
-                // 判斷是否為社群網址
                 if (val.toLowerCase().startsWith('http')) {
-                    // 根據標籤決定 Logo (這裡使用常用的 SVG 圖標)
                     let logo = "";
                     if (label.toUpperCase().includes("IG") || label.includes("Instagram")) {
                         logo = `<img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" style="width:16px; vertical-align:middle; margin-right:5px;">`;
@@ -207,7 +216,6 @@ function openShopInfo() {
                     }
                     socialButtons.push({ label: label, url: val, logo: logo });
                 } else {
-                    // 一般資訊排版：使用試算表原始標籤名稱 + 縮進數值
                     html += `<div style="margin-bottom:12px;">`;
                     html += `<div style="font-weight:bold; color:#888; font-size:12px; margin-bottom:4px;">${label}</div>`;
                     html += `<div style="color:var(--text); line-height:1.5; font-size:15px; white-space: pre-wrap; padding-left: 20px;">${val || '暫無資訊'}</div>`;
@@ -216,7 +224,6 @@ function openShopInfo() {
             });
         }
         
-        // IG & FB 並排按鈕區
         if (socialButtons.length > 0) {
             html += `<div style="display: flex; gap: 10px; margin-top: 15px;">`;
             socialButtons.forEach(btn => {
@@ -230,10 +237,8 @@ function openShopInfo() {
             });
             html += `</div>`;
         }
-
         html += `</div>`;
     });
-    
     html += `</div>`;
     openModal(html);
 }
@@ -281,26 +286,15 @@ async function fetchData(isReload = false) {
         let res = await fetch(url);
         if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
         let responseText = await res.text();
-        try { 
-            userData = JSON.parse(responseText); 
-        } catch(e) { 
-            throw new Error("伺服器回應格式錯誤"); 
-        }
-        
+        try { userData = JSON.parse(responseText); } catch(e) { throw new Error("伺服器回應格式錯誤"); }
         document.getElementById('loading').style.display = 'none';
-        
         if (userData && userData.isMember === true) {
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
-            
-            // --- 修正重點：確保點數正確顯示 ---
-            // 如果後台傳回的是 userData.points 或是 userData.profile.points，都自動適應
             const displayPoints = userData.points !== undefined ? userData.points : (userData.profile?.points || 0);
             document.getElementById('pointsDisplay').innerText = displayPoints;
-            
             document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
             generateMemberCode();
-            
             if (isReload) showToast('✅ 資料已更新');
         } else {
             document.getElementById('memberUI').style.display = 'none';
@@ -325,16 +319,13 @@ async function doRegister() {
     let birthday = document.getElementById('regBirthday').value;
     let agreeRights = document.getElementById('agreeRights').checked;
     let agreeLegal = document.getElementById('agreeLegal').checked;
-    
     if (!name) return showToast('請填寫姓名');
     if (!phone || phone.length !== 10 || !phone.startsWith('09')) return showToast('請填寫正確的手機號碼 (09開頭，共10碼)');
     if (!birthday) return showToast('請選擇生日');
     if (!agreeRights) return showToast('請先閱讀並同意【會員權益】');
     if (!agreeLegal) return showToast('請先閱讀並同意【法務免責及管控聲明】');
-    
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('regUI').style.display = 'none';
-    
     try {
         let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
         let result = await res.json();
@@ -356,7 +347,6 @@ async function doRegister() {
 
 function openEvents(brand) { let events = brand === 'so' ? (userData.soEvents || []) : (userData.ompEvents || []); openModal(`<h3 style="color:var(--primary); text-align:center;">🔥 活動資訊</h3>` + (events.length ? events.map(e => `<div style="padding:10px 0;">✨ ${e}</div>`).join('') : '<p>目前暫無活動</p>')); }
 function openReferral() { let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3><div><b>推薦您的好友：</b> ${userData?.myReferrer || '無'}</div><div style="margin-top:15px;"><b>您推薦的好友：</b></div>` + (userData?.myReferrals?.length ? userData.myReferrals.map((r,i)=>`<div>${i+1}. ${r.name} (${r.date})</div>`).join('') : '<div>尚無好友加入</div>'); openModal(html); }
-// 將原本的 openHistory 替換或更名為這個，以對應選單的 openPointHistory()
 function openPointHistory() {
     let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3>
     <table class="history-table" style="width:100%; border-collapse:collapse; text-align:center; font-size:14px;">
@@ -364,20 +354,16 @@ function openPointHistory() {
             <tr style="color:#666; font-weight:bold;">
                 <th style="width:16%; padding:6px 2px;">日期</th>
                 <th style="padding:6px 2px;">本　人<br>獲取點</th>
-                <th style="padding:6px 2px;">推　薦<br>回饋點</th>
+                <th style="padding:6px 2px;">推　推薦<br>回饋點</th>
                 <th style="padding:6px 2px;">當日<br>折抵</th>
                 <th style="padding:6px 2px;">過期<br>點數</th>
             </tr>
         </thead>
         <tbody>`;
-
     let totalExpiredSoon = 0;
-
     if (userData && userData.history && userData.history.length > 0) {
         html += userData.history.map(h => {
-            // 只取 月/日，把後面的時間切掉
             const shortDate = (h.date || "").split(" ")[0];
-            
             const expiredValue = h.expired != null && h.expired !== 'undefined' ? h.expired : '';
             const expiredNum = Number(h.expired) || 0;
             totalExpiredSoon += expiredNum;
@@ -390,18 +376,12 @@ function openPointHistory() {
                 <td style="padding:8px 2px; color:#d00;">${expiredValue}</td>
             </tr>`;
         }).join('');
-    } else {
-        html += `<tr><td colspan="5" style="padding:25px; color:#999;">目前尚無紀錄</td></tr>`;
-    }
-
-    html += `</tbody>
-    </table>
-    <div style="margin-top:20px; padding:15px; background:#fff5f5; border-radius:12px; border:1px dashed #ab545a; text-align:center;">
+    } else { html += `<tr><td colspan="5" style="padding:25px; color:#999;">目前尚無紀錄</td></tr>`; }
+    html += `</tbody></table><div style="margin-top:20px; padding:15px; background:#fff5f5; border-radius:12px; border:1px dashed #ab545a; text-align:center;">
         <div style="font-size:14px; color:#666;">⏳ 即將過期點數 (近期)</div>
         <div style="font-size:24px; font-weight:900; color:#d00; margin-top:5px;">${totalExpiredSoon} <span style="font-size:14px;">點</span></div>
         <div style="font-size:11px; color:#999; margin-top:5px;">* 點數寶貴，記得趕快來店內折抵唷！ *</div>
     </div>`;
-
     openModal(html);
 }
 function openProfile() { let p = userData?.profile; if(!p) return; openModal(`<h3 style="color:var(--primary); text-align:center;">👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p>`); }
@@ -413,7 +393,7 @@ function autoCopyShare() {
 }
 
 function openModal(html) { document.getElementById('modalBody').innerHTML = html; document.getElementById('modal').style.display = 'flex'; }
-function closeModal() { document.getElementById('modal').style.display = 'none'; if (pendingCheckboxId) { document.getElementById(pendingCheckboxId).checked = true; pendingCheckboxId = null; } }
+function closeModal() { document.getElementById('modal').style.none; if (pendingCheckboxId) { document.getElementById(pendingCheckboxId).checked = true; pendingCheckboxId = null; } }
 
 document.getElementById('regPhone').addEventListener('input', function(e) { let v = e.target.value.replace(/\D/g, '').slice(0, 10); if (v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7); else if (v.length > 4) v = v.slice(0,4)+'-'+v.slice(4); e.target.value = v; });
 
