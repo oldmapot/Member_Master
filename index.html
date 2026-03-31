@@ -146,30 +146,12 @@
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeModal()">
-
     <div class="modal-card" onclick="event.stopPropagation()">
-
         <div id="modalBody" class="modal-body"></div>
-
-        <button style="width:100%; padding:18px; border:none; background:#eee; font-weight:bold; color:#666;" onclick="closeModal()">關閉</button>
-
+        <button style="width:100%; padding:18px; border:none; background:#eee; font-weight:bold;" onclick="closeModal()">關閉</button>
     </div>
-
 </div>
-
 <div class="toast" id="toast"></div>
-
-
-
-<script>
-
-const TEXTS = {
-
-    omp: ["老娘正在翻帳本，幫你算驚喜...", "老娘正在準備你的心意...", "火鍋滾了，心意也快好了...", "湯頭正在滾，心意馬上到..."],
-
-    so: ["正在為你的生活，加入一點甜...", "遇見你，就是一點甜...", "捕捉今日份的甜，請稍候片刻...", "心意準備中，等等來點甜的吧！"]
-
-};
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
@@ -231,68 +213,28 @@ function generateRegCode() {
 }
 
 async function initLiff() {
-
     let params = new URLSearchParams(window.location.search);
-
     currentFrom = params.get('from') || 'omp';
-
     referrerParam = params.get('referrer') || '';
-
     const loadingText = document.getElementById('loading-text');
-
-
-
-    // --- 隨機文字邏輯 ---
-
-    // 根據來源抓取對應的文字陣列，如果來源不對就預設抓 omp
-
-    const brandTexts = TEXTS[currentFrom] || TEXTS['omp'];
-
-    // 產生隨機索引
-
-    const randomIndex = Math.floor(Math.random() * brandTexts.length);
-
-    // 將隨機文字塞入 loading 畫面
-
-    loadingText.innerText = brandTexts[randomIndex];
-
-    // ------------------
-
-
-
     if (currentFrom === 'so') {
-
         document.body.classList.add('theme-so');
-
         document.getElementById('loader').className = 'loader-icon so';
-
+        loadingText.innerText = "正在為你的生活，加入一點甜...";
+    } else {
+        loadingText.innerText = "老娘正在翻帳本，幫你算驚喜...";
     }
-
-
-
     try {
-
         await liff.init({ liffId: LIFF_ID });
-
         if (!liff.isLoggedIn()) { liff.login(); return; }
-
         userId = (await liff.getProfile()).userId;
-
         userToken = btoa(`${userId}_${Date.now()}`).replace(/=/g, '');
-
         await fetchData();
-
     } catch(e) { 
-
         showToast('初始化失敗，請重新開啟頁面'); 
-
         document.getElementById('loading').style.display = 'none';
-
     }
-
 }
-
-
 
 async function fetchData(isReload = false) {
     try {
