@@ -262,37 +262,44 @@ async function initLiff() {
     }
 }
 
+// 修改後的 fetchData 函數
 async function fetchData(isReload = false) {
     try {
-        const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`;
+        // 加入時間戳避免緩存
+        const url = `${GAS_URL}?action=checkID&userId=${encodeURIComponent(userId)}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`;
         let res = await fetch(url);
         let responseText = await res.text();
         userData = JSON.parse(responseText);
 
-        console.log("是否為會員 =>", userData.isMember); // 除錯用
+        console.log("GAS 回傳結果:", userData); 
 
-        // ==============================================
-        // ✅ 強制鎖死：只要有註冊，強制進會員頁
-        // ==============================================
+        // 核心修正：確保 isMember 判斷與 UI 切換同步
         if (userData && userData.isMember === true) {
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
+            
+            // 更新會員資料
+            if (userData.profile) {
+                document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
+                document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
+                generateMemberCode(); // 只有是會員才產生碼
+            }
         } else {
             document.getElementById('memberUI').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
-        }
-
-        // 其餘資料更新
-        if (userData?.profile) {
-            document.getElementById('pointsDisplay').innerText = userData.profile.points || 0;
-            document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
-            generateMemberCode();
+            // 如果有推薦人，才顯示領取招待的區域
+            if (referrerParam) {
+                document.getElementById('regGiftArea').style.display = 'block';
+                document.getElementById('giftTitle').innerText = currentFrom === 'so' ? "一點甜新客招待" : "老娘鍋新客招待";
+                generateRegCode();
+            }
         }
 
         document.getElementById('loading').style.display = 'none';
     } catch (e) {
+        console.error("Fetch Error:", e);
         document.getElementById('loading').style.display = 'none';
-        showToast('載入失敗');
+        showToast('載入失敗，請重新整理');
     }
 }
 
