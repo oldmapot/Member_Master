@@ -288,7 +288,7 @@ async function doRegister() {
     if (!agreeRights) return showToast('請先閱讀並同意【會員權益】');
     if (!agreeLegal) return showToast('請先閱讀並同意【法務免責及管控聲明】');
     
-    // 先關閉所有畫面，只留 loading
+    // 顯示 loading
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('regUI').style.display = 'none';
     document.getElementById('memberUI').style.display = 'none';
@@ -297,28 +297,19 @@ async function doRegister() {
         let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
         let result = await res.json();
         
-       if (result.success) {
-    // 先關閉 loading（避免卡住）
-    document.getElementById('loading').style.display = 'none';
-    
-    // 顯示歡迎 Modal
-    openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
-    <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
-    <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
-    <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
-    
-    // 3秒後強制跳轉
-    setTimeout(() => { 
-        closeModal();
-        // 使用 replace 而不是 reload，避免快取問題
-        window.location.replace(window.location.href.split('?')[0]);
-    }, 3000);
-}
+        console.log("註冊回應:", result);  // 加入日誌
+        
+        if (result.success) {
+            // 最簡單的方式：直接重整
+            alert("註冊成功！即將重新整理頁面");
+            window.location.reload();
+        } else {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
             showToast(result.message || '註冊失敗');
         }
     } catch(e) { 
+        console.error('註冊錯誤:', e);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('regUI').style.display = 'block';
         showToast('網路連線錯誤，請稍後再試'); 
