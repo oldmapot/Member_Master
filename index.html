@@ -297,8 +297,8 @@ async function doRegister() {
         let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
         let result = await res.json();
         
-        if (result.success) {
-    // 關閉 loading
+       if (result.success) {
+    // 先關閉 loading（避免卡住）
     document.getElementById('loading').style.display = 'none';
     
     // 顯示歡迎 Modal
@@ -307,15 +307,11 @@ async function doRegister() {
     <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
     <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
     
-    // 3秒後關閉 modal 並手動切換畫面（不重整）
+    // 3秒後強制跳轉
     setTimeout(() => { 
         closeModal();
-        // 直接手動切換到會員畫面
-        document.getElementById('memberUI').style.display = 'block';
-        document.getElementById('regUI').style.display = 'none';
-        
-        // 重新載入會員資料
-        fetchData(true);
+        // 使用 replace 而不是 reload，避免快取問題
+        window.location.replace(window.location.href.split('?')[0]);
     }, 3000);
 }
             document.getElementById('loading').style.display = 'none';
