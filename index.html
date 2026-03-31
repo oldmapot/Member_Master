@@ -250,6 +250,7 @@ async function fetchData(isReload = false) {
         let responseText = await res.text();
         try { userData = JSON.parse(responseText); } catch(e) { throw new Error("伺服器回應格式錯誤"); }
         
+        // 🔥 確保 loading 一定會關閉
         document.getElementById('loading').style.display = 'none';
         
         if (userData && userData.isMember === true) {
@@ -270,8 +271,10 @@ async function fetchData(isReload = false) {
             }
         }
     } catch(e) { 
+        console.error('fetchData錯誤:', e);
         showToast('資料載入失敗，請稍後再試');
-        document.getElementById('loading').style.display = 'none';
+        document.getElementById('loading').style.display = 'none';  // 🔥 錯誤時也要關閉 loading
+        document.getElementById('regUI').style.display = 'block';   // 顯示註冊畫面讓使用者可以重試
     }
 }
 
