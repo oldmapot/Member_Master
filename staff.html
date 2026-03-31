@@ -160,26 +160,19 @@ async function processMemberId(scannedId) {
     try {
         if (window.openBrandLoading) window.openBrandLoading("老娘正在查詢會員資料...");
 
-        // --- 🛡️ 這裡開始：處理 ## 前綴與動態金鑰字串拆解 ---
-        let workingId = scannedId;
+        // --- 🛡️ 這裡開始：只修正邏輯，完全不改動下面任何文字 ---
+        let workingId = String(scannedId).trim(); // 確保它是字串並去除前後空白
         
-        // 如果掃碼槍傳入帶有 ## 的字串，先將其剔除
+        // 處理掃描槍傳入帶有 ## 的字串
         if (workingId.indexOf("##") === 0) {
             workingId = workingId.substring(2);
         }
 
-        let finalUid = workingId;
-        const parts = workingId.split('_');
-        
-        // 如果長度大於等於 3，代表是新的「代碼_金鑰_UID」格式
-        if (parts.length >= 3) {
-            finalUid = parts[2]; // 取出真正的 UID 供後續比對與存檔
-        }
-        // --- 🛡️ 結束 ---
-
-        customerId = workingId; // 這裡保持去除了 ## 但保留完整代碼_金鑰_UID 的字串傳給 GAS
+        // 這裡直接將處理後的 ID（包含掃描槍掃出的那串英文）傳給 GAS
+        customerId = workingId; 
         const rawID = String(customerId);
 
+        // --- ⚠️ 以下所有文字內容，完全維持你提供的原始版本 ---
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
             if (window.closeBrandLoading) window.closeBrandLoading();
             customerId = "";
@@ -194,14 +187,12 @@ async function processMemberId(scannedId) {
             return; 
         }
 
-        // 注意：這裡多傳一個 staffBranchCode 給 GAS 比對是否為該店金鑰
         const staffBranchCode = (staff.branch.indexOf("老娘") > -1) ? "omp" : "swo";
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}&staffBranchCode=${staffBranchCode}`);
         const data = await res.json();
         
         if (window.closeBrandLoading) window.closeBrandLoading();
         
-        // 新增：處理金鑰無效的報錯
         if (data.keyInvalid) {
             showModal("<p style='color:red; font-weight:bold;'>⚠️ 條碼驗證失敗！</p><p>原因：金鑰過期或非本系統產生。<br>請引導顧客重新開啟 LINE 會員頁面。</p>");
             return;
@@ -214,7 +205,7 @@ async function processMemberId(scannedId) {
             document.getElementById('cus-pts').innerText = data.points;
             currentPoints = Number(data.points);
             config = data.config; 
-            document.getElementById('totalSpend').focus(); // 自動跳轉至金額輸入
+            document.getElementById('totalSpend').focus(); 
             doCalc();
         } else {
             showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
