@@ -172,11 +172,43 @@ document.getElementById('hiddenIdInput').addEventListener('keypress', function (
 
 async function handleScan() {
     try {
-        const result = await liff.scanCodeV2();
-        if (!result || !result.value) return;
-        processMemberId(result.value);
+        // 檢查 LIFF 是否支援掃描
+        if (!liff.scanCodeV2) {
+            showModal("您的 LIFF 版本不支援掃描功能，請更新 LINE 或使用掃碼槍");
+            return;
+        }
+        
+        showLoading("啟動相機中...");
+        
+        // 使用 scanCodeV2 並設定完整參數
+        const result = await liff.scanCodeV2({
+            types: ['QRCODE'],  // 只掃描 QR Code
+            multiple: false      // 只掃一個
+        });
+        
+        hideLoading();
+        
+        if (result && result.value) {
+            processMemberId(result.value);
+        } else {
+            showModal("掃描取消或未取得條碼內容");
+        }
     } catch (err) {
-        console.log("掃描取消或出錯:", err.message);
+        hideLoading();
+        console.error("掃描錯誤:", err);
+        
+        // 錯誤處理：顯示詳細訊息
+        let errorMsg = "相機無法開啟，請檢查：\n";
+        errorMsg += "1. 請確認 LINE 已授權相機權限\n";
+        errorMsg += "2. 請在 LINE 設定中開啟相機權限\n";
+        errorMsg += "3. 如仍無法使用，請改用掃碼槍\n\n";
+        errorMsg += "錯誤代碼：" + (err.code || err.message);
+        
+        showModal(errorMsg);
+        
+        // 備案：自動聚焦到隱藏輸入框，讓店員手動輸入或使用掃碼槍
+        document.getElementById('hiddenIdInput').focus();
+        showModal("⚠️ 相機掃描暫時無法使用\n請使用掃碼槍掃描，或手動輸入會員條碼內容");
     }
 }
 
