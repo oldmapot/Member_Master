@@ -238,8 +238,7 @@ async function processMemberId(scannedId) {
             return;
         }
         
-        const staffBranchCode = (staff.branch.indexOf("老娘") > -1) ? "omp" : "swo";
-        
+           
         // 呼叫 GAS 查詢會員
         const res = await fetch(`${GAS_URL}?action=checkID&userId=${encodeURIComponent(workingId)}&branch=${staff.branch}&staffBranchCode=${staffBranchCode}`);
         const data = await res.json();
@@ -326,10 +325,8 @@ async function submitData() {
     btn.innerText = "處理中...";
     showLoading("正在處理結帳與發放點數...");
 
+    // 🔥 完全不亂改 ID，就是你掃到的正確 ID
     let cleanId = customerId;
-    if (customerId && customerId.indexOf('_') > -1) {
-        cleanId = customerId.split('_')[2];
-    }
 
     const payload = {
         action: "addPoints",
@@ -348,9 +345,20 @@ async function submitData() {
         memberLevel: memberLevel,
         memberLevelRate: memberLevelRate
     };
+
     try {
-        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
-        if (res.ok) {
+        // 🔥 關鍵修復：正確傳送 JSON 給後端
+        const res = await fetch(GAS_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"  // 這行決定死活！
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
             hideLoading();
             showModal("✅ 結帳與股東分紅發放完成！");
             setTimeout(() => {
@@ -358,15 +366,15 @@ async function submitData() {
                 liff.closeWindow();
             }, 2000);
         } else {
-            throw new Error("伺服器回應錯誤");
+            throw new Error(result.message || "伺服器錯誤");
         }
+
     } catch (e) {
         hideLoading();
         showModal("提交失敗: " + e.message);
         btn.disabled = false;
         btn.innerText = "確認過卡 (發送股東/消費通知)";
     }
-}
 
 init();
 </script>
