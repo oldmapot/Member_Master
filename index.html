@@ -346,17 +346,23 @@ function openEvents(brand) { let events = brand === 'so' ? (userData.soEvents ||
 
 function openReferral() {
     let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3>
-    <div><b>推薦您的好友：</b> ${userData?.myReferrer || '無'}</div>
-    <div style="margin-top:15px;"><b>您推薦的好友：</b></div>`;
+    <div style="margin-bottom:15px;"><b>推薦您的好友：</b> ${userData?.myReferrer || '無'}</div>
+    <div style="margin-top:15px;"><b>您推薦的好友：</b></div>
+    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+        <tbody>`;
     
     if (userData?.myReferrals?.length) {
         html += userData.myReferrals.map((r,i)=>`
-            <div>${i+1}.${r.name} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 加入日期 ${r.date}</div>
+            <tr>
+                <td style="width:45%; padding:6px 0; text-align:left; vertical-align:top;">${i+1}. ${r.name}</td>
+                <td style="width:55%; padding:6px 0; text-align:left; vertical-align:top;">加入日期 ${r.date}</td>
+            </tr>
         `).join('');
     } else {
-        html += '<div>尚無好友加入</div>';
+        html += `<tr><td colspan="2" style="padding:10px 0; color:#999;">尚無好友加入</td></tr>`;
     }
     
+    html += `</tbody></table>`;
     openModal(html);
 }
 
