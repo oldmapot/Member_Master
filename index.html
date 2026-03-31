@@ -300,12 +300,23 @@ async function doRegister() {
         let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
         let result = await res.json();
         
-        console.log("註冊回應:", result);  // 加入日誌
+        console.log("註冊回應:", result);
         
         if (result.success) {
-            // 最簡單的方式：直接重整
-            alert("註冊成功！即將重新整理頁面");
-            window.location.reload();
+            // 先關閉 loading
+            document.getElementById('loading').style.display = 'none';
+            
+            // 顯示歡迎卡片 Modal
+            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
+            <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
+            <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
+            <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
+            
+            // 3秒後重整頁面
+            setTimeout(() => { 
+                closeModal();
+                window.location.reload();
+            }, 3000);
         } else {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('regUI').style.display = 'block';
