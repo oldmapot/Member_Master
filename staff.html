@@ -20,17 +20,31 @@
         .locked { opacity: 0.4; pointer-events: none; }
         .member-info { background: #fff9c4; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .info-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 15px; }
-
-        /* 新增：自定義彈窗樣式 */
+        
+        /* 自定義彈窗樣式 */
         #customModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: center; }
         .modal-btn { background: #00b900; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; margin-top: 20px; cursor: pointer; width: 100%; }
         
-        /* 掃碼槍隱藏輸入框樣式 */
+        /* 掃碼槍隱藏輸入框 */
         #hiddenIdInput { position: absolute; left: -9999px; opacity: 0; }
+        
+        /* 載入中覆蓋層 */
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        .loading-spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #00b900; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { color: white; margin-top: 15px; font-size: 16px; }
+        
+        /* 會員等級標籤 */
+        .member-level { display: inline-block; background: #ff9800; color: white; padding: 2px 8px; border-radius: 20px; font-size: 12px; margin-left: 8px; }
     </style>
 </head>
 <body>
+
+<div id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">老娘正在翻帳本，幫你算驚喜...</div>
+</div>
 
 <div id="customModal">
     <div class="modal-content">
@@ -47,12 +61,14 @@
         </div>
     </div>
 
-    <input type="text" id="hiddenIdInput">
+    <input type="text" id="hiddenIdInput" placeholder="掃碼槍輸入區">
 
     <button class="btn btn-scan" id="scanBtn" onclick="handleScan()">📷 啟動相機掃描 / 準備掃碼槍</button>
 
     <div class="member-info" id="member-ui">
-        顧客：<b id="cus-name">-</b> | 現有資產：<b id="cus-pts" style="color:red;">0</b> 點
+        顧客：<b id="cus-name">-</b> <span id="member-level" class="member-level"></span><br>
+        現有資產：<b id="cus-pts" style="color:red;">0</b> 點<br>
+        累積消費：<b id="cus-total">0</b> 元
     </div>
 
     <div id="form-ui" class="locked">
@@ -94,7 +110,16 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbxrlYGoxOuTUJ9y9YQreRRN
 const LIFF_ID = "2009625641-AYIKoXbw"; 
 
 let config = {}, customerId = "", currentPoints = 0, staff = {};
+let memberLevel = "", memberLevelRate = 1;
 
+function showLoading(text) {
+    const loadingText = document.getElementById('loadingText');
+    if (text) loadingText.innerText = text;
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
 function showModal(html) {
     document.getElementById('modalText').innerHTML = html;
     document.getElementById('customModal').style.display = 'flex';
@@ -105,12 +130,13 @@ function closeModal() {
 
 async function init() {
     try {
+        showLoading("正在驗證店員權限...");
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         
         const urlParams = new URLSearchParams(window.location.search);
         const key = urlParams.get('k');
-        const externalCusId = urlParams.get('customerId'); // 接住手機原相機掃描傳進來的 ID
+        const externalCusId = urlParams.get('customerId');
         
         const profile = await liff.getProfile();
         const res = await fetch(`${GAS_URL}?action=staffLogin&userId=${profile.userId}&keyword=${key}`);
@@ -120,23 +146,23 @@ async function init() {
             document.getElementById('shop-name').innerText = staff.branch;
             document.getElementById('staff-name').innerText = staff.name;
             document.getElementById('role-text').innerText = staff.role;
+            hideLoading();
             
-            // 如果網址已有 ID (手機原相機模式)，直接執行查詢
             if (externalCusId) {
                 processMemberId(externalCusId);
             } else {
-                // 否則自動聚焦掃碼槍輸入框
                 document.getElementById('hiddenIdInput').focus();
             }
         } else {
-            alert("權限驗證失敗！");
+            hideLoading();
+            showModal("權限驗證失敗：" + (staff.error || "請確認關鍵字是否正確"));
         }
     } catch (e) {
-        alert("系統啟動失敗: " + e.message);
+        hideLoading();
+        showModal("系統啟動失敗: " + e.message);
     }
 }
 
-// 監聽掃碼槍 Enter
 document.getElementById('hiddenIdInput').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
         processMemberId(this.value);
@@ -154,26 +180,20 @@ async function handleScan() {
     }
 }
 
-// 核心功能：處理與查詢會員資料 (由 LIFF、原相機、掃碼槍共用)
 async function processMemberId(scannedId) {
     try {
-        if (window.openBrandLoading) window.openBrandLoading("老娘正在查詢會員資料...");
-
-        // --- 🛡️ 邏輯修正：直接接收原始字串，不進行拆解 ---
-        let workingId = String(scannedId).trim(); 
+        showLoading("老娘正在查詢會員資料...");
         
-        // 1. 如果有掃描槍的 ## 前綴，先切掉
+        let workingId = String(scannedId).trim();
+        
+        // 處理掃描槍的 ## 前綴
         if (workingId.indexOf("##") === 0) {
             workingId = workingId.substring(2);
         }
-
-        // 2. 直接存入全域變數，整串加密英文丟給 GAS 處理
-        customerId = workingId; 
-        const rawID = String(customerId);
-
-        // --- ⚠️ 以下文字 100% 維持你原本的內容，一字不差 ---
-        if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
-            if (window.closeBrandLoading) window.closeBrandLoading();
+        
+        // 處理 GIFT_BY_ 新客招待碼
+        if (workingId.toUpperCase().indexOf("GIFT_BY_") !== -1) {
+            hideLoading();
             customerId = "";
             document.getElementById('member-ui').style.display = 'none';
             document.getElementById('form-ui').classList.add('locked');
@@ -183,39 +203,59 @@ async function processMemberId(scannedId) {
                 <p><b>招待內容：</b>小菜一份 或 霜淇淋一支</p>
                 <p style="font-size:14px; color:#666;">⚠️ 這是新客專用碼，請引導顧客完成註冊後再掃會員碼集點。</p>
             `);
-            return; 
+            return;
         }
-
+        
         const staffBranchCode = (staff.branch.indexOf("老娘") > -1) ? "omp" : "swo";
         
-        // 3. 發送給 GAS (GAS 會負責解密那串 VWNm... 開頭的英文)
-        const res = await fetch(`${GAS_URL}?action=checkID&userId=${customerId}&branch=${staff.branch}&staffBranchCode=${staffBranchCode}`);
+        // 呼叫 GAS 查詢會員
+        const res = await fetch(`${GAS_URL}?action=checkID&userId=${encodeURIComponent(workingId)}&branch=${staff.branch}&staffBranchCode=${staffBranchCode}`);
         const data = await res.json();
         
-        if (window.closeBrandLoading) window.closeBrandLoading();
+        hideLoading();
         
+        // 金鑰驗證失敗
         if (data.keyInvalid) {
             showModal("<p style='color:red; font-weight:bold;'>⚠️ 條碼驗證失敗！</p><p>原因：金鑰過期或非本系統產生。<br>請引導顧客重新開啟 LINE 會員頁面。</p>");
             return;
         }
-
+        
         if(data.isMember) {
+            customerId = data.userId;
             document.getElementById('member-ui').style.display = 'block';
             document.getElementById('form-ui').classList.remove('locked');
             document.getElementById('cus-name').innerText = data.userName;
             document.getElementById('cus-pts').innerText = data.points;
+            document.getElementById('cus-total').innerText = data.totalSpend || 0;
             currentPoints = Number(data.points);
-            config = data.config; 
-            document.getElementById('totalSpend').focus(); 
+            config = data.config;
+            
+            // 顯示會員等級
+            memberLevel = data.memberLevel || "一般會員";
+            memberLevelRate = data.levelRate || 1;
+            const levelSpan = document.getElementById('member-level');
+            levelSpan.innerText = memberLevel;
+            if (memberLevel === "白金會員") {
+                levelSpan.style.background = "#9c27b0";
+            } else if (memberLevel === "黃金會員") {
+                levelSpan.style.background = "#ffc107";
+                levelSpan.style.color = "#333";
+            } else {
+                levelSpan.style.background = "#ff9800";
+            }
+            
+            document.getElementById('totalSpend').focus();
             doCalc();
         } else {
             showModal("<p style='color:red;'>⚠️ 查無此會員編號！</p>");
         }
     } catch (err) {
-        if (window.closeBrandLoading) window.closeBrandLoading();
-        alert("查詢失敗，請重掃");
+        hideLoading();
+        console.error("查詢失敗:", err);
+        showModal("查詢失敗，請重試");
     }
 }
+
 function toggleMode() {
     const isTicket = document.getElementById('ticketMode').checked;
     document.getElementById('normal-fields').style.display = isTicket ? 'none' : 'block';
@@ -252,17 +292,17 @@ async function submitData() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerText = "處理中...";
+    showLoading("正在處理結帳與發放點數...");
 
-    // 確保傳回資料庫的是純 UID
     let cleanId = customerId;
-    if (customerId.indexOf('_') > -1) {
+    if (customerId && customerId.indexOf('_') > -1) {
         cleanId = customerId.split('_')[2];
     }
 
     const payload = {
         action: "addPoints",
         isTicketMode: document.getElementById('ticketMode').checked,
-        customerId: cleanId, // 使用清洗後的 ID
+        customerId: cleanId,
         branch: staff.branch,
         staffName: staff.name,
         staffRole: staff.role,
@@ -272,18 +312,25 @@ async function submitData() {
         buyTicket: Number(document.getElementById('buyTicket').value) || 0,
         earnRate: config.earnRate,
         ticketRate: config.ticketRate,
-        refRate: config.refRate
+        refRate: config.refRate,
+        memberLevel: memberLevel,
+        memberLevelRate: memberLevelRate
     };
     try {
         const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
         if (res.ok) {
-            alert("結帳與股東分紅發放完成！");
-            liff.closeWindow();
+            hideLoading();
+            showModal("✅ 結帳與股東分紅發放完成！");
+            setTimeout(() => {
+                closeModal();
+                liff.closeWindow();
+            }, 2000);
         } else {
             throw new Error("伺服器回應錯誤");
         }
     } catch (e) {
-        alert("提交失敗: " + e.message);
+        hideLoading();
+        showModal("提交失敗: " + e.message);
         btn.disabled = false;
         btn.innerText = "確認過卡 (發送股東/消費通知)";
     }
