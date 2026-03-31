@@ -331,7 +331,8 @@ async function doRegister() {
         let result = await res.json();
         if (result.success) {
             document.getElementById('loading').style.display = 'none';
-            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2><p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。<br>日子不一定天天完美，但一定要有一點甜 💕</p><div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
+            openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2><p>歡迎加入老娘的一點心意🍲🍰<br>
+            <br>這是老娘留給你的偏心<br>日子不一定天天完美<br>但一定要有一點甜 💕</p><div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
             setTimeout(() => { closeModal(); location.reload(); }, 3000);
         } else {
             document.getElementById('loading').style.display = 'none';
@@ -354,7 +355,7 @@ function openPointHistory() {
             <tr style="color:#666; font-weight:bold;">
                 <th style="width:16%; padding:6px 2px;">日期</th>
                 <th style="padding:6px 2px;">本　人<br>獲取點</th>
-                <th style="padding:6px 2px;">推　推薦<br>回饋點</th>
+                <th style="padding:6px 2px;">推　薦<br>回饋點</th>
                 <th style="padding:6px 2px;">當日<br>折抵</th>
                 <th style="padding:6px 2px;">過期<br>點數</th>
             </tr>
@@ -393,7 +394,7 @@ function autoCopyShare() {
 }
 
 function openModal(html) { document.getElementById('modalBody').innerHTML = html; document.getElementById('modal').style.display = 'flex'; }
-function closeModal() { document.getElementById('modal').style.none; if (pendingCheckboxId) { document.getElementById(pendingCheckboxId).checked = true; pendingCheckboxId = null; } }
+function closeModal() { document.getElementById('modal').style.display = 'none'; if (pendingCheckboxId) { document.getElementById(pendingCheckboxId).checked = true; pendingCheckboxId = null; } }
 
 document.getElementById('regPhone').addEventListener('input', function(e) { let v = e.target.value.replace(/\D/g, '').slice(0, 10); if (v.length > 7) v = v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7); else if (v.length > 4) v = v.slice(0,4)+'-'+v.slice(4); e.target.value = v; });
 
