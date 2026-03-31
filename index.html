@@ -271,22 +271,29 @@ async function fetchData(isReload = false) {
 
     document.getElementById('loading').style.display = 'none';
 
-    // ==============================================
-    // ✅ 這裡強制修正：只要 isMember == true 就進會員頁
-    // ==============================================
-    if (userData.isMember === true) {
+    // 🔥 關鍵修復：檢查 profile 是否存在，以及 points 是否為數字
+    if (userData.isMember === true && userData.profile && typeof userData.profile.points === 'number') {
       document.getElementById('memberUI').style.display = 'block';
       document.getElementById('regUI').style.display = 'none';
-      document.getElementById('pointsDisplay').innerText = userData.profile?.points || 0;
+      document.getElementById('pointsDisplay').innerText = userData.profile.points;
       document.getElementById('welcomeQuote').innerText = userData.welcomeQuote || '歡迎回來！';
       generateMemberCode();
+      if (isReload) showToast('✅ 資料已更新');
     } else {
       document.getElementById('memberUI').style.display = 'none';
       document.getElementById('regUI').style.display = 'block';
+      // 處理推薦人禮物顯示
+      if (referrerParam && referrerParam !== 'undefined' && referrerParam !== '') {
+        document.getElementById('regGiftArea').style.display = 'block';
+        let referrerName = (userData && userData.myReferrer && userData.myReferrer !== "無") ? userData.myReferrer : "神祕好友";
+        document.getElementById('giftTitle').innerText = `🎁 你的好友 ${referrerName} 送你的專屬好禮`;
+        generateRegCode();
+      }
     }
   } catch (e) {
+    console.error('fetchData錯誤:', e);
     document.getElementById('loading').style.display = 'none';
-    showToast('資料載入失敗');
+    showToast('資料載入失敗，請稍後再試');
   }
 }
 
