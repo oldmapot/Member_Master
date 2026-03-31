@@ -216,6 +216,7 @@ async function initLiff() {
     currentFrom = params.get('from') || 'omp';
     referrerParam = params.get('referrer') || '';
     const loadingText = document.getElementById('loading-text');
+    
     if (currentFrom === 'so') {
         document.body.classList.add('theme-so');
         document.getElementById('loader').className = 'loader-icon so';
@@ -223,40 +224,12 @@ async function initLiff() {
     } else {
         loadingText.innerText = "老娘正在翻帳本，幫你算驚喜...";
     }
+    
     try {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         userId = (await liff.getProfile()).userId;
-        // 根據 currentFrom 決定分店代碼
-const branchCode = currentFrom === 'so' ? 'swo' : 'omp';
-
-// 從後端取得正確的隨機金鑰
-async function getRandomKeyFromServer(shopCode) {
-    try {
-        const response = await fetch(`${GAS_URL}?action=getRandomKey&shopCode=${shopCode}`);
-        const data = await response.json();
-        return data.key;
-    } catch(e) {
-        console.error('取得金鑰失敗:', e);
-        return null;
-    }
-}
-
-// 在 initLiff 中，取得 userId 後，加上這段
-// 根據 currentFrom 決定分店代碼
-const branchCode = currentFrom === 'so' ? 'swo' : 'omp';
-
-// 從後端取得正確的隨機金鑰
-const randomKey = await getRandomKeyFromServer(branchCode);
-if (!randomKey) {
-    throw new Error('無法取得金鑰');
-}
-
-// 組合完整格式：分店代碼_金鑰_會員ID
-userToken = `${branchCode}_${randomKey}_${userId}`;
-
-// 組合完整格式：分店代碼_金鑰_會員ID
-userToken = `${branchCode}_${randomKey}_${userId}`;
+        userToken = btoa(`${userId}_${Date.now()}`).replace(/=/g, '');
         await fetchData();
     } catch(e) { 
         showToast('初始化失敗，請重新開啟頁面'); 
@@ -272,7 +245,6 @@ async function fetchData(isReload = false) {
         let responseText = await res.text();
         try { userData = JSON.parse(responseText); } catch(e) { throw new Error("伺服器回應格式錯誤"); }
         
-        // 🔥 確保 loading 一定會關閉
         document.getElementById('loading').style.display = 'none';
         
         if (userData && userData.isMember === true) {
@@ -295,8 +267,8 @@ async function fetchData(isReload = false) {
     } catch(e) { 
         console.error('fetchData錯誤:', e);
         showToast('資料載入失敗，請稍後再試');
-        document.getElementById('loading').style.display = 'none';  // 🔥 錯誤時也要關閉 loading
-        document.getElementById('regUI').style.display = 'block';   // 顯示註冊畫面讓使用者可以重試
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('regUI').style.display = 'block';
     }
 }
 
@@ -313,28 +285,19 @@ async function doRegister() {
     if (!agreeRights) return showToast('請先閱讀並同意【會員權益】');
     if (!agreeLegal) return showToast('請先閱讀並同意【法務免責及管控聲明】');
     
-    // 顯示 loading
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('regUI').style.display = 'none';
-    document.getElementById('memberUI').style.display = 'none';
     
     try {
         let res = await fetch(`${GAS_URL}?action=register&userId=${userId}&name=${encodeURIComponent(name)}&phone=${phone}&birthday=${birthday}&referrerId=${referrerParam}&from=${currentFrom}`);
         let result = await res.json();
         
-        console.log("註冊回應:", result);
-        
         if (result.success) {
-            // 先關閉 loading
-            document.getElementById('loading').style.display = 'none';
-            
-            // 顯示歡迎卡片 Modal
             openModal(`<div class="welcome-card"><h2>🎉 註冊成功！</h2>
             <p>歡迎加入老娘的一點心意🍲🍰<br><br>這是老娘留給你的偏心。
             <br>日子不一定天天完美<br>但一定要有一點甜 💕</p>
             <div style="margin-top: 20px;">3秒後自動進入會員頁面...</div></div>`);
             
-            // 3秒後重整頁面
             setTimeout(() => { 
                 closeModal();
                 window.location.reload();
@@ -344,8 +307,7 @@ async function doRegister() {
             document.getElementById('regUI').style.display = 'block';
             showToast(result.message || '註冊失敗');
         }
-    } catch(e) { 
-        console.error('註冊錯誤:', e);
+    } catch (e) { 
         document.getElementById('loading').style.display = 'none';
         document.getElementById('regUI').style.display = 'block';
         showToast('網路連線錯誤，請稍後再試'); 
