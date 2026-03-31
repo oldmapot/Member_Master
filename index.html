@@ -218,16 +218,15 @@ async function initLiff() {
 async function fetchData(isReload = false) {
     try {
         const url = `${GAS_URL}?action=checkID&userId=${userId}&from=${currentFrom}&referrerId=${referrerParam}&t=${Date.now()}`;
-        console.log("Fetching:", url);
         let res = await fetch(url);
         if (!res.ok) {
             throw new Error(`HTTP ${res.status}`);
         }
         userData = await res.json();
-        console.log("userData:", userData);
         
         document.getElementById('loading').style.display = 'none';
         
+        // 關鍵修正：判斷 userData 是否存在且 isMember 為 true
         if (userData && userData.isMember === true) {
             document.getElementById('memberUI').style.display = 'block';
             document.getElementById('regUI').style.display = 'none';
@@ -291,12 +290,12 @@ async function doRegister() {
 }
 
 function openEvents(brand) { let events = brand === 'so' ? (userData.soEvents || []) : (userData.ompEvents || []); openModal(`<h3 style="color:var(--primary); text-align:center;">🔥 活動資訊</h3>` + (events.length ? events.map(e => `<div style="padding:10px 0;">✨ ${e}</div>`).join('') : '<p>目前暫無活動</p>')); }
-function openReferral() { let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3><div><b>推薦您的好友：</b> ${userData.myReferrer || '無'}</div><div style="margin-top:15px;"><b>您推薦的好友：</b></div>` + (userData.myReferrals?.length ? userData.myReferrals.map((r,i)=>`<div>${i+1}. ${r.name} (${r.date})</div>`).join('') : '<div>尚無好友加入</div>'); openModal(html); }
+function openReferral() { let html = `<h3 style="color:var(--primary); text-align:center;">👥 推薦名單</h3><div><b>推薦您的好友：</b> ${userData?.myReferrer || '無'}</div><div style="margin-top:15px;"><b>您推薦的好友：</b></div>` + (userData?.myReferrals?.length ? userData.myReferrals.map((r,i)=>`<div>${i+1}. ${r.name} (${r.date})</div>`).join('') : '<div>尚無好友加入</div>'); openModal(html); }
 function openHistory() { 
     let html = `<h3 style="color:var(--primary); text-align:center;">📜 點數明細</h3><p style="text-align:center;">請洽櫃台查詢詳細紀錄</p>`; 
     openModal(html); 
 }
-function openProfile() { let p = userData.profile; openModal(`<h3 style="color:var(--primary); text-align:center;">👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p>`); }
+function openProfile() { let p = userData?.profile; if(!p) return; openModal(`<h3 style="color:var(--primary); text-align:center;">👤 個人資料</h3><p>姓名：${p.name}</p><p>電話：${p.phone}</p><p>生日：${p.birthday}</p>`); }
 
 function autoCopyShare() { 
     navigator.clipboard.writeText(`✨ 發現高雄隱藏版美味 ✨\n立即加入領取新客禮：\nhttps://liff.line.me/${LIFF_ID}?from=${currentFrom}&referrer=${userId}`)
