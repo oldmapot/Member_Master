@@ -159,17 +159,24 @@ async function processMemberId(scannedId) {
     try {
         if (window.openBrandLoading) window.openBrandLoading("老娘正在查詢會員資料...");
 
-        // --- 🔐 這裡開始：處理動態金鑰字串拆解 ---
-        let finalUid = scannedId;
-        const parts = scannedId.split('_');
+        // --- 🛡️ 這裡開始：處理 ## 前綴與動態金鑰字串拆解 ---
+        let workingId = scannedId;
+        
+        // 如果掃碼槍傳入帶有 ## 的字串，先將其剔除
+        if (workingId.indexOf("##") === 0) {
+            workingId = workingId.substring(2);
+        }
+
+        let finalUid = workingId;
+        const parts = workingId.split('_');
         
         // 如果長度大於等於 3，代表是新的「代碼_金鑰_UID」格式
         if (parts.length >= 3) {
             finalUid = parts[2]; // 取出真正的 UID 供後續比對與存檔
         }
-        // --- 🔐 結束 ---
+        // --- 🛡️ 結束 ---
 
-        customerId = scannedId; // 這裡保持完整字串傳給 GAS 進行金鑰校驗
+        customerId = workingId; // 這裡保持去除了 ## 但保留完整代碼_金鑰_UID 的字串傳給 GAS
         const rawID = String(customerId);
 
         if (rawID.toUpperCase().indexOf("GIFT_BY_") !== -1) {
