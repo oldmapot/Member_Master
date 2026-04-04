@@ -36,10 +36,12 @@
         .scan-frame { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 30%; border: 3px solid #00ff00; border-radius: 16px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); pointer-events: none; }
         .scan-status-text { position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: white; background: rgba(0,0,0,0.6); padding: 8px; font-size: 14px; }
         
-        /* 只有這裡微調，完全不影響下方 */
+        .button-row { display: flex; gap: 12px; margin-bottom: 15px; }
+        .btn-scan { flex: 3; margin-bottom: 0; }
+        .btn-reset { flex: 1; background: #666; color: white; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        
         .header-top { display: flex; justify-content: flex-end; gap:6px; margin-bottom:5px; }
         .header-btn { font-size:12px; padding:3px 6px; border:none; border-radius:4px; cursor:pointer; }
-        .btn-reset { background:#666; color:#fff; }
         .btn-logout { background:#ff4444; color:#fff; }
     </style>
     <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -48,7 +50,7 @@
 
 <div id="loadingOverlay">
     <div class="loading-spinner"></div>
-    <div class="loading-text" id="loadingText">老娘正在翻帳本，幫你算驚喜...</div>
+    <div class="loading-text" id="loadingText">老娘正在火速趕來...</div>
 </div>
 
 <div id="customModal">
@@ -68,21 +70,24 @@
     </div>
 </div>
 
-<div class="card">
+<!-- 主畫面 -->
+<div id="mainUI" class="card">
     <div class="header">
-        <!-- 按鈕藏在標題右上方，超美觀 -->
         <div class="header-top">
-            <button class="header-btn btn-reset" onclick="resetMember()">重新整理</button>
             <button class="header-btn btn-logout" onclick="logout()">登出</button>
         </div>
         <h2 style="margin:0;"><span id="shop-name">老娘領地</span></h2>
         <div style="font-size:14px; color:#666; margin-top:5px;">
-            <span id="role-text" class="role-badge">-</span>：<span id="staff-name">-</span>
+            <span id="role-text" class="role-badge">夥伴</span>：<span id="staff-name">-</span>
         </div>
     </div>
 
     <input type="text" id="hiddenIdInput" placeholder="掃碼槍輸入區">
-    <button class="btn btn-scan" id="scanBtn" onclick="openCamera()">📷 啟動相機掃描 / 準備掃碼槍</button>
+    
+    <div class="button-row">
+        <button class="btn btn-scan" id="scanBtn" onclick="openCamera()">📷 開啟相機 / 準備掃碼槍</button>
+        <button class="btn-reset" onclick="resetMember()">重新整理</button>
+    </div>
 
     <div class="member-info" id="member-ui">
         顧客：<b id="cus-name">-</b> <span id="member-level" class="member-level"></span><br>
@@ -127,29 +132,100 @@
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxk80YitwocoEodQc8SIoTsFDRyFEA0g5bKlJx_xmnhbJk3niDziCFWd538CExDHrcBug/exec";
 
-let staff = { name: "", branch: "", role: "" };
-let config = { minSpend: 0, maxRate: 0, earnRate: 0, ticketRate: 0, refRate: 0 };
+let staff = { name: "", branch: "", role: "夥伴" };
+let config = { minSpend: 0, maxRate: 0, earnRate: 0, ticketRate: 0 };
 let customerId = "", currentPoints = 0, memberLevel = "", levelRate = 1;
 let cameraStream = null;
 let scanInterval = null;
+let isLoggedIn = true;
+
+// 取得網址參數
+function getUrlParam(name) {
+    const url = new URLSearchParams(window.location.search);
+    return url.get(name);
+}
+
+// 初始化：自動帶入 姓名 & 分店
+function init() {
+    const staffName = getUrlParam('name') || '未登入';
+    const branchName = getUrlParam('branch') || '請選擇分店';
+    
+    staff.name = staffName;
+    staff.branch = branchName;
+    
+    // 自動顯示在頁面
+    document.getElementById('staff-name').innerText = staff.name;
+    document.getElementById('shop-name').innerText = staff.branch;
+    
+    hideLoading();
+    setupScannerListener();
+}
 
 // 5分鐘閒置登出
 let idleTimer;
 function resetIdleTimer() {
+    if (!isLoggedIn) return;
     clearTimeout(idleTimer);
     idleTimer = setTimeout(()=>{ alert("閒置5分鐘，自動登出"); logout(); }, 300000);
 }
 document.addEventListener("mousemove", resetIdleTimer);
 document.addEventListener("keydown", resetIdleTimer);
 document.addEventListener("click", resetIdleTimer);
+// 1. 修正後的登入函數 (放在 staff_login.html 的腳本中)
+function performLogin() {
+    let userId = document.getElementById('userId').value;
+    let password = document.getElementById('password').value;
+    let branch = document.getElementById('branchSelect').value; 
 
-// 登出
-function logout() {
-    localStorage.clear();
-    window.location.href = "staff_login.html";
+    // 這裡的 API_URL 請確保已經定義，或直接填入你的 GAS 網址
+    let url = `${API_URL}?action=staffLogin&userId=${userId}&keyword=${password}&branch=${encodeURIComponent(branch)}`;
+    
+    showLoading("登入中...");
+    fetch(url).then(res => res.json()).then(data => {
+        hideLoading();
+        if(data.success) {
+            // 重點：跳轉時一定要帶上 loginId，後面的 logout 才抓得到是誰要登出
+            window.location.href = `index.html?name=${encodeURIComponent(data.name)}&branch=${encodeURIComponent(branch)}&loginId=${encodeURIComponent(userId)}`;
+        } else {
+            alert(data.message);
+        }
+    }).catch(e => alert("登入連線失敗"));
 }
 
-// 重新整理 → 只清除會員，保留店員
+// 2. 修正後的登出函數 (放在 index.html 的腳本中)
+// 注意：請確保這個檔案裡只有一個 logout 函數
+async function logout() {
+    const loginId = getUrlParam('loginId'); 
+    
+    if (loginId) {
+        showLoading("正在紀錄登出時間...");
+        try {
+            // 這裡的網址請替換成你實際的 GAS Web App 網址
+            const url = `${API_URL}?action=staffLogout&loginId=${encodeURIComponent(loginId)}`;
+            
+            // 使用 await 確保發送成功後才跳轉頁面
+            await fetch(url, { mode: 'no-cors' }); 
+        } catch (e) {
+            console.error("登出紀錄回傳失敗", e);
+        }
+    }
+    
+    // 執行跳轉
+    isLoggedIn = false;
+    window.location.href = 'staff_login.html';
+}
+function showLoading(text) { const el = document.getElementById('loadingText'); if (text) el.innerText = text; document.getElementById('loadingOverlay').style.display = 'flex'; }
+function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+function showModal(html) { document.getElementById('modalText').innerHTML = html; document.getElementById('customModal').style.display = 'flex'; }
+function closeModal() { document.getElementById('customModal').style.display = 'none'; }
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.innerText = msg;
+    toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:30px; z-index:30000; font-size:14px;';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}
+// 重新整理 → 只清除會員
 function resetMember() {
     customerId = ""; currentPoints=0; memberLevel=""; levelRate=1;
     document.getElementById("member-ui").style.display = "none";
@@ -166,13 +242,8 @@ function resetMember() {
     document.getElementById("max-hint").innerText="0";
     document.getElementById("ticketMode").checked=false;
     toggleMode();
+    showToast("✅ 已清除會員資料");
 }
-
-// ========== 以下「完全沒動」你原本的程式 ==========
-function showLoading(text) { const el = document.getElementById('loadingText'); if (text) el.innerText = text; document.getElementById('loadingOverlay').style.display = 'flex'; }
-function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
-function showModal(html) { document.getElementById('modalText').innerHTML = html; document.getElementById('customModal').style.display = 'flex'; }
-function closeModal() { document.getElementById('customModal').style.display = 'none'; }
 
 function parseScannedCode(scannedText) {
     let clean = String(scannedText).trim();
@@ -187,6 +258,7 @@ function parseScannedCode(scannedText) {
 }
 
 async function onScanSuccess(scannedText) {
+    if (!isLoggedIn) { showToast("請先登入"); return; }
     if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
     await closeCamera();
     if (navigator.vibrate) navigator.vibrate(200);
@@ -223,6 +295,7 @@ async function onScanSuccess(scannedText) {
 }
 
 async function openCamera() {
+    if (!isLoggedIn) { showToast("請先登入"); return; }
     try {
         if (cameraStream) await closeCamera();
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: 1280, height: 720 } });
@@ -247,34 +320,13 @@ function startScanning() {
         const img = ctx.getImageData(0,0,canvas.width,canvas.height);
         const code = jsQR(img.data, canvas.width, canvas.height);
         if (code) { clearInterval(scanInterval); onScanSuccess(code.data); }
-    }, 150);
+    }, 15);
 }
 
 async function closeCamera() {
     if (scanInterval) clearInterval(scanInterval);
     if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
     document.getElementById('cameraContainer').style.display = 'none';
-}
-
-function init() {
-    let savedName = localStorage.getItem('staff_name');
-    let savedBranch = localStorage.getItem('staff_branch');
-    let savedRole = localStorage.getItem('staff_role') || "夥伴";
-    if (!savedName || !savedBranch) {
-        savedName = prompt("請輸入店員姓名：");
-        savedBranch = prompt("請輸入分店：", "老娘鍋(河堤店)");
-        if (!savedName || !savedBranch) { alert("必填"); return; }
-        localStorage.setItem('staff_name', savedName);
-        localStorage.setItem('staff_branch', savedBranch);
-        localStorage.setItem('staff_role', savedRole);
-    }
-    staff = { name: savedName, branch: savedBranch, role: savedRole };
-    document.getElementById('staff-name').innerText = staff.name;
-    document.getElementById('role-text').innerText = staff.role;
-    document.getElementById('shop-name').innerText = staff.branch;
-    hideLoading();
-    setupScannerListener();
-    resetIdleTimer();
 }
 
 function setupScannerListener() {
@@ -318,11 +370,12 @@ function doCalc() {
 }
 
 async function submitData() {
+    if (!isLoggedIn) { showToast("請先登入"); return; }
     if (!customerId) return alert("請先掃描會員！");
     const isTicketMode = document.getElementById('ticketMode').checked;
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    showLoading("處理中...");
+    showLoading("處理中...保持微笑");
 
     const payload = {
         action: "addPoints", customerId: customerId, branch: staff.branch,
@@ -336,7 +389,7 @@ async function submitData() {
 
     await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
     hideLoading();
-    alert("✅ 作業完成");
+    alert("✅ 集點作業完成");
     resetMember();
     btn.disabled = false;
 }
