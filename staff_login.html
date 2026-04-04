@@ -32,7 +32,6 @@
         }
         
         .logo {
-            /* 🔧 圖片 ↔ 標題 間距：從8px改到2px，徹底貼緊 */
             margin-bottom: 2px;
             text-align: center;
         }
@@ -48,7 +47,6 @@
         h1 {
             font-size: 28px;
             color: #8b0000;
-            /* 🔧 標題 ↔ 副標題 間距：從8px改到4px，收緊整體 */
             margin-bottom: 4px;
             font-weight: 700;
         }
@@ -62,7 +60,7 @@
         }
         
         .input-group {
-            margin-bottom: 16px; /* 🔧 輸入框 ↔ 按鈕 間距：從24px改到16px，縮小空白 */
+            margin-bottom: 16px;
             text-align: left;
         }
         
@@ -102,7 +100,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 8px; /* 🔧 按鈕上方額外間距：從16px改到8px，再收一點 */
+            margin-top: 8px;
         }
         
         .login-btn:hover {
@@ -195,11 +193,69 @@
             cursor: pointer;
             color: #999;
         }
+
+        /* 分店選擇彈窗 */
+        .branch-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 99999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .branch-modal-content {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .branch-title {
+            font-size: 22px;
+            color: #8b0000;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .staff-info {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .branch-select {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .confirm-btn {
+            width: 100%;
+            padding: 14px;
+            background: #8b0000;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="login-card">
-        
         <div class="logo">
             <img src="https://i.postimg.cc/KvytPffF/wei-ming-ming-she-ji-(23).png" class="logo-img">
         </div>
@@ -238,13 +294,89 @@
         </div>
     </div>
 
+    <!-- 分店選擇彈窗 -->
+    <div id="branchModal" class="branch-modal">
+        <div class="branch-modal-content">
+            <div class="branch-title">🏪 選擇分店</div>
+            <div id="staffInfo" class="staff-info"></div>
+            <select id="branchSelect" class="branch-select">
+                <option value="">-- 請選擇分店 --</option>
+            </select>
+            <button class="confirm-btn" onclick="confirmBranch()">確認進入系統</button>
+        </div>
+    </div>
+
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxk80YitwocoEodQc8SIoTsFDRyFEA0g5bKlJx_xmnhbJk3niDziCFWd538CExDHrcBug/exec";
+        
+        let currentStaff = null; // 儲存登入者資訊
+        
+        // 產生設備唯一 ID（Device Token）
+function getDeviceId() {
+    let deviceId = localStorage.getItem('device_id');
+    if (!deviceId) {
+        const screenInfo = `${screen.width}x${screen.height}`;
+        const timeStamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(2, 15);
+        deviceId = btoa(`${screenInfo}_${timeStamp}_${randomStr}`).substring(0, 32);
+        localStorage.setItem('device_id', deviceId);
+    }
+    return deviceId;
+}
+
+// 取得設備名稱
+function getDeviceName() {
+    const ua = navigator.userAgent;
+    if (ua.indexOf('iPhone') > -1) return 'iPhone';
+    if (ua.indexOf('iPad') > -1) return 'iPad';
+    if (ua.indexOf('Android') > -1) return 'Android Phone';
+    return 'Unknown Device';
+}
         
         function togglePassword() {
             const passwordInput = document.getElementById('keyword');
             const type = passwordInput.type === 'password' ? 'text' : 'password';
             passwordInput.type = type;
+        }
+
+        // 取得分店清單
+        async function getBranchList() {
+            try {
+                const res = await fetch(`${GAS_URL}?action=getShopList`);
+                const data = await res.json();
+                return data.success ? data.shops : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // 顯示分店選擇視窗
+        async function showBranchModal(staff) {
+            currentStaff = staff;
+            const branches = await getBranchList();
+            
+            document.getElementById('staffInfo').textContent = `👤 歡迎回來，${staff.name}`;
+            
+            const select = document.getElementById('branchSelect');
+            select.innerHTML = '<option value="">-- 請選擇分店 --</option>';
+            branches.forEach(b => {
+                select.innerHTML += `<option value="${b}">${b}</option>`;
+            });
+            
+            document.getElementById('branchModal').style.display = 'flex';
+        }
+
+        // ✅ 確認分店（帶入 loginId 和 deviceId）
+        function confirmBranch() {
+            const branch = document.getElementById('branchSelect').value;
+            if (!branch) {
+                showError('⚠️ 請一定要選擇分店才能進入系統！');
+                return;
+            }
+
+            // 跳轉並傳遞 姓名 + 分店 + loginId + deviceId
+            const url = `staff.html?name=${encodeURIComponent(currentStaff.name)}&branch=${encodeURIComponent(branch)}&loginId=${encodeURIComponent(currentStaff.loginId)}&role=${encodeURIComponent(currentStaff.role || '')}`;
+            window.location.href = url;
         }
         
         async function handleLogin(event) {
@@ -254,8 +386,9 @@
             const keyword = document.getElementById('keyword').value.trim();
             const loginBtn = document.getElementById('loginBtn');
             const errorMsgDiv = document.getElementById('errorMsg');
-            const successMsgDiv = document.getElementById('successMsg');
-            
+            const deviceId = getDeviceId();
+const deviceName = getDeviceName();
+const verifyUrl = `${GAS_URL}?action=staffLogin&userId=${encodeURIComponent(userId)}&keyword=${encodeURIComponent(keyword)}&deviceId=${encodeURIComponent(deviceId)}&deviceName=${encodeURIComponent(deviceName)}`;
             if (!userId || !keyword) {
                 showError('請輸入完整的帳號和密碼');
                 return;
@@ -264,25 +397,27 @@
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="spinner"></span> 驗證中...';
             errorMsgDiv.style.display = 'none';
-            successMsgDiv.style.display = 'none';
             
             try {
-                const verifyUrl = `${GAS_URL}?action=staffLogin&userId=${encodeURIComponent(userId)}&keyword=${encodeURIComponent(keyword)}`;
+                // ✅ 加入 deviceId 參數
+                const deviceId = getDeviceId();
+                const verifyUrl = `${GAS_URL}?action=staffLogin&userId=${encodeURIComponent(userId)}&keyword=${encodeURIComponent(keyword)}&deviceId=${encodeURIComponent(deviceId)}`;
                 const response = await fetch(verifyUrl);
                 const result = await response.json();
                 
                 if (result.success) {
-                    successMsgDiv.textContent = `✅ 歡迎回來，${result.name}！即將進入系統...`;
-                    successMsgDiv.style.display = 'block';
+                    // 儲存完整的登入資訊（包含 loginId）
+                    currentStaff = {
+                        name: result.name,
+                        role: result.role || "夥伴",
+                        loginId: result.loginId || userId
+                    };
                     
-                    loginBtn.innerHTML = '✅ 驗證成功，進入系統...';
+                    // 驗證通過 → 強制彈窗選擇分店
+                    await showBranchModal(currentStaff);
                     
-                    const staffPageUrl = `staff.html?name=${encodeURIComponent(result.name)}&branch=${encodeURIComponent(result.branch || '')}&role=${encodeURIComponent(result.role || '')}`;
-                    
-                    setTimeout(() => {
-                        window.location.href = staffPageUrl;
-                    }, 800);
-                    
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '登入系統';
                 } else {
                     showError(result.message || '帳號或密碼錯誤，請重新輸入');
                     loginBtn.disabled = false;
@@ -304,7 +439,7 @@
             
             setTimeout(() => {
                 errorMsgDiv.style.display = 'none';
-            }, 5000);
+            }, 3000);
         }
         
         document.getElementById('userId').focus();
