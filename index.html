@@ -63,6 +63,7 @@
         .code-container { display: flex; justify-content: center; align-items: center; min-height: 200px; margin-bottom: 12px; }
         #qrcode { width: 55vw; height: 55vw; max-width: 220px; max-height: 220px; }
         .code-hint { font-size: 12px; color: #999; margin-top: 12px; }
+        .countdown-timer { font-size: 14px; color: #d00; font-weight: bold; margin-top: 8px; }
 
         .brand-actions { display: flex; gap: 10px; margin: 0 20px 20px; }
         .event-brand-btn { flex: 1; padding: 15px; border-radius: 16px; background: var(--brand-btn); color: #fff; font-weight: bold; font-size: 4.2vw; border: none; cursor: pointer; }
@@ -134,7 +135,7 @@
         <div style="text-align: center; display: flex; flex-direction: column; align-items: center; flex: 1.2;">
             <div id="pointsDisplay" style="font-size: 10vw; max-font-size: 38px; font-weight: bold; color: var(--primary); line-height: 1.2;">--</div>
             
-            <button onclick="fetchData(true)" style="margin-top: 8px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 2px 10px; color: #888; font-size: 12px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+            <button onclick="refreshAll()" style="margin-top: 8px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 2px 10px; color: #888; font-size: 12px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
                 🔄 重新整理
             </button>
         </div>
@@ -145,6 +146,7 @@
             <img id="qrcode">
         </div>
         <div class="code-hint">結帳時請出示此碼，結帳後離開櫃台恕不補集點</div>
+        <div class="countdown-timer" id="countdownTimer">⏱️ 有效期限：60 秒後失效</div>
     </div>
 
     <div class="brand-actions">
@@ -196,6 +198,10 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbw6VCyK1j0rQfIpZlW-TIw7JWDHRuSIxGGSR8YDh0z2AmBlMbLdLbLdlVh5gRHb-0Knlw/exec";
 const LIFF_ID = "2009625010-p9sVIUWe";
 let userId = '', userData = null, currentFrom = 'omp', referrerParam = '', userToken = '', pendingCheckboxId = null;
+
+// QR Code 倒數計時相關變數
+let countdownInterval = null;
+let currentCountdown = 60;
 
 function showToast(msg) { let t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
 function openSideMenu() { document.getElementById('sideMenu').classList.add('open'); document.getElementById('sideMenuOverlay').classList.add('show'); }
@@ -378,13 +384,47 @@ function openShopInfo() {
     openModal(html);
 }
 
+// 停止倒數計時
+function stopCountdown() {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+}
+
+// 開始倒數計時
+function startCountdown(seconds) {
+    stopCountdown();
+    currentCountdown = seconds;
+    updateCountdownDisplay();
+    countdownInterval = setInterval(() => {
+        currentCountdown--;
+        updateCountdownDisplay();
+        if (currentCountdown <= 0) {
+            stopCountdown();
+            // 倒數歸零，自動刷新
+            refreshAll();
+        }
+    }, 1000);
+}
+
+// 更新倒數顯示
+function updateCountdownDisplay() {
+    const timerEl = document.getElementById('countdownTimer');
+    if (timerEl) {
+        timerEl.innerHTML = `⏱️ 有效期限：${currentCountdown} 秒後失效`;
+    }
+}
+
+// 產生 QR Code（使用動態金鑰）
 function generateMemberCode() {
     if (!userId || !userData?.shopKey) return;
-    const shopCode = userData.shopCode;   // "omp" 或 "swo"
-    const randomKey = userData.shopKey;   // 後端給的隨機金鑰
+    const shopCode = userData.shopCode;
+    const randomKey = userData.shopKey;
     const qrData = `${shopCode}_${randomKey}_${userId}`;
     const qrImg = document.getElementById('qrcode');
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`;
+    startCountdown(60);
 }
 
 function generateRegCode() {
@@ -393,6 +433,48 @@ function generateRegCode() {
     const shopCode = (currentFrom === 'so') ? 'swo' : 'omp';
     const codeData = `INV_${shopCode}_${referrerParam}`;
     q.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(codeData)}`;
+}
+
+// 🚀 快速重新整理（使用輕量 API）
+async function refreshAll() {
+    if (!userId) return;
+    const refreshBtn = document.querySelector('.asset-card button');
+    const originalText = refreshBtn.innerHTML;
+    refreshBtn.innerHTML = '🔄 更新中...';
+    refreshBtn.disabled = true;
+    
+    try {
+        const url = `${GAS_URL}?action=quickRefresh&userId=${encodeURIComponent(userId)}&from=${currentFrom}&t=${Date.now()}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (data.success) {
+            // 更新點數顯示
+            document.getElementById('pointsDisplay').innerText = data.points;
+            // 更新 userData 中的點數和金鑰
+            if (userData) {
+                userData.points = data.points;
+                userData.shopKey = data.shopKey;
+                userData.shopCode = data.shopCode;
+            }
+            // 重新產生 QR Code
+            if (userData) {
+                const qrData = `${data.shopCode}_${data.shopKey}_${userId}`;
+                const qrImg = document.getElementById('qrcode');
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`;
+                startCountdown(60);
+            }
+            showToast('✅ 資料已更新');
+        } else {
+            showToast('更新失敗，請稍後再試');
+        }
+    } catch(e) {
+        console.error("Refresh Error:", e);
+        showToast('網路錯誤，請稍後再試');
+    } finally {
+        refreshBtn.innerHTML = originalText;
+        refreshBtn.disabled = false;
+    }
 }
 
 async function initLiff() {
@@ -523,10 +605,10 @@ function openReferral() {
              </tr>
         `).join('');
     } else {
-        html += `<tr><td colspan="2" style="padding:10px 0; color:#999;">尚無好友加入</td></tr>`;
+        html += `<tr><td colspan="2" style="padding:10px 0; color:#999;">尚無好友加入<\/td><\/tr>`;
     }
     
-    html += `</tbody></table>`;
+    html += `</tbody><\/table>`;
     openModal(html);
 }
 
@@ -540,7 +622,7 @@ function openPointHistory() {
                 <th style="padding:6px 2px;">推　薦<br>回饋點</th>
                 <th style="padding:6px 2px;">當日<br>折抵</th>
                 <th style="padding:6px 2px;">過期<br>點數</th>
-             </tr>
+             <\/tr>
         </thead>
         <tbody>`;
     let totalExpiredSoon = 0;
@@ -552,15 +634,15 @@ function openPointHistory() {
             totalExpiredSoon += expiredNum;
             return `
             <tr style="border-top:1px solid #eee;">
-                <td style="padding:8px 2px;">${shortDate}</td>
-                <td style="padding:8px 2px;">${h.gain || ''}</td>
-                <td style="padding:8px 2px;">${h.share || ''}</td>
-                <td style="padding:8px 2px; color:#d00;">${h.spend || ''}</td>
-                <td style="padding:8px 2px; color:#d00;">${expiredValue}</td>
-             </tr>`;
+                <td style="padding:8px 2px;">${shortDate}<\/td>
+                <td style="padding:8px 2px;">${h.gain || ''}<\/td>
+                <td style="padding:8px 2px;">${h.share || ''}<\/td>
+                <td style="padding:8px 2px; color:#d00;">${h.spend || ''}<\/td>
+                <td style="padding:8px 2px; color:#d00;">${expiredValue}<\/td>
+              <\/tr>`;
         }).join('');
-    } else { html += `<tr><td colspan="5" style="padding:25px; color:#999;">目前尚無紀錄</td></tr>`; }
-    html += `</tbody></table><div style="margin-top:20px; padding:15px; background:#fff5f5; border-radius:12px; border:1px dashed #ab545a; text-align:center;">
+    } else { html += `<tr><td colspan="5" style="padding:25px; color:#999;">目前尚無紀錄<\/td><\/tr>`; }
+    html += `</tbody><\/table><div style="margin-top:20px; padding:15px; background:#fff5f5; border-radius:12px; border:1px dashed #ab545a; text-align:center;">
         <div style="font-size:14px; color:#666;">⏳ 即將過期點數 (近期)</div>
         <div style="font-size:24px; font-weight:900; color:#d00; margin-top:5px;">${totalExpiredSoon} <span style="font-size:14px;">點</span></div>
         <div style="font-size:11px; color:#999; margin-top:5px;">* 點數寶貴，記得趕快來店內折抵唷！ *</div>
